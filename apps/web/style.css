@@ -1,0 +1,22 @@
+*{box-sizing:border-box;font-family:Segoe UI,Arial,sans-serif}
+body{margin:0;background:#0f172a;color:#e2e8f0}
+header{background:#1e293b;padding:12px 20px;display:flex;gap:12px;align-items:center;position:sticky;top:0}
+header select{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:8px;padding:8px}
+button{background:#2563eb;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+button.ghost{background:#334155}
+main{padding:20px;max-width:1200px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px}
+.aktif{background:#14532d}.mendekati-expired,.due-soon{background:#713f12}.expired,.overdue,.low{background:#7f1d1d}.open{background:#1e40af}.completed{background:#14532d}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid #334155;padding:8px;text-align:left}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+#login{max-width:360px;margin:10vh auto;background:#1e293b;padding:24px;border-radius:12px}
+#login input{width:100%;margin:6px 0;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff}
+.hidden{display:none}
+.small{color:#94a3b8;font-size:13px}
+input,select,textarea{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:8px;padding:8px;margin:4px}
+form.card{margin:10px 0}
+.danger{background:#7f1d1d}
+.okbtn{background:#15803d}

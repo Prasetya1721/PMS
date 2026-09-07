@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dashboard PMS Kapal</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="login">
+<h2>Dashboard PMS Kapal</h2>
+<p class="small">Demo: superadmin / fleet / nakhoda / teknisi / hr / finance — password: pms-demo</p>
+<input id="u" value="superadmin" />
+<input id="p" type="password" value="pms-demo" />
+<button onclick="login()">Masuk</button>
+<p id="err" class="small"></p>
+</div>
+<div id="app" class="hidden">
+<header><b>Dashboard PMS Kapal</b>
+<select id="shipSel" onchange="loadShip()"></select>
+<button class="ghost" onclick="loadFleet()">Fleet</button>
+<button class="ghost" onclick="runSched()">Jalankan Reminder</button>
+<button class="ghost" onclick="logout()">Keluar</button>
+</header>
+<main>
+<nav><button onclick="show('fleet')">Fleet</button><button onclick="show('kapal')">Per Kapal</button><button onclick="show('crew')">Crew</button><button onclick="show('dok')">Surat</button><button onclick="show('wo')">WO</button><button onclick="show('biaya')">Biaya</button><button onclick="show('notif')">Notifikasi</button><button onclick="show('kelola')">Kelola Data</button><button onclick="show('audit')">Audit Log</button></nav>
+<div id="c-fleet"></div><div id="c-kapal"></div><div id="c-crew"></div><div id="c-dok"></div><div id="c-wo"></div><div id="c-biaya"></div><div id="c-notif"></div><div id="c-kelola"></div><div id="c-audit"></div>
+</main>
+</div>
+<script src="app.js"></script>
+<script src="manage.js"></script>
+</body>
+</html>
