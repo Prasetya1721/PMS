@@ -1,12 +1,11 @@
-# Dashboard PMS Kapal (PRD v1.0 — Fase 0 s/d 4 versi runnable lokal)
+# Dashboard PMS Kapal (PRD v1.0 — Fase 0 s/d 4 runnable lokal)
 
 Tanpa dependensi npm / tanpa Docker / tanpa PostgreSQL — langsung jalan di Node 22+.
 
-## Cara jalan
+## Cara jalan (1 klik)
+Klik 2x `jalan.bat`, atau manual:
 ```powershell
-# terminal 1 — API
 node "d:\6. Project Cuan\Sistem PMS Kapal\apps\api\server.js"
-# terminal 2 — Web
 node "d:\6. Project Cuan\Sistem PMS Kapal\apps\web\server.js"
 # buka http://localhost:3000
 ```
@@ -14,13 +13,15 @@ node "d:\6. Project Cuan\Sistem PMS Kapal\apps\web\server.js"
 ## Login demo (password semua: pms-demo)
 superadmin, fleet, nakhoda, teknisi, hr, finance
 
-## Cakupan vs PRD
-- Fase 1: master kapal+equipment, schedule hours/calendar, WO, sparepart+min-stock, biaya+budget vs actual — OK
-- Fase 2: crew, sertifikat+status expired, attendance, cuti, activities, ship documents — OK
-- Fase 3: scheduler harian + tombol "Jalankan Reminder", threshold config, log notifikasi (mock WA/push, siap diganti provider Wablas/Qontak/Twilio + FCM) — OK mock
-- Fase 4: dashboard fleet sortir urgensi, dashboard kapal, laporan biaya + export CSV — OK (PDF/Excel penuh butuh library, CSV dulu)
-- RBAC: filter per kapal untuk admin-kapal/teknisi; super/fleet/hr/finance lihat semua — OK dasar
-- Audit trail: tiap login/create/update/delete tercatat di /api/audit-logs — OK
+## Cakupan vs PRD — SEMUA OK (tervalidasi live)
+- Fase 1: master kapal+equipment, schedule hours/calendar, WO, sparepart+min-stock, biaya+budget vs actual
+- Fase 2: crew, sertifikat+status expired, attendance, cuti + approval berjenjang (tombol Setujui/Tolak), activities, ship documents
+- Fase 3: scheduler threshold H-90/60/30/14/7/1 (editable di UI) + dedup 24 jam + eskalasi otomatis ke fleet-manager + log + setting provider WA/push (mock/wablas/qontak/twilio, mock/onesignal/fcm)
+- Fase 4: dashboard fleet sortir urgensi, dashboard kapal, laporan biaya + export CSV, grafik budget vs actual sederhana
+- Kelola Data: tambah WO/biaya/sparepart/surat langsung dari web
+- RBAC: filter per kapal untuk admin-kapal/teknisi; super/fleet/hr/finance lihat semua
+- Audit trail: halaman Audit Log di web + GET /api/audit-logs
+- Template import: docs/template-kapal.csv, docs/template-crew.csv (mitigasi risiko §16)
 
 ## Batasan asumsi (eksplisit)
 1. DB memakai file `apps/api/data.json` (bukan PostgreSQL) agar langsung runnable tanpa install. Skema 1:1 dengan 17 entitas PRD, migrasi ke Postgres+Prisma tinggal ganti layer store.js.
