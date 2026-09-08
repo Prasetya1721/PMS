@@ -276,11 +276,15 @@ export async function handleRequest(req, res) {
   }
   return send(res, 404, { error: 'Endpoint tidak dikenal' });
 }
-export const server = http.createServer(handleRequest);
-const isMain = process.argv[1] && (
-  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
-  path.resolve(process.argv[1]) === path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../server.js'))
-);
-if (isMain && !process.env.VERCEL) {
-  server.listen(PORT, () => console.log('PMS server jalan di http://localhost:' + PORT));
+let server = null;
+if (!process.env.VERCEL) {
+  server = http.createServer(handleRequest);
+  const isMain = process.argv[1] && (
+    fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
+    path.resolve(process.argv[1]) === path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../server.js'))
+  );
+  if (isMain) {
+    server.listen(PORT, () => console.log('PMS server jalan di http://localhost:' + PORT));
+  }
 }
+export { server };

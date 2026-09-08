@@ -558,6 +558,22 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1788873515374",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T13:18:35.374Z"
+    },
+    {
+      "id": "log-1788873488635",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T13:18:08.635Z"
+    },
+    {
       "id": "log-1788873101739",
       "user": "superadmin",
       "action": "login",
