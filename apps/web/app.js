@@ -2,7 +2,11 @@
    PMS KAPAL — app.js (v1.1 Modernized UI/UX)
    ══════════════════════════════════════════════════════════════════ */
 
-const API = 'http://localhost:4000/api';
+const API = window.__API_URL__ || (
+  window.location.hostname === 'localhost' && window.location.port === '3000'
+    ? 'http://localhost:4000/api'
+    : (window.location.origin + '/api')
+);
 let token = localStorage.getItem('pms-token');
 let currentUser = null;
 let allShips = [];

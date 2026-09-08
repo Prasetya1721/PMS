@@ -1,4 +1,7 @@
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadDb, saveDb, audit, expiryStatus } from './store.js';
 import { PORT, send, readBody, auth, runScheduler, loginHandler, shipFilter, fleetDashboard, canWrite, kpiReport, uid } from './lib.js';
 const db = loadDb();
@@ -23,6 +26,15 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const seg = url.pathname.split('/').filter(Boolean);
   const q = url.searchParams;
+  if (seg[0] !== 'api') {
+    const webRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '../web');
+    let f = path.join(webRoot, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+    if (f.startsWith(webRoot) && fs.existsSync(f) && fs.statSync(f).isFile()) {
+      const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
+      res.writeHead(200, { 'Content-Type': types[path.extname(f)] || 'text/plain' });
+      return fs.createReadStream(f).pipe(res);
+    }
+  }
   if (seg[0] === 'api' && seg[1] === 'health') return send(res, 200, { ok: true, time: new Date().toISOString() });
   if (seg[0] === 'api' && seg[1] === 'login') { const r = loginHandler(await readBody(req)); return r ? send(res, 200, r) : send(res, 401, { error: 'Username/password salah' }); }
   if (seg[0] === 'api' && seg[1] === 'scheduler' && seg[2] === 'run') { const logs = await runScheduler(); return send(res, 200, { checked: true, sent: logs.length, logs: logs.slice(0, 20) }); }

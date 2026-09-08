@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  pms-kapal:
+    build: .
+    container_name: pms-kapal-app
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      # Mount file data database agar data tersimpan permanen
+      - ./apps/api/data.json:/app/apps/api/data.json
