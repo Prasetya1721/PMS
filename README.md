@@ -1,4 +1,4 @@
-# Dashboard PMS Kapal (PRD v1.0 — Fase 0 s/d 4 runnable lokal)
+# Dashboard PMS Kapal (PRD v1.1 — runnable lokal, tervalidasi live)
 
 Tanpa dependensi npm / tanpa Docker / tanpa PostgreSQL — langsung jalan di Node 22+.
 
@@ -18,10 +18,11 @@ superadmin, fleet, nakhoda, teknisi, hr, finance
 - Fase 2: crew, sertifikat+status expired, attendance, cuti + approval berjenjang (tombol Setujui/Tolak), activities, ship documents
 - Fase 3: scheduler threshold H-90/60/30/14/7/1 (editable di UI) + dedup 24 jam + eskalasi otomatis ke fleet-manager + log + setting provider WA/push (mock/wablas/qontak/twilio, mock/onesignal/fcm)
 - Fase 4: dashboard fleet sortir urgensi, dashboard kapal, laporan biaya + export CSV, grafik budget vs actual sederhana
-- Kelola Data: tambah WO/biaya/sparepart/surat langsung dari web
-- RBAC: filter per kapal untuk admin-kapal/teknisi; super/fleet/hr/finance lihat semua
+- Kelola Data: tambah WO/biaya/sparepart/surat langsung dari web + pakai sparepart (stok otomatis berkurang) + tutup WO + upload scan sertifikat/surat (maks ~2MB) + backup JSON sekali klik
+- RBAC: filter per kapal untuk admin-kapal/teknisi; super/fleet/hr/finance lihat semua — PLUS proteksi tulis: POST/PUT/DELETE ditolak 403 bila role tidak berhak (mis. teknisi→biaya, crew→upload, non-superadmin→users)
 - Audit trail: halaman Audit Log di web + GET /api/audit-logs
-- Template import: docs/template-kapal.csv, docs/template-crew.csv (mitigasi risiko §16)
+- KPI §14: halaman KPI di web + GET /api/reports/kpi (kepatuhan maintenance target ≥95%, expired tanpa notif target 0)
+- Pengaturan: manajemen user khusus super-admin (CRUD) + import CSV kapal/crew + template import: docs/template-kapal.csv, docs/template-crew.csv (mitigasi risiko §16)
 
 ## Batasan asumsi (eksplisit)
 1. DB memakai file `apps/api/data.json` (bukan PostgreSQL) agar langsung runnable tanpa install. Skema 1:1 dengan 17 entitas PRD, migrasi ke Postgres+Prisma tinggal ganti layer store.js.

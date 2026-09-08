@@ -20,7 +20,7 @@ async function boot() {
   document.getElementById('login').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('shipSel').innerHTML = ships.map((s) => '<option value="' + s.id + '">' + s.name + '</option>').join('');
-  loadFleet(); loadShip(); renderKelola();
+  loadFleet(); loadShip(); renderKelola(); loadKPI(); renderPengaturan();
 }
 async function loadFleet() {
   const j = await api('/dashboard/fleet');
@@ -42,6 +42,17 @@ async function loadShip() {
   document.getElementById('c-notif').innerHTML = '<h2>Log Notifikasi (' + nl.length + ')</h2><table>' + nl.slice(0, 30).map((n) => '<tr><td>' + (n.at || '').slice(0, 19).replace('T', ' ') + '</td><td>' + n.targetType + ' -&gt; ' + n.target + '</td><td>' + n.channel + '</td><td>' + n.status + '</td></tr>').join('') + '</table>';
 }
 async function runSched() { const j = await api('/scheduler/run', { method: 'POST' }); alert('Reminder mock terkirim: ' + j.sent); loadShip(); }
+async function loadKPI() {
+  try {
+    const k = await api('/reports/kpi');
+    document.getElementById('c-kpi').innerHTML = '<h2>KPI Keberhasilan (PRD §14)</h2><div class="grid">'
+      + '<div class="card">Kepatuhan Maintenance<br><b>' + k.kepatuhanMaintenance + '%</b> <span class="small">(target ≥ ' + k.targetMaintenance + '%)</span><br><span class="small">' + k.doneOnTime + '/' + k.totalWO + ' WO selesai</span></div>'
+      + '<div class="card">Sertifikat expired tanpa notif<br><b>' + k.sertifikatExpiredTanpaNotif + '</b> <span class="small">(target ' + k.targetNol + ')</span></div>'
+      + '<div class="card">Surat expired tanpa notif<br><b>' + k.suratExpiredTanpaNotif + '</b> <span class="small">(target ' + k.targetNol + ')</span></div>'
+      + '<div class="card">Total notifikasi terkirim<br><b>' + k.totalNotif + '</b></div></div>';
+  } catch (e) { document.getElementById('c-kpi').innerHTML = '<h2>KPI</h2><p class="small">' + e.message + '</p>'; }
+}
 async function exportCSV(id) { const j = await api('/reports/costs?shipId=' + id); const csv = 'tanggal,jenis,catatan,nominal\n' + j.items.map((c) => (c.date || '').slice(0, 10) + ',' + c.kind + ',"' + (c.note || '') + '",' + c.amount).join('\n'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'biaya-' + id + '.csv'; a.click(); }
+async function backupDB() { const j = await api('/backup'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' })); a.download = 'pms-backup-' + j.at.slice(0, 10) + '.json'; a.click(); }
 function show(id) { const el = document.getElementById('c-' + id); if (el) el.scrollIntoView({ behavior: 'smooth' }); }
 if (token) boot();

@@ -24,14 +24,27 @@ function seed() {
     shipDocuments: [{ id: 'doc-1', shipId: 'ship-1', type: 'SMC', issuedAt: iso(now - 800 * D), expiredAt: iso(now + 55 * D) }, { id: 'doc-2', shipId: 'ship-1', type: 'Class Certificate', issuedAt: iso(now - 900 * D), expiredAt: iso(now + 6 * D) }],
     notificationConfigs: [{ id: 'nc-1', targetType: 'crew-certificate', thresholds: [90, 60, 30, 14, 7, 1] }, { id: 'nc-2', targetType: 'ship-document', thresholds: [90, 60, 30, 14, 7, 1] }, { id: 'nc-3', targetType: 'maintenance', thresholds: [14, 7, 1] }],
     notificationLogs: [],
-    auditLogs: []
+    auditLogs: [],
+    attachments: [],
+    provider: { wa: 'mock', push: 'mock' }
   };
 }
 export function loadDb() {
-  if (!fs.existsSync(DB)) { const d = seed(); fs.writeFileSync(DB, JSON.stringify(d, null, 2)); return d; }
-  return JSON.parse(fs.readFileSync(DB, 'utf8'));
+  if (globalThis.__pmsDb) return globalThis.__pmsDb;
+  let d;
+  if (!fs.existsSync(DB)) { d = seed(); fs.writeFileSync(DB, JSON.stringify(d, null, 2)); }
+  else {
+    d = JSON.parse(fs.readFileSync(DB, 'utf8'));
+    if (!d.attachments) d.attachments = [];
+    if (!d.sparepartUsages) d.sparepartUsages = [];
+    if (!d.provider) d.provider = { wa: 'mock', push: 'mock' };
+    if (!d.notificationLogs) d.notificationLogs = [];
+    if (!d.auditLogs) d.auditLogs = [];
+  }
+  globalThis.__pmsDb = d;
+  return d;
 }
-export function saveDb(db) { fs.writeFileSync(DB, JSON.stringify(db, null, 2)); }
+export function saveDb(db) { globalThis.__pmsDb = db; fs.writeFileSync(DB, JSON.stringify(db, null, 2)); }
 export function audit(db, user, action, entity, entityId) {
   db.auditLogs.unshift({ id: 'log-' + Date.now(), user: user?.username || 'system', action, entity, entityId, at: new Date().toISOString() });
   if (db.auditLogs.length > 500) db.auditLogs.length = 500;

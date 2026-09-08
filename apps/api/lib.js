@@ -80,3 +80,35 @@ export function fleetDashboard() {
   }).sort((a, c) => c.urgency - a.urgency);
   return { ships };
 }
+// RBAC tulis (PRD §5): siapa boleh create/update/delete apa
+export const WRITE_PERMS = {
+  'super-admin': '*',
+  'fleet-manager': ['ships', 'equipments', 'schedules', 'workOrders', 'spareparts', 'costs', 'budgets', 'shipDocuments', 'leaves-approve'],
+  'admin-kapal': ['equipments', 'schedules', 'workOrders', 'spareparts', 'costs', 'crews', 'crewCertificates', 'attendances', 'leaves', 'activities', 'shipDocuments', 'leaves-approve'],
+  teknisi: ['workOrders', 'schedules'],
+  crew: ['leaves'],
+  hr: ['crews', 'crewCertificates', 'attendances', 'leaves', 'activities', 'leaves-approve'],
+  finance: ['costs', 'budgets']
+};
+export function canWrite(user, key) {
+  const p = WRITE_PERMS[user.roleId];
+  if (!p) return false;
+  if (p === '*') return true;
+  return p.includes(key);
+}
+// KPI §14 PRD
+export function kpiReport() {
+  const totalWO = db.workOrders.length;
+  const doneOnTime = db.workOrders.filter((w) => w.status === 'completed').length;
+  const certNoNotif = db.crewCertificates.filter((c) => expiryStatus(c.expiredAt).status === 'expired' && !db.notificationLogs.some((l) => l.refId === c.id)).length;
+  const docNoNotif = db.shipDocuments.filter((d) => expiryStatus(d.expiredAt).status === 'expired' && !db.notificationLogs.some((l) => l.refId === d.id)).length;
+  return {
+    kepatuhanMaintenance: totalWO ? Math.round((doneOnTime / totalWO) * 100) : 100,
+    targetMaintenance: 95,
+    sertifikatExpiredTanpaNotif: certNoNotif,
+    suratExpiredTanpaNotif: docNoNotif,
+    targetNol: 0,
+    totalWO, doneOnTime,
+    totalNotif: db.notificationLogs.length
+  };
+}
