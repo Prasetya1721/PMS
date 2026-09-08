@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import net from 'node:net';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const SEED_DATA = {
   "roles": [
@@ -1165,6 +1166,44 @@ export async function handleRequest(req, res) {
   const url = new URL(req.url, 'http://x');
   const seg = url.pathname.split('/').filter(Boolean);
   const q = url.searchParams;
+  if (seg[0] !== 'api') {
+    const pubCandidates = [
+      path.join(process.cwd(), 'public'),
+      path.join(process.cwd(), 'apps/web'),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../public'),
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../apps/web')
+    ];
+    let filePath = null;
+    const reqPath = req.url === '/' ? 'index.html' : req.url.split('?')[0].replace(/^\/+/, '');
+    for (const base of pubCandidates) {
+      const candidate = path.join(base, reqPath);
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        filePath = candidate;
+        break;
+      }
+    }
+    if (filePath) {
+      const types = {
+        '.html': 'text/html; charset=utf-8',
+        '.js': 'text/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon'
+      };
+      res.writeHead(200, { 'Content-Type': types[path.extname(filePath)] || 'text/plain' });
+      return res.end(fs.readFileSync(filePath));
+    }
+    for (const base of pubCandidates) {
+      const idx = path.join(base, 'index.html');
+      if (fs.existsSync(idx) && fs.statSync(idx).isFile()) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(fs.readFileSync(idx));
+      }
+    }
+  }
 
   if (seg[0] === 'api' && seg[1] === 'health') return send(res, 200, { ok: true, platform: 'vercel-serverless', time: new Date().toISOString() });
   if (seg[0] === 'api' && seg[1] === 'login') { const r = loginHandler(await readBody(req)); return r ? send(res, 200, r) : send(res, 401, { error: 'Username/password salah' }); }
@@ -1420,8 +1459,6 @@ export default async function handler(req, res) {
       parsed.searchParams.delete('__pms_route');
       const qs = parsed.searchParams.toString();
       req.url = '/api' + (pmsRoute ? ('/' + pmsRoute.replace(/^\/+/, '')) : '') + (qs ? ('?' + qs) : '');
-    } else if (!req.url.startsWith('/api')) {
-      req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
     }
 
     await handleRequest(req, res);
