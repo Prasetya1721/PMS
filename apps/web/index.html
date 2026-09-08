@@ -1,32 +1,360 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Dashboard PMS Kapal</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard PMS Kapal — Planned Maintenance System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="Sistem Manajemen Perawatan Kapal Terpadu — Planned Maintenance System Armada Kapal">
 </head>
 <body>
-<div id="login">
-<h2>Dashboard PMS Kapal</h2>
-<p class="small">Demo: superadmin / fleet / nakhoda / teknisi / hr / finance — password: pms-demo</p>
-<input id="u" value="superadmin" />
-<input id="p" type="password" value="pms-demo" />
-<button onclick="login()">Masuk</button>
-<p id="err" class="small"></p>
+
+<!-- ── Toast Notifications Container ────────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- ── Universal Modal Container ─────────────────────────────────── -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="handleOverlayClick(event)">
+  <div id="modal-box" class="modal-box" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span id="modal-icon" class="modal-icon">⚙️</span>
+        <h3 id="modal-title" class="modal-title">Judul Modal</h3>
+      </div>
+      <button class="modal-close-btn" onclick="closeModal()" title="Tutup (Esc)">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body">
+      <!-- Konten form modal diisi dinamis oleh JS -->
+    </div>
+  </div>
 </div>
-<div id="app" class="hidden">
-<header><b>Dashboard PMS Kapal</b>
-<select id="shipSel" onchange="loadShip()"></select>
-<button class="ghost" onclick="loadFleet()">Fleet</button>
-<button class="ghost" onclick="runSched()">Jalankan Reminder</button>
-<button class="ghost" onclick="logout()">Keluar</button>
-</header>
-<main>
-<nav><button onclick="show('fleet')">Fleet</button><button onclick="show('kapal')">Per Kapal</button><button onclick="show('crew')">Crew</button><button onclick="show('dok')">Surat</button><button onclick="show('wo')">WO</button><button onclick="show('biaya')">Biaya</button><button onclick="show('notif')">Notifikasi</button><button onclick="show('kpi')">KPI</button><button onclick="show('kelola')">Kelola Data</button><button onclick="show('pengaturan')">Pengaturan</button><button onclick="show('audit')">Audit Log</button></nav>
-<div id="c-fleet"></div><div id="c-kapal"></div><div id="c-crew"></div><div id="c-dok"></div><div id="c-wo"></div><div id="c-biaya"></div><div id="c-notif"></div><div id="c-kpi"></div><div id="c-kelola"></div><div id="c-pengaturan"></div><div id="c-audit"></div>
-</main>
+
+<!-- ── Login View ───────────────────────────────────────────────── -->
+<div id="login" class="login-wrapper">
+  <div class="login-backdrop-glow"></div>
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="brand-badge-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="3"></circle>
+          <line x1="12" y1="22" x2="12" y2="8"></line>
+          <path d="M5 12H2a10 10 0 0 0 20 0h-3"></path>
+        </svg>
+      </div>
+      <h2>PMS KAPAL</h2>
+      <span class="brand-tag">Planned Maintenance System v1.1</span>
+    </div>
+
+    <form class="login-form" onsubmit="event.preventDefault(); login();">
+      <div class="form-group">
+        <label for="u" class="form-label">Username</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">👤</span>
+          <input id="u" class="form-input" placeholder="Masukkan username" value="superadmin" autocomplete="username" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="p" class="form-label">Password</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">🔒</span>
+          <input id="p" type="password" class="form-input" placeholder="Masukkan password" value="pms-demo" autocomplete="current-password" required />
+        </div>
+      </div>
+
+      <button id="btn-login" type="submit" class="btn btn-primary btn-block">
+        <span>Masuk ke Sistem</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <p id="err" class="login-error"></p>
+    </form>
+
+    <div class="demo-accounts-card">
+      <div class="demo-accounts-title">
+        <span>🔑 Akun Demo (password: <code>pms-demo</code>)</span>
+      </div>
+      <div class="demo-chips-grid">
+        <button type="button" class="demo-chip" onclick="quickFillUser('superadmin')">
+          <span class="chip-dot dot-purple"></span>
+          <b>superadmin</b>
+          <span class="chip-desc">Full Akses</span>
+        </button>
+        <button type="button" class="demo-chip" onclick="quickFillUser('fleet')">
+          <span class="chip-dot dot-blue"></span>
+          <b>fleet</b>
+          <span class="chip-desc">Fleet Manager</span>
+        </button>
+        <button type="button" class="demo-chip" onclick="quickFillUser('nakhoda')">
+          <span class="chip-dot dot-teal"></span>
+          <b>nakhoda</b>
+          <span class="chip-desc">Kapten Kapal</span>
+        </button>
+        <button type="button" class="demo-chip" onclick="quickFillUser('teknisi')">
+          <span class="chip-dot dot-amber"></span>
+          <b>teknisi</b>
+          <span class="chip-desc">Maintenance</span>
+        </button>
+        <button type="button" class="demo-chip" onclick="quickFillUser('hr')">
+          <span class="chip-dot dot-green"></span>
+          <b>hr</b>
+          <span class="chip-desc">Personalia</span>
+        </button>
+        <button type="button" class="demo-chip" onclick="quickFillUser('finance')">
+          <span class="chip-dot dot-emerald"></span>
+          <b>finance</b>
+          <span class="chip-desc">Keuangan</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- ── Main Application Shell ───────────────────────────────────── -->
+<div id="app" class="app-shell hidden">
+
+  <!-- ── Sidebar Navigation ─────────────────────────────────────── -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="3"></circle>
+            <line x1="12" y1="22" x2="12" y2="8"></line>
+            <path d="M5 12H2a10 10 0 0 0 20 0h-3"></path>
+          </svg>
+        </div>
+        <div class="sidebar-brand-text">
+          <span class="brand-title">PMS KAPAL</span>
+          <span class="brand-subtitle">Planned Maintenance</span>
+        </div>
+      </div>
+      <button class="sidebar-close-mobile" onclick="toggleSidebar(false)">✕</button>
+    </div>
+
+    <div class="sidebar-nav-scroll">
+      <!-- Section: Ringkasan -->
+      <div class="nav-group-label">Ringkasan</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="fleet" onclick="show('fleet')">
+          <span class="nav-icon">🚢</span>
+          <span class="nav-text">Fleet Overview</span>
+          <span id="badge-nav-fleet" class="nav-badge hidden">0</span>
+        </button>
+        <button class="nav-item" data-view="kpi" onclick="show('kpi')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">KPI Kepatuhan</span>
+        </button>
+      </nav>
+
+      <!-- Section: Armada & Perawatan -->
+      <div class="nav-group-label">Armada & Kapal</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="kapal" onclick="show('kapal')">
+          <span class="nav-icon">⚓</span>
+          <span class="nav-text">Kondisi Kapal</span>
+        </button>
+        <button class="nav-item" data-view="wo" onclick="show('wo')">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-text">Work Orders</span>
+          <span id="badge-nav-wo" class="nav-badge nav-badge-warning hidden">0</span>
+        </button>
+        <button class="nav-item" data-view="sparepart" onclick="show('sparepart')">
+          <span class="nav-icon">📦</span>
+          <span class="nav-text">Spareparts & Stok</span>
+          <span id="badge-nav-part" class="nav-badge nav-badge-danger hidden">0</span>
+        </button>
+        <button class="nav-item" data-view="dok" onclick="show('dok')">
+          <span class="nav-icon">📄</span>
+          <span class="nav-text">Surat & Sertifikat Kapal</span>
+          <span id="badge-nav-dok" class="nav-badge nav-badge-danger hidden">0</span>
+        </button>
+      </nav>
+
+      <!-- Section: Personalia -->
+      <div class="nav-group-label">Personalia</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="crew" onclick="show('crew')">
+          <span class="nav-icon">👥</span>
+          <span class="nav-text">Crew & Sertifikat</span>
+          <span id="badge-nav-crew" class="nav-badge nav-badge-warning hidden">0</span>
+        </button>
+        <button class="nav-item" data-view="cuti" onclick="show('cuti')">
+          <span class="nav-icon">🏖️</span>
+          <span class="nav-text">Pengajuan Cuti</span>
+          <span id="badge-nav-cuti" class="nav-badge hidden">0</span>
+        </button>
+      </nav>
+
+      <!-- Section: Keuangan -->
+      <div class="nav-group-label">Keuangan</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="biaya" onclick="show('biaya')">
+          <span class="nav-icon">💰</span>
+          <span class="nav-text">Biaya & Budget</span>
+        </button>
+      </nav>
+
+      <!-- Section: Sistem -->
+      <div class="nav-group-label">Sistem & Log</div>
+      <nav class="sidebar-nav">
+        <button class="nav-item" data-view="notif" onclick="show('notif')">
+          <span class="nav-icon">🔔</span>
+          <span class="nav-text">Log Notifikasi</span>
+        </button>
+        <button class="nav-item" data-view="audit" onclick="show('audit')">
+          <span class="nav-icon">📝</span>
+          <span class="nav-text">Audit Trail</span>
+        </button>
+        <button class="nav-item" data-view="pengaturan" onclick="show('pengaturan')">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Pengaturan Sistem</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Footer / Quick Status -->
+    <div class="sidebar-footer">
+      <div class="sync-status-indicator">
+        <span class="pulse-dot"></span>
+        <div class="sync-info">
+          <span class="sync-title">Sistem Terhubung</span>
+          <span id="sync-time" class="sync-sub">Lokal Node.js Ready</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Backdrop overlay for mobile sidebar -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop hidden" onclick="toggleSidebar(false)"></div>
+
+  <!-- ── Main Content Area ──────────────────────────────────────── -->
+  <div class="main-wrapper">
+
+    <!-- Top App Header Bar -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="menu-toggle-btn" onclick="toggleSidebar(true)" title="Menu Navigasi">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+
+        <div class="vessel-selector-card">
+          <span class="vessel-label">Kapal Aktif:</span>
+          <div class="vessel-select-wrap">
+            <select id="shipSel" onchange="onShipChange()" title="Ganti Kapal">
+              <option value="">— Memuat Kapal —</option>
+            </select>
+          </div>
+          <span id="header-ship-imo" class="ship-chip-imo">IMO —</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Action: Reminder Trigger -->
+        <button class="btn btn-header btn-ghost" onclick="runSched()" title="Jalankan scheduler pemeriksaan reminder sekarang">
+          <span class="btn-icon">⏰</span>
+          <span class="btn-text">Kirim Reminder</span>
+        </button>
+
+        <!-- Action: Quick Action Dropdown -->
+        <div class="quick-action-dropdown-wrap">
+          <button class="btn btn-header btn-primary" onclick="toggleQuickMenu()" id="btn-quick-action">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">Aksi Cepat</span>
+            <span class="arrow-down">▾</span>
+          </button>
+          <div id="quick-action-menu" class="dropdown-menu hidden">
+            <button onclick="openModalAddWO(); toggleQuickMenu(false);">🔧 Buat Work Order Baru</button>
+            <button onclick="openModalAddCost(); toggleQuickMenu(false);">💰 Catat Biaya Baru</button>
+            <button onclick="openModalAddPart(); toggleQuickMenu(false);">📦 Tambah Sparepart Baru</button>
+            <button onclick="openModalAddRequisition(); toggleQuickMenu(false);">🛒 Ajukan Pengadaan Part</button>
+            <button onclick="openModalUsePart(); toggleQuickMenu(false);">📤 Catat Pemakaian Part</button>
+            <button onclick="openModalAddActivity(); toggleQuickMenu(false);">🚨 Catat Kegiatan / Drill</button>
+            <button onclick="openModalAddLeave(); toggleQuickMenu(false);">🏖️ Ajukan Permohonan Cuti</button>
+            <button onclick="openModalAddKasbon(); toggleQuickMenu(false);">💵 Ajukan Kasbon Kru</button>
+            <button onclick="openModalAddCrewCert(); toggleQuickMenu(false);">🎓 Tambah Sertifikat Kru</button>
+            <button onclick="openModalAddDoc(); toggleQuickMenu(false);">📄 Tambah Surat Kapal</button>
+          </div>
+        </div>
+
+        <!-- User Profile Pill -->
+        <div class="user-profile-pill">
+          <div id="user-avatar" class="user-avatar">AD</div>
+          <div class="user-meta">
+            <span id="user-name" class="user-name">Administrator</span>
+            <span id="user-role" class="user-role-badge">Super Admin</span>
+          </div>
+          <button class="btn-logout" onclick="logout()" title="Keluar / Logout">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main View Switcher Container -->
+    <main class="content-body">
+
+      <!-- View: Fleet Overview -->
+      <section id="view-fleet" class="content-view active"></section>
+
+      <!-- View: Kondisi Kapal & Equipment -->
+      <section id="view-kapal" class="content-view"></section>
+
+      <!-- View: Work Orders -->
+      <section id="view-wo" class="content-view"></section>
+
+      <!-- View: Spareparts & Inventory -->
+      <section id="view-sparepart" class="content-view"></section>
+
+      <!-- View: Surat & Dokumen Kapal -->
+      <section id="view-dok" class="content-view"></section>
+
+      <!-- View: Crew & Sertifikat -->
+      <section id="view-crew" class="content-view"></section>
+
+      <!-- View: Pengajuan Cuti -->
+      <section id="view-cuti" class="content-view"></section>
+
+      <!-- View: Biaya & Budget -->
+      <section id="view-biaya" class="content-view"></section>
+
+      <!-- View: KPI Kepatuhan -->
+      <section id="view-kpi" class="content-view"></section>
+
+      <!-- View: Log Notifikasi -->
+      <section id="view-notif" class="content-view"></section>
+
+      <!-- View: Audit Log -->
+      <section id="view-audit" class="content-view"></section>
+
+      <!-- View: Pengaturan Sistem -->
+      <section id="view-pengaturan" class="content-view"></section>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <div class="footer-inner">
+        <span>Planned Maintenance System (PMS) Kapal • Standar Regulasi Maritim (ISM Code / IMO)</span>
+        <span class="footer-version">v1.1 Enterprise</span>
+      </div>
+    </footer>
+
+  </div>
+</div>
+
 <script src="app.js"></script>
 <script src="manage.js"></script>
 </body>

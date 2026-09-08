@@ -85,14 +85,18 @@
       "name": "KM Nusantara 01",
       "imo": "IMO-9012345",
       "type": "General Cargo",
-      "flag": "Indonesia"
+      "flag": "Indonesia",
+      "size": "",
+      "photo": ""
     },
     {
       "id": "ship-2",
       "name": "KM Nusantara 02",
       "imo": "IMO-9076543",
       "type": "Tanker",
-      "flag": "Indonesia"
+      "flag": "Indonesia",
+      "size": "",
+      "photo": ""
     }
   ],
   "equipments": [
@@ -101,21 +105,24 @@
       "shipId": "ship-1",
       "name": "Main Engine",
       "category": "Mesin",
-      "runningHours": 12500
+      "runningHours": 12500,
+      "parentId": null
     },
     {
       "id": "eq-2",
       "shipId": "ship-1",
       "name": "Genset 1",
       "category": "Genset",
-      "runningHours": 8300
+      "runningHours": 8300,
+      "parentId": null
     },
     {
       "id": "eq-3",
       "shipId": "ship-2",
       "name": "Main Engine",
       "category": "Mesin",
-      "runningHours": 9800
+      "runningHours": 9800,
+      "parentId": null
     }
   ],
   "schedules": [
@@ -211,7 +218,9 @@
       "name": "Ahmad Prasetyo",
       "rank": "Nakhoda",
       "phone": "6281110001",
-      "status": "onboard"
+      "status": "onboard",
+      "photo": "",
+      "contracts": []
     },
     {
       "id": "cr-2",
@@ -219,7 +228,9 @@
       "name": "Budi Santoso",
       "rank": "KKM",
       "phone": "6281110002",
-      "status": "onboard"
+      "status": "onboard",
+      "photo": "",
+      "contracts": []
     }
   ],
   "crewCertificates": [
@@ -242,9 +253,41 @@
     {
       "id": "a-1",
       "crewId": "cr-1",
+      "crewName": "Ahmad Prasetyo",
+      "rank": "Nakhoda",
       "shipId": "ship-1",
       "signOn": "2026-05-30T17:52:30.056Z",
-      "signOff": null
+      "signOff": null,
+      "status": "onboard",
+      "notes": "Penugasan aktif"
+    },
+    {
+      "id": "a-2",
+      "crewId": "cr-2",
+      "crewName": "Budi Santoso",
+      "rank": "KKM",
+      "shipId": "ship-1",
+      "signOn": "2026-05-30T17:52:30.056Z",
+      "signOff": null,
+      "status": "onboard",
+      "notes": "Penugasan aktif"
+    }
+  ],
+  "sparepartRequisitions": [
+    {
+      "id": "req-1",
+      "shipId": "ship-1",
+      "sparepartId": "sp-1",
+      "code": "SP-ME-001",
+      "name": "Fuel Injector",
+      "qty": 4,
+      "estimatedCost": 10000000,
+      "reason": "Stok kritis di bawah batas minimum (sisa 4 dari min 6)",
+      "requester": "Chief Engineer",
+      "status": "pending",
+      "createdAt": "2026-09-05T10:30:00.000Z",
+      "approvedBy": null,
+      "receivedAt": null
     }
   ],
   "leaves": [
@@ -259,13 +302,97 @@
       "approvedAt": "2026-09-07T18:08:54.669Z"
     }
   ],
+  "kasbon": [
+    {
+      "id": "kb-1",
+      "shipId": "ship-1",
+      "crewId": "cr-2",
+      "crewName": "Budi Santoso",
+      "rank": "KKM",
+      "amount": 3000000,
+      "date": "2026-09-04T10:00:00.000Z",
+      "reason": "Kebutuhan mendesak keluarga (biaya pendidikan anak di darat)",
+      "status": "disbursed",
+      "installmentMonths": 3,
+      "approvedBy": "superadmin",
+      "approvedAt": "2026-09-08T12:32:36.121Z",
+      "disbursedBy": "hr",
+      "disbursedAt": "2026-09-08T12:38:25.628Z",
+      "notes": "Pengajuan diajukan melalui Nakhoda"
+    },
+    {
+      "id": "kb-1788870756125",
+      "crewId": "crw-2",
+      "crewName": "Andi Wijaya",
+      "position": "Chief Engineer",
+      "shipId": "ship-1",
+      "amount": 2500000,
+      "installments": 2,
+      "monthlyDeduction": 1250000,
+      "requestDate": "2026-09-08",
+      "reason": "Kebutuhan darurat perbaikan rumah",
+      "status": "approved",
+      "approvedBy": "hr",
+      "approvedAt": "2026-09-08T12:38:23.321Z"
+    },
+    {
+      "id": "ka-mtsnl1tr",
+      "shipId": "ship-1",
+      "crewId": "cr-1",
+      "crewName": "Ahmad Prasetyo",
+      "rank": "Nakhoda",
+      "amount": 2500000,
+      "installmentMonths": 2,
+      "reason": "Bantuan biaya perbaikan darurat genteng bocor di rumah",
+      "notes": "Transfer via Bank Mandiri ke istri",
+      "status": "pending",
+      "date": "2026-09-08T12:36:04.085Z"
+    }
+  ],
   "activities": [
     {
       "id": "act-1",
       "shipId": "ship-1",
       "type": "drill",
-      "title": "Fire drill",
-      "date": "2026-08-31T17:52:30.056Z"
+      "title": "Fire Drill (Latihan Pemadaman Kebakaran Kamar Mesin)",
+      "date": "2026-08-31T17:52:30.056Z",
+      "pic": "Nakhoda & Chief Engineer",
+      "participants": "Seluruh Awak Kapal (14 orang)",
+      "result": "Respon tim 12 menit, breathing apparatus & hydrant berfungsi optimal",
+      "status": "completed"
+    },
+    {
+      "id": "act-2",
+      "shipId": "ship-1",
+      "type": "drill",
+      "title": "Abandon Ship Drill (Sekoci Penolong & Lifeboat)",
+      "date": "2026-08-25T10:00:00.056Z",
+      "pic": "Mualim I",
+      "participants": "Seluruh Kru Onboard (14 orang)",
+      "result": "Muster station tertib, peluncuran sekoci penolong lancar",
+      "status": "completed"
+    },
+    {
+      "id": "act-3",
+      "shipId": "ship-1",
+      "type": "meeting",
+      "title": "Safety Committee Meeting Bulanan",
+      "date": "2026-09-06T14:00:00.056Z",
+      "pic": "Safety Officer",
+      "participants": "Perwira & Perwakilan ABK",
+      "result": "Evaluasi APD kamar mesin, nihil kecelakaan kerja (Zero LTI)",
+      "status": "completed"
+    },
+    {
+      "id": "act-4",
+      "shipId": "ship-1",
+      "type": "training",
+      "title": "ISM Code & MARPOL Annex VI Compliance Training",
+      "date": "2026-09-15T09:00:00.056Z",
+      "pic": "DPA / Marine Superintendent",
+      "participants": "Kru Mesin & Navigasi",
+      "result": "Persiapan audit kepatuhan tahunan BKI/Statutoria",
+      "status": "scheduled"
     }
   ],
   "shipDocuments": [
@@ -431,6 +558,158 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1788871105628",
+      "user": "hr",
+      "action": "kasbon-disbursed",
+      "entity": "kasbon",
+      "entityId": "kb-1",
+      "at": "2026-09-08T12:38:25.628Z"
+    },
+    {
+      "id": "log-1788871103321",
+      "user": "hr",
+      "action": "kasbon-approved",
+      "entity": "kasbon",
+      "entityId": "kb-1788870756125",
+      "at": "2026-09-08T12:38:23.321Z"
+    },
+    {
+      "id": "log-1788870964095",
+      "user": "hr",
+      "action": "create",
+      "entity": "kasbon",
+      "entityId": "ka-mtsnl1tr",
+      "at": "2026-09-08T12:36:04.095Z"
+    },
+    {
+      "id": "log-1788870880825",
+      "user": "hr",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u5",
+      "at": "2026-09-08T12:34:40.825Z"
+    },
+    {
+      "id": "log-1788870756123",
+      "user": "superadmin",
+      "action": "create",
+      "entity": "kasbon",
+      "entityId": "kb-1788870756125",
+      "at": "2026-09-08T12:32:36.123Z"
+    },
+    {
+      "id": "log-1788870756121",
+      "user": "superadmin",
+      "action": "kasbon-approved",
+      "entity": "kasbon",
+      "entityId": "kb-1",
+      "at": "2026-09-08T12:32:36.121Z"
+    },
+    {
+      "id": "log-1788870756115",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:32:36.115Z"
+    },
+    {
+      "id": "log-1788870625770",
+      "user": "superadmin",
+      "action": "update",
+      "entity": "kasbon",
+      "entityId": "kb-1",
+      "at": "2026-09-08T12:30:25.770Z"
+    },
+    {
+      "id": "log-1788870625760",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:30:25.760Z"
+    },
+    {
+      "id": "log-1788870622302",
+      "user": "superadmin",
+      "action": "kasbon-approved",
+      "entity": "kasbon",
+      "entityId": "kb-1",
+      "at": "2026-09-08T12:30:22.302Z"
+    },
+    {
+      "id": "log-1788870622295",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:30:22.295Z"
+    },
+    {
+      "id": "log-1788870619031",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:30:19.031Z"
+    },
+    {
+      "id": "log-1788870531450",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:28:51.450Z"
+    },
+    {
+      "id": "log-1788870469674",
+      "user": "nakhoda",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u3",
+      "at": "2026-09-08T12:27:49.674Z"
+    },
+    {
+      "id": "log-1788870453826",
+      "user": "fleet",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u2",
+      "at": "2026-09-08T12:27:33.826Z"
+    },
+    {
+      "id": "log-1788870233961",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:23:53.961Z"
+    },
+    {
+      "id": "log-1788870062339",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:21:02.339Z"
+    },
+    {
+      "id": "log-1788870059836",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:20:59.836Z"
+    },
+    {
+      "id": "log-1788869167773",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:06:07.773Z"
+    },
+    {
       "id": "log-1788804599084",
       "user": "superadmin",
       "action": "update-provider",
@@ -533,5 +812,7 @@
     "updatedAt": "2026-09-07T18:09:59.084Z",
     "by": "superadmin"
   },
-  "attachments": []
+  "attachments": [],
+  "workOrderChecks": [],
+  "workOrderApprovals": []
 }
