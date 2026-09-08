@@ -10,15 +10,5 @@ if (!fs.existsSync(destDir)) {
   fs.mkdirSync(destDir, { recursive: true });
 }
 
-// Copy all files from apps/web to public
-const files = fs.readdirSync(srcDir);
-for (const file of files) {
-  const src = path.join(srcDir, file);
-  const dest = path.join(destDir, file);
-  if (fs.statSync(src).isFile()) {
-    fs.copyFileSync(src, dest);
-    console.log(`Copied ${file} -> public/${file}`);
-  }
-}
-
+fs.cpSync(srcDir, destDir, { recursive: true });
 console.log('Build completed successfully for Vercel deployment!');

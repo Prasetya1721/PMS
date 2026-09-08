@@ -61,11 +61,13 @@ export async function runScheduler(fast) {
   if (logs.length) { db.notificationLogs = [...logs, ...db.notificationLogs].slice(0, 500); saveDb(db); }
   return logs;
 }
-setInterval(() => runScheduler().catch(() => {}), 24 * 3600 * 1000);
-// Scheduler harian jam 06:00 + watchdog 5 menit (KPI §14: respon ≤5 menit)
-function msToNext6am() { const n = new Date(); const t = new Date(n); t.setHours(6, 0, 0, 0); if (t <= n) t.setDate(t.getDate() + 1); return t - n; }
-setTimeout(function dailyTick() { runScheduler().catch(() => {}); setTimeout(dailyTick, 24 * 3600 * 1000); }, msToNext6am());
-setInterval(() => runScheduler(true).catch(() => {}), 5 * 60 * 1000);
+if (!process.env.VERCEL) {
+  setInterval(() => runScheduler().catch(() => {}), 24 * 3600 * 1000);
+  // Scheduler harian jam 06:00 + watchdog 5 menit (KPI §14: respon ≤5 menit)
+  function msToNext6am() { const n = new Date(); const t = new Date(n); t.setHours(6, 0, 0, 0); if (t <= n) t.setDate(t.getDate() + 1); return t - n; }
+  setTimeout(function dailyTick() { runScheduler().catch(() => {}); setTimeout(dailyTick, 24 * 3600 * 1000); }, msToNext6am());
+  setInterval(() => runScheduler(true).catch(() => {}), 5 * 60 * 1000);
+}
 // --- Provider asli + fallback (Fase 3 penuh, tanpa deps) ---
 function httpPostJson(url, payload, headers) {
   return new Promise((resolve) => {

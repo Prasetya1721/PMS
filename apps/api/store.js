@@ -1,6 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+let defaultSeedData = null;
+try {
+  defaultSeedData = require('./data.json');
+} catch {
+  defaultSeedData = null;
+}
+
 const __d = path.dirname(fileURLToPath(import.meta.url));
 const DB = path.join(__d, 'data.json');
 const D = 86400000, now = Date.now(), iso = (t) => new Date(t).toISOString();
@@ -51,6 +61,9 @@ export function loadDb() {
   const tmpPath = path.join('/tmp', 'pms-data.json');
   if (fs.existsSync(tmpPath)) {
     try { d = JSON.parse(fs.readFileSync(tmpPath, 'utf8')); } catch {}
+  }
+  if (!d && defaultSeedData) {
+    try { d = JSON.parse(JSON.stringify(defaultSeedData)); } catch {}
   }
   if (!d && fs.existsSync(DB)) {
     try { d = JSON.parse(fs.readFileSync(DB, 'utf8')); } catch {}
