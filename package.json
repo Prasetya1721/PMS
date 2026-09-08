@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "description": "Sistem Planned Maintenance System (PMS) Kapal Enterprise",
-  "main": "api/index.js",
   "scripts": {
     "build": "node build-vercel.js",
     "start": "node server.js",
