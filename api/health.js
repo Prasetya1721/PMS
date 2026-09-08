@@ -1,4 +1,5 @@
-// Absolute minimum serverless function — tests if Vercel can run ANY function
-export default function handler(req, res) {
-  res.end('{"ok":true}');
-}
+// Minimal health check — CommonJS
+module.exports = function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ ok: true, node: process.version, time: new Date().toISOString() }));
+};

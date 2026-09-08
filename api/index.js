@@ -1,11 +1,9 @@
-// Vercel Serverless Function entrypoint for /api on Vercel
-// Uses dynamic import() so module-level init errors are caught by try/catch
-
+// Vercel Serverless Function entrypoint — CommonJS wrapper for ESM app
 let _handleRequest = null;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
-    // Lazy-load on first invocation — catches any module-init errors
+    // Lazy-load ESM app module from CJS
     if (!_handleRequest) {
       const mod = await import('../apps/api/server.js');
       _handleRequest = mod.handleRequest;
@@ -25,16 +23,12 @@ export default async function handler(req, res) {
 
     await _handleRequest(req, res);
   } catch (err) {
-    console.error('Vercel Serverless Function Error:', err);
+    console.error('PMS API Error:', err);
     if (!res.headersSent) {
-      res.writeHead(500, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      });
-      res.end(JSON.stringify({
-        error: err.message || 'Internal Server Error',
-        stack: process.env.NODE_ENV !== 'production' ? String(err.stack || '') : undefined
-      }));
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.statusCode = 500;
+      res.end(JSON.stringify({ error: String(err.message || err) }));
     }
   }
-}
+};
