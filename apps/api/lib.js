@@ -12,6 +12,10 @@ export function send(res, code, data) {
   res.end(JSON.stringify(data));
 }
 export function readBody(req) {
+  if (req.body && typeof req.body === 'object') return Promise.resolve(req.body);
+  if (typeof req.body === 'string') {
+    try { return Promise.resolve(JSON.parse(req.body)); } catch { return Promise.resolve({}); }
+  }
   return new Promise((r) => { let s = ''; req.on('data', (c) => (s += c)); req.on('end', () => { try { r(s ? JSON.parse(s) : {}); } catch { r({}); } }); });
 }
 export function auth(req) {

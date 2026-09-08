@@ -21,7 +21,7 @@ function buildSimplePdf(title, lines) {
   pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + offs.map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join('') + 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
   return pdf;
 }
-const server = http.createServer(async (req, res) => {
+export async function handleRequest(req, res) {
   if (req.method === 'OPTIONS') return send(res, 200, {});
   const url = new URL(req.url, 'http://x');
   const seg = url.pathname.split('/').filter(Boolean);
@@ -275,5 +275,12 @@ const server = http.createServer(async (req, res) => {
     }
   }
   return send(res, 404, { error: 'Endpoint tidak dikenal' });
-});
-server.listen(PORT, () => console.log('PMS API jalan di http://localhost:' + PORT));
+}
+export const server = http.createServer(handleRequest);
+const isMain = process.argv[1] && (
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
+  path.resolve(process.argv[1]) === path.resolve(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../server.js'))
+);
+if (isMain && !process.env.VERCEL) {
+  server.listen(PORT, () => console.log('PMS server jalan di http://localhost:' + PORT));
+}

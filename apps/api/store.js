@@ -48,9 +48,17 @@ function seed() {
 export function loadDb() {
   if (globalThis.__pmsDb) return globalThis.__pmsDb;
   let d;
-  if (!fs.existsSync(DB)) { d = seed(); fs.writeFileSync(DB, JSON.stringify(d, null, 2)); }
-  else {
-    d = JSON.parse(fs.readFileSync(DB, 'utf8'));
+  const tmpPath = path.join('/tmp', 'pms-data.json');
+  if (fs.existsSync(tmpPath)) {
+    try { d = JSON.parse(fs.readFileSync(tmpPath, 'utf8')); } catch {}
+  }
+  if (!d && fs.existsSync(DB)) {
+    try { d = JSON.parse(fs.readFileSync(DB, 'utf8')); } catch {}
+  }
+  if (!d) {
+    d = seed();
+    try { fs.writeFileSync(DB, JSON.stringify(d, null, 2)); } catch {}
+  } else {
     if (!d.attachments) d.attachments = [];
     if (!d.sparepartUsages) d.sparepartUsages = [];
     if (!d.sparepartRequisitions) d.sparepartRequisitions = [];
@@ -69,7 +77,17 @@ export function loadDb() {
   globalThis.__pmsDb = d;
   return d;
 }
-export function saveDb(db) { globalThis.__pmsDb = db; fs.writeFileSync(DB, JSON.stringify(db, null, 2)); }
+export function saveDb(db) {
+  globalThis.__pmsDb = db;
+  try {
+    fs.writeFileSync(DB, JSON.stringify(db, null, 2));
+  } catch (e) {
+    try {
+      const tmpPath = path.join('/tmp', 'pms-data.json');
+      fs.writeFileSync(tmpPath, JSON.stringify(db, null, 2));
+    } catch {}
+  }
+}
 export function audit(db, user, action, entity, entityId) {
   db.auditLogs.unshift({ id: 'log-' + Date.now(), user: user?.username || 'system', action, entity, entityId, at: new Date().toISOString() });
   if (db.auditLogs.length > 500) db.auditLogs.length = 500;

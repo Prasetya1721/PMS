@@ -6,6 +6,7 @@
   "description": "Sistem Planned Maintenance System (PMS) Kapal Enterprise",
   "main": "server.js",
   "scripts": {
+    "build": "node build-vercel.js",
     "start": "node server.js",
     "dev": "node server.js",
     "api": "node apps/api/server.js",

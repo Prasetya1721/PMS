@@ -9,7 +9,23 @@ Server terpadu (`server.js`) secara otomatis melayani:
 
 ---
 
-## Opsi 1: Deployment dengan Docker / Docker Compose (Direkomendasikan)
+## Opsi 0: Deployment Demo Gratis di Vercel (1-Klik via GitHub)
+
+Proyek ini telah dikonfigurasi secara lengkap dengan `vercel.json`, folder `public/`, dan Serverless API di `api/index.js`. Sangat cocok untuk presentasi / live demo kepada klien.
+
+### Langkah Deploy ke Vercel:
+1. Buka dashboard [Vercel](https://vercel.com) dan login dengan akun GitHub Anda.
+2. Klik tombol **"Add New..."** → pilih **"Project"**.
+3. Cari repository **`Prasetya1721/PMS`**, lalu klik **"Import"**.
+4. Biarkan konfigurasi default (Vercel otomatis membaca `vercel.json` dan menjalankan `node build-vercel.js`).
+5. Klik **"Deploy"**.
+6. Dalam waktu kurang dari 1 menit, Vercel akan memberikan domain HTTPS gratis (misalnya `https://pms-kapal-demo.vercel.app`) yang langsung bisa dibuka dan diuji secara publik!
+
+> **Catatan Demo Vercel:** Pada lingkungan serverless Vercel, filesystem bersifat read-only sehingga perubahan data tersimpan sementara di memori/`/tmp` selama sesi instance aktif. Untuk penyimpanan permanen operasional riil, gunakan Opsi 1 (Docker VPS) atau Opsi 2 (Railway/Render).
+
+---
+
+## Opsi 1: Deployment dengan Docker / Docker Compose (Direkomendasikan Produksi)
 
 Jika server produksi memiliki Docker:
 

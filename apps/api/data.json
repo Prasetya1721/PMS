@@ -558,6 +558,14 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1788872190723",
+      "user": "superadmin",
+      "action": "login",
+      "entity": "user",
+      "entityId": "u1",
+      "at": "2026-09-08T12:56:30.723Z"
+    },
+    {
       "id": "log-1788871105628",
       "user": "hr",
       "action": "kasbon-disbursed",
