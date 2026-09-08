@@ -353,8 +353,15 @@ function buildSimplePdf(title, lines) {
 
 export async function handleRequest(req, res) {
   if (req.method === 'OPTIONS') return send(res, 200, {});
-  const url = new URL(req.url, 'http://x');
-  const seg = url.pathname.split('/').filter(Boolean);
+  const rawPath = req.headers['x-matched-path'] || req.url;
+  const url = new URL(rawPath, 'http://x');
+  let seg = url.pathname.split('/').filter(Boolean);
+  if (seg[0] === 'api' && (seg[1] === 'index.js' || seg[1] === 'index')) {
+    if (req.headers['x-matched-path']) {
+      const u2 = new URL(req.headers['x-matched-path'], 'http://x');
+      seg = u2.pathname.split('/').filter(Boolean);
+    }
+  }
   const q = url.searchParams;
 
   // Fallback serving for static files if routed to function
@@ -657,11 +664,7 @@ export default async function handler(req, res) {
 }
 `;
 
-// Write to api/[...all].js (native catch-all for all /api/* routes)
-fs.writeFileSync(path.join(apiDir, '[...all].js'), handlerCoreJs, 'utf8');
-console.log('✓ Generated native catch-all api/[...all].js!');
-
-// Write to api/index.js (for /api root calls)
+// Write to api/index.js (for all API calls via vercel.json rewrite)
 fs.writeFileSync(path.join(apiDir, 'index.js'), handlerCoreJs, 'utf8');
 console.log('✓ Generated api/index.js!');
 

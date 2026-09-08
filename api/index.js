@@ -1163,8 +1163,15 @@ function buildSimplePdf(title, lines) {
 
 export async function handleRequest(req, res) {
   if (req.method === 'OPTIONS') return send(res, 200, {});
-  const url = new URL(req.url, 'http://x');
-  const seg = url.pathname.split('/').filter(Boolean);
+  const rawPath = req.headers['x-matched-path'] || req.url;
+  const url = new URL(rawPath, 'http://x');
+  let seg = url.pathname.split('/').filter(Boolean);
+  if (seg[0] === 'api' && (seg[1] === 'index.js' || seg[1] === 'index')) {
+    if (req.headers['x-matched-path']) {
+      const u2 = new URL(req.headers['x-matched-path'], 'http://x');
+      seg = u2.pathname.split('/').filter(Boolean);
+    }
+  }
   const q = url.searchParams;
 
   // Fallback serving for static files if routed to function
