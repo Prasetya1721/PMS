@@ -3,6 +3,11 @@
   "cleanUrls": true,
   "buildCommand": "node build-vercel.js",
   "outputDirectory": "public",
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "apps/api/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api",
