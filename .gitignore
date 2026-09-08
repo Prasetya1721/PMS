@@ -6,3 +6,4 @@ dist/
 apps/api/dev.db*
 apps/api/dev.db-journal*
 apps/web/dist/
+.vercel/

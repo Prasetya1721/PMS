@@ -7,8 +7,9 @@ const srcWebDir = path.join(__dirname, 'apps', 'web');
 const destPublicDir = path.join(__dirname, 'public');
 const apiDir = path.join(__dirname, 'api');
 
-// 1. Ensure public and api directories exist
-if (!fs.existsSync(destPublicDir)) fs.mkdirSync(destPublicDir, { recursive: true });
+// 1. Ensure public and api directories exist and are clean
+if (fs.existsSync(destPublicDir)) fs.rmSync(destPublicDir, { recursive: true, force: true });
+fs.mkdirSync(destPublicDir, { recursive: true });
 if (!fs.existsSync(apiDir)) fs.mkdirSync(apiDir, { recursive: true });
 
 // 2. Copy static frontend files to public/
@@ -664,4 +665,47 @@ console.log('✓ Generated native catch-all api/[...all].js!');
 fs.writeFileSync(path.join(apiDir, 'index.js'), handlerCoreJs, 'utf8');
 console.log('✓ Generated api/index.js!');
 
+// 5. Generate official Vercel Build Output API v3 (.vercel/output)
+const vercelOutputDir = path.join(__dirname, '.vercel', 'output');
+const vercelStaticDir = path.join(vercelOutputDir, 'static');
+const vercelFuncsDir = path.join(vercelOutputDir, 'functions');
+
+if (fs.existsSync(vercelOutputDir)) fs.rmSync(vercelOutputDir, { recursive: true, force: true });
+fs.mkdirSync(vercelStaticDir, { recursive: true });
+fs.mkdirSync(vercelFuncsDir, { recursive: true });
+
+// Copy static assets to .vercel/output/static
+fs.cpSync(destPublicDir, vercelStaticDir, { recursive: true });
+
+const vercelConfig = {
+  version: 3,
+  routes: [
+    { handle: 'filesystem' },
+    { src: '^/api/health$', dest: '/api/health' },
+    { src: '^/api/(.*)$', dest: '/api/[...all]' },
+    { src: '^/api$', dest: '/api/index' },
+    { src: '^/((?!api/|api$).*)$', dest: '/index.html' }
+  ]
+};
+fs.writeFileSync(path.join(vercelOutputDir, 'config.json'), JSON.stringify(vercelConfig, null, 2), 'utf8');
+
+const vcConfig = JSON.stringify({
+  runtime: 'nodejs24.x',
+  handler: 'index.js',
+  launcherType: 'Nodejs'
+}, null, 2);
+
+function makeFunc(funcRelPath, code) {
+  const dir = path.join(vercelFuncsDir, funcRelPath + '.func');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'index.js'), code, 'utf8');
+  fs.writeFileSync(path.join(dir, '.vc-config.json'), vcConfig, 'utf8');
+}
+
+makeFunc('api/health', healthJs);
+makeFunc('api/index', handlerCoreJs);
+makeFunc('api/[...all]', handlerCoreJs);
+console.log('✓ Generated official Vercel Build Output API v3 in .vercel/output!');
+
 console.log('Build completed successfully for Vercel deployment!');
+
