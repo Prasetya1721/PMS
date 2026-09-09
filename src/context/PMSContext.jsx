@@ -111,6 +111,33 @@ export const PMSProvider = ({ children }) => {
     showToast('Anda telah keluar dari sesi PT. Pelayaran Baharimas Kalimantan.', 'info');
   };
 
+  // Theme Mode: 'dark' | 'light' (defaults to 'dark' for maritime cockpit)
+  const [theme, setTheme] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('pms_theme');
+      return savedTheme === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('pms_theme', theme);
+    } catch (err) {
+      console.error('[PMS] Failed to persist theme:', err);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const nextTheme = prev === 'dark' ? 'light' : 'dark';
+      showToast(`Mode dialihkan ke: ${nextTheme === 'light' ? '☀️ Mode Terang (Light Mode)' : '🌙 Mode Gelap (Dark Mode)'}`, 'info');
+      return nextTheme;
+    });
+  };
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
@@ -887,6 +914,11 @@ export const PMSProvider = ({ children }) => {
         currentUser,
         login,
         logout,
+
+        // Theme Mode
+        theme,
+        setTheme,
+        toggleTheme,
 
         // Filters & Navigation
         selectedVesselId,

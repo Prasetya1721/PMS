@@ -65,22 +65,154 @@
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Light Theme overrides when needed */
+/* =========================================================
+   LIGHT THEME DESIGN SYSTEM OVERRIDES (Enterprise Fleet)
+   High-contrast, clean maritime light mode cockpit
+   ========================================================= */
 [data-theme='light'] {
-  --bg-app: #f1f5f9;
-  --bg-sidebar: #0f172a;
-  --bg-header: rgba(255, 255, 255, 0.9);
+  --bg-app: #f4f6f9;
+  --bg-sidebar: #0b1426; /* Kept executive deep navy for maritime brand prestige */
+  --bg-header: rgba(255, 255, 255, 0.92);
   --bg-surface: #ffffff;
   --bg-surface-elevated: #f8fafc;
-  --bg-surface-card: rgba(255, 255, 255, 0.95);
+  --bg-surface-card: #ffffff;
   --bg-surface-hover: #f1f5f9;
   --bg-input: #ffffff;
-  --border-subtle: #cbd5e1;
-  --border-glass: rgba(0, 0, 0, 0.08);
+
+  /* Borders & Dividers */
+  --border-subtle: #e2e8f0;
+  --border-focus: #0284c7;
+  --border-glass: rgba(0, 0, 0, 0.06);
+
+  /* Primary Light Mode Tuning */
+  --primary: #0284c7;
+  --primary-light: #0ea5e9;
+  --primary-dark: #0369a1;
+  --primary-glow: rgba(2, 132, 199, 0.15);
+
+  /* Typography Colors */
   --text-main: #0f172a;
   --text-muted: #475569;
-  --text-subtle: #94a3b8;
-  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.08);
+  --text-subtle: #64748b;
+  --text-on-primary: #ffffff;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 28px -4px rgba(15, 23, 42, 0.09);
+  --shadow-glow: 0 0 18px rgba(2, 132, 199, 0.12);
+}
+
+/* Smooth Theme Transitions */
+body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .input-control, .select-control {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Light Mode Component Rules */
+[data-theme='light'] .main-content {
+  background: radial-gradient(circle at 85% 10%, rgba(2, 132, 199, 0.04), transparent 45%),
+              radial-gradient(circle at 15% 70%, rgba(6, 182, 212, 0.03), transparent 40%),
+              #f4f6f9;
+}
+
+[data-theme='light'] .glass-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme='light'] .glass-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 8px 24px -4px rgba(2, 132, 199, 0.12);
+}
+
+[data-theme='light'] .pms-table th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme='light'] .pms-table td {
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+[data-theme='light'] .pms-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+[data-theme='light'] .input-control {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme='light'] .select-control {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+[data-theme='light'] .btn-secondary {
+  background: #ffffff;
+  color: #1e293b;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+[data-theme='light'] .modal-dialog {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+}
+
+[data-theme='light'] .modal-overlay {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+[data-theme='light'] .progress-bar-container {
+  background: #e2e8f0;
+}
+
+/* Light Theme Contrast Safeguards for nested bold elements */
+[data-theme='light'] .glass-card strong[style*="color: #fff"],
+[data-theme='light'] .glass-card strong[style*="color: #ffffff"],
+[data-theme='light'] .glass-card span[style*="color: #fff"]:not(.badge):not(.btn *),
+[data-theme='light'] .glass-card span[style*="color: #ffffff"]:not(.badge):not(.btn *),
+[data-theme='light'] .glass-card h1[style*="color: #fff"],
+[data-theme='light'] .glass-card h2[style*="color: #fff"],
+[data-theme='light'] .glass-card h3[style*="color: #fff"],
+[data-theme='light'] .glass-card h1[style*="color: #ffffff"],
+[data-theme='light'] .glass-card h2[style*="color: #ffffff"],
+[data-theme='light'] .glass-card h3[style*="color: #ffffff"] {
+  color: #0f172a !important;
+}
+
+/* Hero Fleet Overview banner adaptation in Light Mode */
+[data-theme='light'] div[style*="rgba(15, 28, 53, 0.8)"] {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%) !important;
+  border-color: #bae6fd !important;
+}
+
+[data-theme='light'] div[style*="rgba(15, 28, 53, 0.8)"] h2 {
+  color: #0f172a !important;
+}
+
+/* Urgency Marquee Alert in Light Mode */
+[data-theme='light'] .urgency-banner {
+  background: #fff1f2 !important;
+  border-bottom: 1px solid #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+[data-theme='light'] .urgency-banner span {
+  color: #9f1239 !important;
 }
 
 /* Base Reset & Box Sizing */

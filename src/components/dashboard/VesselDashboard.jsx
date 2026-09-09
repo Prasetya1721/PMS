@@ -213,9 +213,9 @@ export const VesselDashboard = () => {
                     <span className="badge badge-info">{currentShip.type}</span>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    No. Reg BKI: <strong className="mono" style={{ color: '#fff' }}>{currentShip.regNo || currentShip.imo}</strong> • Call Sign:{' '}
-                    <strong className="mono" style={{ color: '#fff' }}>{currentShip.callSign}</strong> • Pelabuhan Pendaftaran:{' '}
-                    <strong style={{ color: '#fff' }}>{currentShip.portOfRegistry}</strong> • Galangan: <strong>{currentShip.builder} ({currentShip.yearBuilt})</strong>
+                    No. Reg BKI: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.regNo || currentShip.imo}</strong> • Call Sign:{' '}
+                    <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.callSign}</strong> • Pelabuhan Pendaftaran:{' '}
+                    <strong style={{ color: 'var(--text-main)' }}>{currentShip.portOfRegistry}</strong> • Galangan: <strong style={{ color: 'var(--text-main)' }}>{currentShip.builder} ({currentShip.yearBuilt})</strong>
                   </p>
                 </div>
 

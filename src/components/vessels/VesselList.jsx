@@ -262,9 +262,9 @@ export const VesselList = () => {
                           <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{v.type}</span>
                         </div>
                         <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          No. Reg BKI: <strong className="mono" style={{ color: '#fff' }}>{v.regNo || v.imo}</strong> • Bendera: <strong style={{ color: '#fff' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
-                          <strong style={{ color: '#fff' }}>{v.portOfRegistry}</strong> • Galangan:{' '}
-                          <strong style={{ color: '#fff' }}>{v.builder} ({v.yearBuilt})</strong>
+                          No. Reg BKI: <strong className="mono" style={{ color: 'var(--text-main)' }}>{v.regNo || v.imo}</strong> • Bendera: <strong style={{ color: 'var(--text-main)' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
+                          <strong style={{ color: 'var(--text-main)' }}>{v.portOfRegistry}</strong> • Galangan:{' '}
+                          <strong style={{ color: 'var(--text-main)' }}>{v.builder} ({v.yearBuilt})</strong>
                         </p>
                       </div>
 

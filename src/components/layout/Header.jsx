@@ -9,7 +9,9 @@ import {
   RefreshCw,
   SlidersHorizontal,
   Compass,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 export const Header = () => {
@@ -26,7 +28,9 @@ export const Header = () => {
     resetToSeedData,
     setActiveTab,
     currentUser,
-    logout
+    logout,
+    theme,
+    toggleTheme
   } = usePMS();
 
   const totalUrgent = overdueWOCount + expiredDocsCount;
@@ -125,15 +129,46 @@ export const Header = () => {
               outline: 'none'
             }}
           >
-            <option value="Super Admin" style={{ background: '#0f1c35' }}>Super Admin</option>
-            <option value="Fleet Manager" style={{ background: '#0f1c35' }}>Fleet Manager</option>
-            <option value="Admin Kapal / Nakhoda" style={{ background: '#0f1c35' }}>Admin Kapal / Nakhoda</option>
-            <option value="Teknisi / Chief Engineer" style={{ background: '#0f1c35' }}>Teknisi / Chief Engineer</option>
-            <option value="Crew / ABK" style={{ background: '#0f1c35' }}>Crew / ABK</option>
-            <option value="HR / Personalia" style={{ background: '#0f1c35' }}>HR / Personalia</option>
-            <option value="Finance" style={{ background: '#0f1c35' }}>Finance</option>
+            <option value="Super Admin" style={{ background: 'var(--bg-surface)' }}>Super Admin</option>
+            <option value="Fleet Manager" style={{ background: 'var(--bg-surface)' }}>Fleet Manager</option>
+            <option value="Admin Kapal / Nakhoda" style={{ background: 'var(--bg-surface)' }}>Admin Kapal / Nakhoda</option>
+            <option value="Teknisi / Chief Engineer" style={{ background: 'var(--bg-surface)' }}>Teknisi / Chief Engineer</option>
+            <option value="Crew / ABK" style={{ background: 'var(--bg-surface)' }}>Crew / ABK</option>
+            <option value="HR / Personalia" style={{ background: 'var(--bg-surface)' }}>HR / Personalia</option>
+            <option value="Finance" style={{ background: 'var(--bg-surface)' }}>Finance</option>
           </select>
         </div>
+
+        {/* Theme Toggle Button (Light / Dark Mode) */}
+        <button
+          onClick={toggleTheme}
+          className="btn btn-secondary btn-sm"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.45rem 0.75rem',
+            fontSize: '0.78rem',
+            borderRadius: '8px',
+            color: theme === 'light' ? '#b45309' : '#38bdf8',
+            borderColor: theme === 'light' ? '#fde68a' : 'var(--border-subtle)',
+            background: theme === 'light' ? '#fffbeb' : 'var(--bg-surface-elevated)',
+            boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.15)' : 'none'
+          }}
+          title={theme === 'dark' ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun size={15} color="#f59e0b" />
+              <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Mode Terang</span>
+            </>
+          ) : (
+            <>
+              <Moon size={15} color="#0284c7" />
+              <span style={{ color: '#0f172a', fontWeight: 600 }}>Mode Gelap</span>
+            </>
+          )}
+        </button>
 
         {/* Reset Seed Button */}
         <button
@@ -192,7 +227,7 @@ export const Header = () => {
         {currentUser && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border-subtle)', paddingLeft: '0.85rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.75rem' }}>
-              <span style={{ fontWeight: 700, color: '#fff' }}>{currentUser.name.split(',')[0]}</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{currentUser.name.split(',')[0]}</span>
               <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 600 }}>{currentUser.role}</span>
             </div>
             <button
