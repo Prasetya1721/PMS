@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "echo 'No build needed'",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/api/:path*", "destination": "/api/index.cjs" },
     { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }
