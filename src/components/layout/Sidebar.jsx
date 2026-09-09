@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
-  Anchor,
   LayoutDashboard,
   Ship,
   Wrench,
@@ -94,11 +94,7 @@ export const Sidebar = () => {
           padding: '4px',
           flexShrink: 0
         }}>
-          <img
-            src="/logo-emblem.png"
-            alt="Logo PT Baharimas"
-            style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-          />
+          <BaharimasEmblem size={28} />
         </div>
         <div>
           <h1 style={{ fontSize: '0.98rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>

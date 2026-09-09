@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
   Ship,
   UserCheck,
@@ -100,11 +101,7 @@ export const Header = () => {
           fontWeight: 700,
           letterSpacing: '0.03em'
         }}>
-          <img
-            src="/logo-emblem.png"
-            alt="Logo PT Baharimas"
-            style={{ width: '16px', height: '16px', objectFit: 'contain' }}
-          />
+          <BaharimasEmblem size={15} />
           <span>PT. PELAYARAN BAHARIMAS KALIMANTAN</span>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { BaharimasLogo } from '../common/BaharimasLogo';
 import {
-  Anchor,
   Ship,
   Lock,
   Mail,
@@ -134,18 +134,8 @@ export const LoginPage = () => {
               <span className="badge badge-info" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem', marginBottom: '0.85rem', display: 'inline-block' }}>
                 Maritime Fleet Management System
               </span>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <img
-                  src="/logo-white.png"
-                  alt="PT. Pelayaran Baharimas Kalimantan"
-                  style={{
-                    height: '68px',
-                    width: 'auto',
-                    maxWidth: '100%',
-                    objectFit: 'contain',
-                    filter: 'drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6))'
-                  }}
-                />
+              <div>
+                <BaharimasLogo variant="white" size="lg" />
               </div>
             </div>
 
