@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════
    PMS Kapal - Vercel Serverless Handler
-   Simplified & Robust for Vercel deployment
+   Ultra-simplified for Vercel compatibility
    ═══════════════════════════════════════════════════════════════════ */
 
-import crypto from 'node:crypto';
+// Use CommonJS crypto instead of ESM import
+const crypto = require('crypto');
 
 // ── In-memory data store (ephemeral per cold start) ────────────────
 let db = null;
@@ -108,30 +109,9 @@ function auth(req) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// Parse request body (Vercel doesn't auto-parse)
+// Main Serverless Handler (using module.exports for compatibility)
 // ══════════════════════════════════════════════════════════════════
-async function parseBody(req) {
-  if (req.body) return req.body; // already parsed
-  if (req.method === 'GET' || req.method === 'OPTIONS') return {};
-  
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', chunk => { data += chunk; });
-    req.on('end', () => {
-      try {
-        resolve(data ? JSON.parse(data) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', () => resolve({}));
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// Main Serverless Handler
-// ══════════════════════════════════════════════════════════════════
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -145,10 +125,8 @@ export default async function handler(req, res) {
 
     db = initDb();
     
-    // Parse body if needed
-    if (!req.body && req.method !== 'GET') {
-      req.body = await parseBody(req);
-    }
+    // Vercel auto-parses body for us, no need for manual parsing
+    const body = req.body || {};
     
     // Parse URL path - handle both /api/login and /login formats
     let path = (req.url || '').split('?')[0].split('/').filter(Boolean);
@@ -162,7 +140,6 @@ export default async function handler(req, res) {
 
     // Login endpoint
     if (path[path.length - 1] === 'login' || path.join('/') === 'login') {
-      const body = req.body || {};
       const u = db.users.find(x => x.username === body.username && x.password === body.password);
       if (!u) {
         return res.status(401).json({ error: 'Username/password salah' });
@@ -334,16 +311,15 @@ export default async function handler(req, res) {
     return res.status(404).json({ error: 'Endpoint not found', path: req.url });
 
   } catch (error) {
-    console.error('Handler error:', error);
-    console.error('Request URL:', req.url);
-    console.error('Request method:', req.method);
-    console.error('Request headers:', JSON.stringify(req.headers));
+    console.error('[PMS API ERROR]', error);
+    console.error('URL:', req.url);
+    console.error('Method:', req.method);
+    console.error('Body:', req.body);
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message,
       url: req.url,
-      method: req.method,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      method: req.method
     });
   }
-}
+};
