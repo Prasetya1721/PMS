@@ -108,6 +108,27 @@ function auth(req) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// Parse request body (Vercel doesn't auto-parse)
+// ══════════════════════════════════════════════════════════════════
+async function parseBody(req) {
+  if (req.body) return req.body; // already parsed
+  if (req.method === 'GET' || req.method === 'OPTIONS') return {};
+  
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(data ? JSON.parse(data) : {});
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
 // Main Serverless Handler
 // ══════════════════════════════════════════════════════════════════
 export default async function handler(req, res) {
@@ -124,8 +145,15 @@ export default async function handler(req, res) {
 
     db = initDb();
     
-    // Parse URL path
-    const path = (req.url || '').split('?')[0].split('/').filter(Boolean);
+    // Parse body if needed
+    if (!req.body && req.method !== 'GET') {
+      req.body = await parseBody(req);
+    }
+    
+    // Parse URL path - handle both /api/login and /login formats
+    let path = (req.url || '').split('?')[0].split('/').filter(Boolean);
+    // Remove 'api' prefix if present (Vercel routing adds it)
+    if (path[0] === 'api') path = path.slice(1);
     
     // Health check
     if (path[path.length - 1] === 'health') {
@@ -133,7 +161,7 @@ export default async function handler(req, res) {
     }
 
     // Login endpoint
-    if (path[path.length - 1] === 'login') {
+    if (path[path.length - 1] === 'login' || path.join('/') === 'login') {
       const body = req.body || {};
       const u = db.users.find(x => x.username === body.username && x.password === body.password);
       if (!u) {
@@ -307,9 +335,14 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Handler error:', error);
+    console.error('Request URL:', req.url);
+    console.error('Request method:', req.method);
+    console.error('Request headers:', JSON.stringify(req.headers));
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message,
+      url: req.url,
+      method: req.method,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
