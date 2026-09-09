@@ -31,7 +31,13 @@ export const PMSProvider = ({ children }) => {
     }
   };
 
-  const [vessels, setVessels] = useState(() => loadStored('vessels', INITIAL_VESSELS));
+  const [vessels, setVessels] = useState(() => {
+    const loaded = loadStored('vessels', INITIAL_VESSELS);
+    if (loaded && loaded[0] && !loaded[0].name.includes('BAHARIMAS')) {
+      return INITIAL_VESSELS;
+    }
+    return loaded;
+  });
   const [equipment, setEquipment] = useState(() => loadStored('equipment', INITIAL_EQUIPMENT));
   const [schedules, setSchedules] = useState(() => loadStored('schedules', INITIAL_MAINTENANCE_SCHEDULES));
   const [workOrders, setWorkOrders] = useState(() => loadStored('workOrders', INITIAL_WORK_ORDERS));
@@ -52,6 +58,31 @@ export const PMSProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Authentication state for PT. Pelayaran Baharimas Kalimantan
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pms_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const login = (userData) => {
+    setCurrentUser(userData);
+    if (userData.role) {
+      setCurrentRole(userData.role);
+    }
+    localStorage.setItem('pms_current_user', JSON.stringify(userData));
+    showToast(`Selamat datang, ${userData.name}! Anda masuk sebagai ${userData.role}.`, 'success');
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('pms_current_user');
+    showToast('Anda telah keluar dari sesi PT. Pelayaran Baharimas Kalimantan.', 'info');
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -213,7 +244,7 @@ export const PMSProvider = ({ children }) => {
       const targetCrew = crew.find(c => c.id === item.crewId);
       phone = targetCrew?.whatsapp || '6281288991122';
       recipientName = targetCrew?.name || item.crewName;
-      msg = `*PEMBERITAHUAN RESMI SISTEM PMS KAPAL*\n\nYth. *${recipientName}*,\nSertifikat Anda: *${item.name}* (No: ${item.certificateNo}) akan segera kadaluarsa pada *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\nMohon segera melapor ke Nakhoda / Bagian Personalia untuk proses perpanjangan agar kelaiklautan kapal tetap terjaga.\n\n_Sistem PMS Armada Kapal Indonesia_`;
+      msg = `*PEMBERITAHUAN RESMI SISTEM PMS - PT. PELAYARAN BAHARIMAS KALIMANTAN*\n\nYth. *${recipientName}*,\nSertifikat Anda: *${item.name}* (No: ${item.certificateNo}) akan segera kadaluarsa pada *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\nMohon segera melapor ke Nakhoda / Bagian Personalia untuk proses perpanjangan agar kelaiklautan kapal tetap terjaga.\n\n_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
     } else if (type === 'ship_doc') {
       const v = vessels.find(ship => ship.id === item.vesselId);
       recipientName = `Admin Kapal & Nakhoda ${v?.name || ''}`;
@@ -319,10 +350,11 @@ export const PMSProvider = ({ children }) => {
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Sistem PMS Kapal Enterprise//Reminder H-30//ID',
+      'PRODID:-//PT. Pelayaran Baharimas Kalimantan//PMS Reminder H-30//ID',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:PMS Kapal - Reminder Jatuh Tempo H-30'
+      'X-WR-CALNAME:PT. Pelayaran Baharimas Kalimantan - Reminder H-30',
+      'X-WR-TIMEZONE:Asia/Jakarta'
     ];
 
     expiringItems.forEach((item, idx) => {
@@ -509,6 +541,9 @@ export const PMSProvider = ({ children }) => {
         notificationSettings,
         notificationLogs,
         users: INITIAL_USERS,
+        currentUser,
+        login,
+        logout,
 
         // Filters & Navigation
         selectedVesselId,

@@ -13,7 +13,8 @@ import {
   BellRing,
   FileSpreadsheet,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  LogOut
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -23,7 +24,9 @@ export const Sidebar = () => {
     currentRole,
     overdueWOCount,
     expiredDocsCount,
-    lowStockCount
+    lowStockCount,
+    currentUser,
+    logout
   } = usePMS();
 
   const navItems = [
@@ -92,11 +95,11 @@ export const Sidebar = () => {
           <Anchor size={24} />
         </div>
         <div>
-          <h1 style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>
-            PMS KAPAL
+          <h1 style={{ fontSize: '0.98rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>
+            PT. BAHARIMAS
           </h1>
-          <p style={{ fontSize: '0.72rem', color: 'var(--primary-light)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Enterprise Fleet
+          <p style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Pelayaran Baharimas Kaltim
           </p>
         </div>
       </div>
@@ -163,7 +166,7 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* Role Profile Box */}
+      {/* Role Profile Box & Logout */}
       <div style={{
         padding: '1rem',
         borderTop: '1px solid var(--border-subtle)',
@@ -172,34 +175,56 @@ export const Sidebar = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          justifyContent: 'space-between',
           padding: '0.6rem 0.75rem',
           borderRadius: '8px',
           background: 'var(--bg-surface-elevated)',
           border: '1px solid var(--border-subtle)'
         }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            background: 'var(--primary-dark)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: '0.8rem'
-          }}>
-            <ShieldCheck size={16} />
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              Peran Aktif (RBAC)
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'var(--primary-dark)',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              flexShrink: 0
+            }}>
+              <ShieldCheck size={16} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--primary-light)', fontWeight: 500 }}>
-              {currentRole}
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {currentUser ? currentUser.name.split(',')[0] : currentRole}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                {currentUser ? currentUser.role : 'Akses Maritim'}
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={logout}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#f87171',
+              cursor: 'pointer',
+              padding: '0.35rem',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+            title="Keluar dari sistem"
+          >
+            <LogOut size={15} />
+          </button>
         </div>
       </div>
     </aside>

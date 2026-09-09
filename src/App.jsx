@@ -1,5 +1,6 @@
 import React from 'react';
 import { PMSProvider, usePMS } from './context/PMSContext';
+import { LoginPage } from './components/auth/LoginPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { UrgencyBanner } from './components/layout/UrgencyBanner';
@@ -14,7 +15,7 @@ import { CrewManager } from './components/crew/CrewManager';
 import { DocumentTracker } from './components/documents/DocumentTracker';
 import { NotificationCenter } from './components/notification/NotificationCenter';
 import { ReportGenerator } from './components/reports/ReportGenerator';
-import { CheckCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
 const AppContent = () => {
   const { activeTab, selectedVesselId, toastMessage } = usePMS();
@@ -89,10 +90,21 @@ const AppContent = () => {
   );
 };
 
+// Root Router guarding authentication
+const AppRoot = () => {
+  const { currentUser } = usePMS();
+
+  if (!currentUser) {
+    return <LoginPage />;
+  }
+
+  return <AppContent />;
+};
+
 export default function App() {
   return (
     <PMSProvider>
-      <AppContent />
+      <AppRoot />
     </PMSProvider>
   );
 }

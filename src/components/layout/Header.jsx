@@ -7,7 +7,8 @@ import {
   Bell,
   RefreshCw,
   SlidersHorizontal,
-  Compass
+  Compass,
+  LogOut
 } from 'lucide-react';
 
 export const Header = () => {
@@ -22,7 +23,9 @@ export const Header = () => {
     overdueWOCount,
     expiredDocsCount,
     resetToSeedData,
-    setActiveTab
+    setActiveTab,
+    currentUser,
+    logout
   } = usePMS();
 
   const totalUrgent = overdueWOCount + expiredDocsCount;
@@ -72,6 +75,23 @@ export const Header = () => {
             className="input-control"
             style={{ paddingLeft: '2.4rem', fontSize: '0.825rem' }}
           />
+        </div>
+
+        {/* Company Header Badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.45rem',
+          background: 'rgba(2, 132, 199, 0.1)',
+          border: '1px solid rgba(56, 189, 248, 0.25)',
+          padding: '0.35rem 0.75rem',
+          borderRadius: '8px',
+          fontSize: '0.74rem',
+          color: '#38bdf8',
+          fontWeight: 700,
+          letterSpacing: '0.03em'
+        }}>
+          <span>PT. PELAYARAN BAHARIMAS KALIMANTAN</span>
         </div>
       </div>
 
@@ -156,6 +176,25 @@ export const Header = () => {
             </span>
           )}
         </button>
+
+        {/* User Session & Logout */}
+        {currentUser && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', borderLeft: '1px solid var(--border-subtle)', paddingLeft: '0.85rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.75rem' }}>
+              <span style={{ fontWeight: 700, color: '#fff' }}>{currentUser.name.split(',')[0]}</span>
+              <span style={{ color: '#38bdf8', fontSize: '0.68rem', fontWeight: 600 }}>{currentUser.role}</span>
+            </div>
+            <button
+              onClick={logout}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '0.4rem 0.6rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+              title="Keluar dari sistem (Logout)"
+            >
+              <LogOut size={14} />
+              <span style={{ fontSize: '0.75rem' }}>Keluar</span>
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
