@@ -14,7 +14,9 @@ import {
   ShieldAlert,
   ShieldCheck,
   QrCode,
-  X
+  X,
+  CalendarPlus,
+  Calendar
 } from 'lucide-react';
 
 export const DocumentTracker = () => {
@@ -22,11 +24,14 @@ export const DocumentTracker = () => {
     crewCertificates,
     shipDocuments,
     vessels,
-    sendWhatsAppReminder
+    sendWhatsAppReminder,
+    openGoogleCalendar,
+    exportH30CalendarICS,
+    h30ExpiringCount
   } = usePMS();
 
   const [docTypeTab, setDocTypeTab] = useState('all'); // 'all' | 'crew' | 'ship'
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Expired' | 'Due Soon' | 'Active'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'H-30' | 'Expired' | 'Due Soon' | 'Active'
   const [search, setSearch] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
 
@@ -41,7 +46,12 @@ export const DocumentTracker = () => {
       (docTypeTab === 'crew' && item.itemCategory === 'Sertifikat Kru') ||
       (docTypeTab === 'ship' && item.itemCategory === 'Surat Legal Kapal');
 
-    const matchStatus = statusFilter === 'ALL' || item.status === statusFilter;
+    let matchStatus = true;
+    if (statusFilter === 'H-30') {
+      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 30;
+    } else if (statusFilter !== 'ALL') {
+      matchStatus = item.status === statusFilter;
+    }
 
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
       (item.certificateNo && item.certificateNo.toLowerCase().includes(search.toLowerCase())) ||
@@ -64,18 +74,22 @@ export const DocumentTracker = () => {
             Pelacak Sertifikat Kru & Surat Kapal (Statutory Radar)
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Monitoring masa berlaku dokumen legal kapal dan sertifikasi kru STCW untuk mencegah penahanan otoritas (detention)
+            Monitoring masa berlaku dokumen legal kapal dan sertifikasi kru STCW dengan sinkronisasi Google Calendar & WhatsApp
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <span className="badge badge-danger-pulse" style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}>
-            <ShieldAlert size={14} />
-            <span>{expiredCount} Dokumen Expired</span>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button onClick={exportH30CalendarICS} className="btn btn-secondary btn-sm">
+            <CalendarPlus size={14} />
+            <span>Ekspor Semua H-30 (.ics)</span>
+          </button>
+          <span className="badge badge-warning" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+            <Calendar size={14} />
+            <span>{h30ExpiringCount} Item Rentang 1 Bulan</span>
           </span>
-          <span className="badge badge-warning" style={{ padding: '0.5rem 0.85rem', fontSize: '0.8rem' }}>
-            <Clock size={14} />
-            <span>{dueSoonCount} Mendekati Expired</span>
+          <span className="badge badge-danger-pulse" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+            <ShieldAlert size={14} />
+            <span>{expiredCount} Expired</span>
           </span>
         </div>
       </div>
@@ -106,15 +120,26 @@ export const DocumentTracker = () => {
           </div>
 
           {/* Status Filter */}
-          <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {['ALL', 'Expired', 'Due Soon', 'Active'].map(st => (
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {[
+              { id: 'ALL', label: 'Semua Status' },
+              { id: 'H-30', label: `Rentang 1 Bulan (H-30)`, badge: h30ExpiringCount },
+              { id: 'Expired', label: 'Expired', badge: expiredCount },
+              { id: 'Due Soon', label: 'Due Soon', badge: dueSoonCount },
+              { id: 'Active', label: 'Active' }
+            ].map(st => (
               <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`tab-btn ${statusFilter === st ? 'active' : ''}`}
-                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                key={st.id}
+                onClick={() => setStatusFilter(st.id)}
+                className={`tab-btn ${statusFilter === st.id ? 'active' : ''}`}
+                style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >
-                {st === 'ALL' ? 'Semua Status' : st}
+                <span>{st.label}</span>
+                {st.badge !== undefined && (
+                  <span className="badge badge-neutral" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem' }}>
+                    {st.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -147,18 +172,18 @@ export const DocumentTracker = () => {
                 <th>Instansi Penerbit (Issuer)</th>
                 <th>Jatuh Tempo (Expiry)</th>
                 <th>Status Kelaikan</th>
-                <th style={{ textAlign: 'right' }}>Aksi Reminder & File</th>
+                <th style={{ textAlign: 'right' }}>Aksi Reminder & Kalender</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.map(item => {
                 const ship = vessels.find(v => v.id === item.vesselId);
                 const docNo = item.certificateNo || item.documentNo;
-                const isExpired = item.status === 'Expired';
-                const isDueSoon = item.status === 'Due Soon';
+                const isExpired = item.status === 'Expired' || (item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 0);
+                const isH30 = item.daysUntilExpiry !== undefined && item.daysUntilExpiry > 0 && item.daysUntilExpiry <= 30;
 
                 return (
-                  <tr key={item.id} style={{ background: isExpired ? 'rgba(239, 68, 68, 0.04)' : undefined }}>
+                  <tr key={item.id} style={{ background: isExpired ? 'rgba(239, 68, 68, 0.04)' : isH30 ? 'rgba(245, 158, 11, 0.03)' : undefined }}>
                     <td>
                       <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
                         {item.itemCategory}
@@ -183,17 +208,18 @@ export const DocumentTracker = () => {
                     <td className="mono" style={{ fontSize: '0.78rem' }}>{docNo}</td>
                     <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{item.issuer}</td>
                     <td>
-                      <div className="mono" style={{ fontWeight: 700, fontSize: '0.85rem', color: isExpired ? '#ef4444' : isDueSoon ? '#f59e0b' : '#10b981' }}>
+                      <div className="mono" style={{ fontWeight: 700, fontSize: '0.85rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : '#10b981' }}>
                         {item.expiryDate}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: isExpired ? '#ef4444' : isDueSoon ? '#f59e0b' : 'var(--text-subtle)' }}>
+                      <div style={{ fontSize: '0.72rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-subtle)', fontWeight: isH30 ? 600 : 400 }}>
                         {item.daysUntilExpiry > 0 ? `${item.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(item.daysUntilExpiry)} HARI!`}
                       </div>
                     </td>
                     <td>
                       <span className={`badge ${
                         isExpired ? 'badge-danger-pulse' :
-                        isDueSoon ? 'badge-warning' : 'badge-success'
+                        isH30 ? 'badge-warning' :
+                        item.status === 'Due Soon' ? 'badge-warning' : 'badge-success'
                       }`}>
                         {item.status}
                       </span>
@@ -204,14 +230,25 @@ export const DocumentTracker = () => {
                           onClick={() => setPreviewDoc(item)}
                           className="btn btn-secondary btn-sm"
                           title="Lihat Scan Dokumen"
+                          style={{ padding: '0.35rem 0.55rem' }}
                         >
                           <Eye size={13} />
                           <span>Scan</span>
                         </button>
                         <button
+                          onClick={() => openGoogleCalendar(item)}
+                          className="btn btn-secondary btn-sm"
+                          title="Tambah Pengingat H-30 ke Google Calendar"
+                          style={{ padding: '0.35rem 0.55rem', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}
+                        >
+                          <CalendarPlus size={13} />
+                          <span>G-Cal</span>
+                        </button>
+                        <button
                           onClick={() => sendWhatsAppReminder(item, item.crewName ? 'crew_cert' : 'ship_doc')}
                           className="btn btn-whatsapp btn-sm"
                           title="Kirim Reminder WhatsApp Resmi"
+                          style={{ padding: '0.35rem 0.55rem' }}
                         >
                           <Send size={13} />
                           <span>WA</span>
@@ -324,6 +361,17 @@ export const DocumentTracker = () => {
             <div className="modal-footer">
               <button onClick={() => setPreviewDoc(null)} className="btn btn-secondary">
                 Tutup
+              </button>
+              <button
+                onClick={() => {
+                  openGoogleCalendar(previewDoc);
+                  setPreviewDoc(null);
+                }}
+                className="btn btn-secondary"
+                style={{ color: '#38bdf8' }}
+              >
+                <CalendarPlus size={14} />
+                <span>+ Google Calendar</span>
               </button>
               <button
                 onClick={() => {

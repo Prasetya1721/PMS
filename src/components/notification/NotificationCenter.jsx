@@ -12,7 +12,12 @@ import {
   ArrowUpRight,
   ShieldAlert,
   Play,
-  Share2
+  Calendar,
+  Download,
+  CalendarPlus,
+  Clock,
+  Sparkles,
+  ExternalLink
 } from 'lucide-react';
 
 export const NotificationCenter = () => {
@@ -24,12 +29,17 @@ export const NotificationCenter = () => {
     workOrders,
     vessels,
     crew,
+    h30ExpiringItems,
+    h30ExpiringCount,
     sendWhatsAppReminder,
+    openGoogleCalendar,
+    exportH30CalendarICS,
+    autoDispatchH30WhatsApp,
     escalateNotification,
     showToast
   } = usePMS();
 
-  const [activeTab, setActiveTab] = useState('logs'); // 'logs' | 'settings' | 'simulator'
+  const [activeTab, setActiveTab] = useState('h30_automation'); // 'h30_automation' | 'logs' | 'settings' | 'simulator'
   const [testRecipient, setTestRecipient] = useState(crew[0]?.whatsapp || '+6281288991122');
   const [testMessage, setTestMessage] = useState(
     'Yth. Nakhoda & Chief Engineer, berikut ringkasan status PMS harian KM Nusantara Express: 1 Work Order Overdue, 1 Dokumen expired. Harap tindak lanjuti segera.'
@@ -38,15 +48,8 @@ export const NotificationCenter = () => {
   const runDailySchedulerSimulation = () => {
     showToast('Simulasi Cron Job Harian dijalankan: Memindai seluruh tanggal jatuh tempo H-90 s/d H-1...', 'info');
 
-    // Simulate scanning items
-    const urgentItems = [
-      ...crewCertificates.filter(c => c.status !== 'Active'),
-      ...shipDocuments.filter(d => d.status !== 'Active'),
-      ...workOrders.filter(w => w.status === 'Overdue')
-    ];
-
     setTimeout(() => {
-      showToast(`Pengecekan selesai! Ditemukan ${urgentItems.length} item mendesak. Notifikasi WhatsApp disiapkan.`, 'success');
+      showToast(`Pengecekan selesai! Ditemukan ${h30ExpiringCount} item dalam rentang 30 hari. Bot WhatsApp dan Google Calendar siap!`, 'success');
     }, 1200);
   };
 
@@ -62,33 +65,52 @@ export const NotificationCenter = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            Pusat Notifikasi & WhatsApp Reminder Bot
+            Pusat Notifikasi, WhatsApp & Google Calendar Sync
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Pengingat otomatis jatuh tempo dokumen (H-90 s/d H-1), bot pesan WhatsApp resmi, dan eskalasi pimpinan
+            Pengingat otomatis jatuh tempo rentang 1 bulan (H-30), integrasi Google Calendar, dan bot notifikasi WhatsApp resmi
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={runDailySchedulerSimulation}
-            className="btn btn-primary"
+            className="btn btn-secondary"
             title="Jalankan simulasi cron job 06:00"
           >
             <Play size={16} />
             <span>Simulasi Cek Harian (06:00 WIB)</span>
           </button>
+          <button
+            onClick={autoDispatchH30WhatsApp}
+            className="btn btn-whatsapp"
+          >
+            <Send size={16} />
+            <span>Kirim WA Otomatis (H-30)</span>
+          </button>
         </div>
       </div>
 
       {/* Navigation Subtabs */}
-      <div className="glass-card" style={{ padding: '0.75rem 1.25rem', display: 'flex', gap: '0.5rem' }}>
+      <div className="glass-card" style={{ padding: '0.75rem 1.25rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setActiveTab('h30_automation')}
+          className={`tab-btn ${activeTab === 'h30_automation' ? 'active' : ''}`}
+        >
+          <Calendar size={16} />
+          <span>Otomatisasi H-30 (WA & Google Calendar)</span>
+          {h30ExpiringCount > 0 && (
+            <span className="badge badge-warning" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+              {h30ExpiringCount}
+            </span>
+          )}
+        </button>
         <button
           onClick={() => setActiveTab('logs')}
           className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
         >
           <History size={16} />
-          <span>Log Riwayat Notifikasi Terkirim ({notificationLogs.length})</span>
+          <span>Log Riwayat Notifikasi ({notificationLogs.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('settings')}
@@ -106,7 +128,136 @@ export const NotificationCenter = () => {
         </button>
       </div>
 
-      {/* Tab 1: Logs */}
+      {/* Tab: H-30 Automation & Google Calendar Sync */}
+      {activeTab === 'h30_automation' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Banner Explanation & Batch Action */}
+          <div className="glass-card" style={{
+            padding: '1.5rem',
+            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(15, 28, 53, 0.8) 100%)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span className="badge badge-warning">Fitur Prioritas Kelaiklautan</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ambang Batas H-30 (1 Bulan)</span>
+              </div>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800 }}>
+                Otomatisasi Peringatan Jatuh Tempo Rentang 1 Bulan
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '750px', marginTop: '0.25rem' }}>
+                Sistem secara otomatis mendeteksi seluruh sertifikat kru dan surat legal kapal yang akan kadaluarsa dalam waktu 30 hari ke depan. Peringatan dapat langsung dikirim ke WhatsApp kru/admin dan disinkronkan ke <strong>Google Calendar</strong> sebagai event alarm agar tidak terlewat.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button onClick={exportH30CalendarICS} className="btn btn-secondary">
+                <Download size={16} />
+                <span>Download .ics Google Calendar</span>
+              </button>
+              <button onClick={autoDispatchH30WhatsApp} className="btn btn-whatsapp">
+                <Send size={16} />
+                <span>Kirim WA Otomatis Massal</span>
+              </button>
+            </div>
+          </div>
+
+          {/* List of Expiring Items in H-30 Range */}
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Clock size={18} color="#f59e0b" />
+                <span>Daftar Dokumen dalam Rentang 1 Bulan Sebelum Expired ({h30ExpiringItems.length})</span>
+              </h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Klik tombol aksi untuk sinkron ke Google Calendar atau kirim WA
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {h30ExpiringItems.map(item => {
+                const vessel = vessels.find(v => v.id === item.vesselId);
+                const isExpired = item.status === 'Expired' || item.daysUntilExpiry <= 0;
+                const isDueSoon = !isExpired && item.daysUntilExpiry <= 30;
+
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: '1.1rem 1.25rem',
+                      borderRadius: '10px',
+                      background: 'var(--bg-surface-elevated)',
+                      border: isExpired
+                        ? '1px solid rgba(239, 68, 68, 0.4)'
+                        : '1px solid rgba(245, 158, 11, 0.4)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '1rem'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <span className={`badge ${isExpired ? 'badge-danger-pulse' : 'badge-warning'}`}>
+                          {isExpired ? `LEWAT ${Math.abs(item.daysUntilExpiry)} HARI` : `H-${item.daysUntilExpiry} HARI LAGI`}
+                        </span>
+                        <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                          {item.crewName ? 'Sertifikat Kru STCW' : 'Surat Legal Kapal'}
+                        </span>
+                      </div>
+
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginTop: '0.35rem' }}>
+                        {item.name}
+                      </h4>
+                      <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        Nomor: <strong className="mono" style={{ color: '#fff' }}>{item.certificateNo || item.documentNo}</strong> • Kapal:{' '}
+                        <strong style={{ color: '#38bdf8' }}>{vessel?.name || 'Armada'}</strong>
+                        {item.crewName && ` • Kru: ${item.crewName}`}
+                      </p>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-subtle)', marginTop: '0.2rem' }}>
+                        Penerbit: {item.issuer} • Tanggal Jatuh Tempo:{' '}
+                        <strong className="mono" style={{ color: isExpired ? '#ef4444' : '#f59e0b' }}>
+                          {item.expiryDate}
+                        </strong>
+                      </p>
+                    </div>
+
+                    {/* Action Buttons: Google Calendar + WhatsApp */}
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                      <button
+                        onClick={() => openGoogleCalendar(item)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ border: '1px solid rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                        title="Buka Google Calendar untuk menjadwalkan event reminder"
+                      >
+                        <CalendarPlus size={15} />
+                        <span>+ Google Calendar</span>
+                      </button>
+
+                      <button
+                        onClick={() => sendWhatsAppReminder(item, item.crewName ? 'crew_cert' : 'ship_doc')}
+                        className="btn btn-whatsapp btn-sm"
+                        title="Kirim notifikasi peringatan resmi melalui WhatsApp"
+                      >
+                        <Send size={15} />
+                        <span>Kirim WA</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 2: Logs */}
       {activeTab === 'logs' && (
         <div className="glass-card" style={{ overflow: 'hidden' }}>
           <div className="table-container">
@@ -129,7 +280,7 @@ export const NotificationCenter = () => {
                       {log.timestamp}
                     </td>
                     <td>
-                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                      <span className={`badge ${log.channel.includes('Calendar') ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem' }}>
                         {log.channel}
                       </span>
                     </td>
@@ -173,7 +324,7 @@ export const NotificationCenter = () => {
         </div>
       )}
 
-      {/* Tab 2: Threshold Settings */}
+      {/* Tab 3: Threshold Settings */}
       {activeTab === 'settings' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '1.5rem' }}>
           <div className="glass-card" style={{ padding: '1.5rem' }}>
@@ -221,7 +372,18 @@ export const NotificationCenter = () => {
           </div>
 
           <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Konfigurasi Gateway & Eskalasi</h4>
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Konfigurasi Gateway & Kalender</h4>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                Sinkronisasi Kalender
+              </label>
+              <select className="select-control" defaultValue="Google Calendar">
+                <option value="Google Calendar">Google Calendar (Direct Web & .ics)</option>
+                <option value="Outlook">Microsoft Outlook 365</option>
+                <option value="Apple Calendar">Apple iCal</option>
+              </select>
+            </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
@@ -231,16 +393,6 @@ export const NotificationCenter = () => {
                 <option value="Wablas API">Wablas Gateway API (Indonesia)</option>
                 <option value="Twilio WhatsApp">Twilio WhatsApp Business API</option>
                 <option value="Qontak">Qontak Omnichannel</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Push Notification Provider
-              </label>
-              <select className="select-control" defaultValue="Firebase Cloud Messaging">
-                <option value="Firebase Cloud Messaging">Firebase Cloud Messaging (FCM)</option>
-                <option value="OneSignal">OneSignal Web & Mobile</option>
               </select>
             </div>
 
@@ -254,7 +406,7 @@ export const NotificationCenter = () => {
         </div>
       )}
 
-      {/* Tab 3: Simulator */}
+      {/* Tab 4: Simulator */}
       {activeTab === 'simulator' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
           <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>

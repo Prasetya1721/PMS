@@ -244,6 +244,163 @@ export const PMSProvider = ({ children }) => {
     showToast(`Pesan WhatsApp telah disiapkan dan dibuka ke ${recipientName}`, 'success');
   };
 
+  // Google Calendar URL Generator
+  const getGoogleCalendarUrl = (item) => {
+    const vessel = vessels.find(v => v.id === item.vesselId);
+    const vesselName = vessel?.name || 'Armada Kapal';
+    const docNo = item.certificateNo || item.documentNo || '-';
+    const holder = item.crewName ? `Kru: ${item.crewName}` : `Kapal: ${vesselName}`;
+
+    let startDate = '';
+    let endDate = '';
+    if (item.expiryDate) {
+      const parts = item.expiryDate.split('-');
+      if (parts.length === 3) {
+        startDate = `${parts[0]}${parts[1]}${parts[2]}`;
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        d.setDate(d.getDate() + 1);
+        const nextY = d.getFullYear();
+        const nextM = String(d.getMonth() + 1).padStart(2, '0');
+        const nextD = String(d.getDate()).padStart(2, '0');
+        endDate = `${nextY}${nextM}${nextD}`;
+      }
+    }
+
+    const title = `[PMS H-30] Jatuh Tempo: ${item.name}`;
+    const details = `PERINGATAN JATUH TEMPO DOKUMEN SISTEM PMS KAPAL:\n` +
+      `----------------------------------------\n` +
+      `Nama Dokumen: ${item.name}\n` +
+      `Nomor Dokumen: ${docNo}\n` +
+      `Pemilik/Subjek: ${holder}\n` +
+      `Kapal: ${vesselName}\n` +
+      `Penerbit: ${item.issuer || '-'}\n` +
+      `Tanggal Jatuh Tempo: ${item.expiryDate}\n` +
+      `Status Kelaikan: ${item.status}\n\n` +
+      `PENTING: Segera hubungi Syahbandar / Biro Klasifikasi untuk survey & perpanjangan sebelum masa berlaku habis!`;
+
+    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Indonesia'}`;
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+  };
+
+  const openGoogleCalendar = (item) => {
+    const url = getGoogleCalendarUrl(item);
+    const vesselName = vessels.find(v => v.id === item.vesselId)?.name || 'Armada';
+
+    const newLog = {
+      id: `notif-${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      channel: 'Google Calendar Sync',
+      target: `Google Calendar (${item.crewName || vesselName})`,
+      vesselName,
+      subject: `Sinkron Kalender: ${item.name}`,
+      message: `Event pengingat jatuh tempo H-30 berhasil dijadwalkan di Google Calendar untuk tanggal ${item.expiryDate}`,
+      status: 'Delivered',
+      thresholdTriggered: 'H-30 G-Cal'
+    };
+
+    setNotificationLogs(prev => [newLog, ...prev]);
+    window.open(url, '_blank');
+    showToast(`Google Calendar dibuka untuk event: ${item.name}`, 'success');
+  };
+
+  // Export .ics calendar file for all H-30 items
+  const exportH30CalendarICS = () => {
+    const expiringItems = [
+      ...crewCertificates.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 30 && c.daysUntilExpiry >= -30),
+      ...shipDocuments.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 30 && d.daysUntilExpiry >= -30)
+    ];
+
+    if (expiringItems.length === 0) {
+      showToast('Tidak ada dokumen yang jatuh tempo dalam rentang 1 bulan (H-30).', 'info');
+      return;
+    }
+
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Sistem PMS Kapal Enterprise//Reminder H-30//ID',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:PMS Kapal - Reminder Jatuh Tempo H-30'
+    ];
+
+    expiringItems.forEach((item, idx) => {
+      const vessel = vessels.find(v => v.id === item.vesselId);
+      const vesselName = vessel?.name || 'Kapal';
+      const cleanDate = item.expiryDate ? item.expiryDate.replace(/-/g, '') : '20260909';
+
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:pms-cert-${item.id}-${idx}@pmskapal.com`,
+        `DTSTAMP:${cleanDate}T000000Z`,
+        `DTSTART;VALUE=DATE:${cleanDate}`,
+        `SUMMARY:[PMS H-30] ${item.name} (${vesselName})`,
+        `DESCRIPTION:Pengingat jatuh tempo dokumen ${item.name} (No: ${item.certificateNo || item.documentNo}). Segera lakukan perpanjangan kelaiklautan.`,
+        `LOCATION:${vesselName}`,
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Reminder H-30 Jatuh Tempo Dokumen PMS Kapal',
+        'TRIGGER:-P30D',
+        'END:VALARM',
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Reminder H-7 Kritis Jatuh Tempo Dokumen PMS Kapal',
+        'TRIGGER:-P7D',
+        'END:VALARM',
+        'END:VEVENT'
+      );
+    });
+
+    icsContent.push('END:VCALENDAR');
+
+    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', `PMS_Reminder_H30_GoogleCalendar_${new Date().toISOString().split('T')[0]}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(`File .ics berhasil diunduh (${expiringItems.length} event). Siap diimpor ke Google Calendar / Outlook!`, 'success');
+  };
+
+  // Auto-send WhatsApp for all H-30 items
+  const autoDispatchH30WhatsApp = () => {
+    const expiringItems = [
+      ...crewCertificates.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 30 && c.daysUntilExpiry >= -30),
+      ...shipDocuments.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 30 && d.daysUntilExpiry >= -30)
+    ];
+
+    if (expiringItems.length === 0) {
+      showToast('Tidak ada dokumen yang jatuh tempo dalam rentang 1 bulan (H-30).', 'info');
+      return;
+    }
+
+    const newLogs = expiringItems.map(item => {
+      const vessel = vessels.find(v => v.id === item.vesselId);
+      const recipientName = item.crewName || `Nakhoda & Admin ${vessel?.name || ''}`;
+      return {
+        id: `notif-${Date.now()}-${item.id}`,
+        timestamp: new Date().toLocaleString('id-ID'),
+        channel: 'WhatsApp Auto (H-30 Bot)',
+        target: recipientName,
+        vesselName: vessel?.name || 'Fleet',
+        subject: `[H-30 Bot] Reminder: ${item.name}`,
+        message: `Pemberitahuan Otomatis Rentang 1 Bulan: Dokumen ${item.name} akan jatuh tempo pada ${item.expiryDate} (${item.daysUntilExpiry} hari lagi). Harap proses perpanjangan segera.`,
+        status: 'Delivered',
+        thresholdTriggered: 'H-30 Auto'
+      };
+    });
+
+    setNotificationLogs(prev => [...newLogs, ...prev]);
+
+    // Open first one in WhatsApp
+    const first = expiringItems[0];
+    sendWhatsAppReminder(first, first.crewName ? 'crew_cert' : 'ship_doc');
+    showToast(`Otomatisasi H-30 berhasil! ${expiringItems.length} notifikasi WA dicatat di audit log.`, 'success');
+  };
+
   const escalateNotification = (logId) => {
     setNotificationLogs(prev => prev.map(log => {
       if (log.id === logId) {
@@ -319,6 +476,13 @@ export const PMSProvider = ({ children }) => {
                            filteredCrewCerts.filter(c => c.status === 'Due Soon').length;
   const lowStockCount = filteredSpareparts.filter(s => s.status === 'Low Stock' || s.status === 'Critical').length;
 
+  // Items within 1 month (H-30) of expiry: daysUntilExpiry <= 30
+  const h30ExpiringItems = [
+    ...filteredCrewCerts.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 30),
+    ...filteredShipDocs.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 30)
+  ];
+  const h30ExpiringCount = h30ExpiringItems.length;
+
   return (
     <PMSContext.Provider
       value={{
@@ -362,6 +526,8 @@ export const PMSProvider = ({ children }) => {
         expiredDocsCount,
         dueSoonDocsCount,
         lowStockCount,
+        h30ExpiringCount,
+        h30ExpiringItems,
 
         // Actions
         updateRunningHours,
@@ -376,6 +542,10 @@ export const PMSProvider = ({ children }) => {
         addDrill,
         sendWhatsAppReminder,
         escalateNotification,
+        openGoogleCalendar,
+        getGoogleCalendarUrl,
+        exportH30CalendarICS,
+        autoDispatchH30WhatsApp,
         resetToSeedData,
         showToast
       }}

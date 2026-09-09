@@ -43,11 +43,12 @@ Aplikasi ini dibangun ulang dari awal sesuai spesifikasi komprehensif pada [prd.
    - Surat Legal Kapal: SMC (ISM Code), Class Hull & Machinery BKI/ClassNK, Safety Equipment, P&I Club.
    - Pratinjau dokumen scan sertifikat resmi dengan verifikasi QR & stempel.
 
-8. **Pusat Notifikasi & WhatsApp Reminder Bot**:
-   - Konfigurasi ambang batas pengingat otomatis: **H-90, H-60, H-30, H-14, H-7, H-1**.
-   - Generator pesan WhatsApp resmi dengan link langsung kirim ke kru / perwira terkait.
-   - Alur eskalasi otomatis ke Fleet Manager jika peringatan H-7 tidak ditindaklanjuti dalam 3 hari.
-   - Log audit seluruh riwayat pengiriman notifikasi (*Delivered / Escalated*).
+8. **Pusat Notifikasi, WhatsApp Reminder Bot & Google Calendar Sync**:
+   - **Otomatisasi Rentang 1 Bulan (H-30)**: Deteksi proaktif dokumen & sertifikat kru yang akan jatuh tempo dalam 30 hari ke depan.
+   - **Integrasi Google Calendar**: 1-klik penjadwalan event alarm langsung ke Google Calendar Web dan tombol unduh sinkronisasi massal `.ics` (kompatibel Google Calendar, Outlook, Apple iCal).
+   - **WhatsApp Reminder Bot**: Generator pesan peringatan resmi maritim dengan tautan langsung kirim ke nakhoda, kepala kamar mesin, atau kru bersangkutan.
+   - Konfigurasi ambang batas pengingat otomatis: **H-90, H-60, H-30, H-14, H-7, H-1** dengan alur eskalasi pimpinan armada.
+   - Log audit seluruh riwayat pengiriman notifikasi (*Delivered / Escalated / G-Cal Sync*).
 
 9. **Laporan & Ekspor Data**:
    - Ekspor lembar kerja CSV / Excel instan untuk Work Orders, Dokumen, Biaya, dan Sparepart.

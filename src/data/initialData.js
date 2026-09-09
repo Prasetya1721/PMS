@@ -901,10 +901,10 @@ export const INITIAL_CREW_CERTIFICATES = [
     name: "Ahli Nautika Tingkat I (ANT I / Master Mariner)",
     certificateNo: "COC-ANT1-628819",
     issuer: "Ditjen Perhubungan Laut Kemenhub RI",
-    issueDate: "2021-10-15",
-    expiryDate: "2026-10-15", // H-36 days -> Warning Due Soon
+    issueDate: "2021-10-05",
+    expiryDate: "2026-10-05", // H-26 days -> Within 1 Month (H-30)
     status: "Due Soon", // Active | Due Soon | Expired
-    daysUntilExpiry: 36,
+    daysUntilExpiry: 26,
     scanFile: "sertifikat_ant1_capt_hendra.pdf"
   },
   {
@@ -992,10 +992,10 @@ export const INITIAL_SHIP_DOCUMENTS = [
     name: "Safety Management Certificate (SMC / ISM Code)",
     documentNo: "SMC-IDN-9821450-21",
     issuer: "Biro Klasifikasi Indonesia (BKI)",
-    issueDate: "2021-10-10",
-    expiryDate: "2026-10-10", // H-31 days
+    issueDate: "2021-10-06",
+    expiryDate: "2026-10-06", // H-27 days -> Within 1 Month (H-30)
     status: "Due Soon",
-    daysUntilExpiry: 31,
+    daysUntilExpiry: 27,
     mandatoryAuditor: "BKI Auditor Jakarta",
     scanFile: "smc_km_nusantara.pdf"
   },
