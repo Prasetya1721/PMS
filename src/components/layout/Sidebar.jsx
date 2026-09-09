@@ -99,7 +99,7 @@ export const Sidebar = () => {
             PT. BAHARIMAS
           </h1>
           <p style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Pelayaran Baharimas Kaltim
+            Pelayaran Baharimas Kalimantan
           </p>
         </div>
       </div>
