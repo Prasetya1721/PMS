@@ -155,21 +155,33 @@ export const LoginPage = () => {
             </div>
 
             <p style={{ fontSize: '0.925rem', color: '#94a3b8', lineHeight: 1.6, maxWidth: '520px' }}>
-              Pusat sistem digital operasional armada kapal tunda (tugboat), tongkang batubara, dan kapal tangki perairan Kalimantan Timur.
+              Pusat sistem digital operasional armada kapal tunda (tugboat), tongkang, dan kapal kargo niaga perairan Kalimantan Barat dan jalur pelayaran Nusantara.
             </p>
           </div>
 
-
-
-          {/* Operation Base Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontSize: '0.78rem', color: '#64748b' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <MapPin size={14} color="#38bdf8" />
-              <span>Base: Samarinda & Balikpapan</span>
+          {/* Real Head Office Address */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.45rem',
+            fontSize: '0.8rem',
+            color: '#94a3b8',
+            background: 'rgba(2, 6, 23, 0.45)',
+            padding: '0.85rem 1.15rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            maxWidth: '520px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem' }}>
+              <MapPin size={16} color="#38bdf8" style={{ marginTop: '0.15rem', flexShrink: 0 }} />
+              <div style={{ lineHeight: 1.5 }}>
+                <strong style={{ color: '#fff' }}>Alamat Kantor Pusat:</strong>{' '}
+                Jl. Adi Sucipto KM 6, Kompleks Bahari Permai No. 2, RT. 004 / RW. 004, Desa Sungai Raya, Kec. Sungai Raya, Kab. Kubu Raya - Pontianak, Kalimantan Barat
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Compass size={14} color="#34d399" />
-              <span>Koridor: Sungai Mahakam - Muara Berau</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', fontSize: '0.75rem', color: 'var(--text-subtle)', marginLeft: '1.55rem' }}>
+              <span>📞 Telp: (0561) 531016 / 732194</span>
+              <span>✉️ pt.baharimas@hotmail.com</span>
             </div>
           </div>
         </div>
