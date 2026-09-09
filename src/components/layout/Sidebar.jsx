@@ -84,15 +84,21 @@ export const Sidebar = () => {
         <div style={{
           width: '42px',
           height: '42px',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+          borderRadius: '10px',
+          background: 'rgba(255, 255, 255, 0.08)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)',
-          color: '#ffffff'
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          padding: '4px',
+          flexShrink: 0
         }}>
-          <Anchor size={24} />
+          <img
+            src="/logo-emblem.png"
+            alt="Logo PT Baharimas"
+            style={{ width: '32px', height: '32px', objectFit: 'contain' }}
+          />
         </div>
         <div>
           <h1 style={{ fontSize: '0.98rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>

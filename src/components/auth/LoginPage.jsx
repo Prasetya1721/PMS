@@ -130,27 +130,22 @@ export const LoginPage = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           {/* Logo & Company Title */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <div style={{
-                width: '54px',
-                height: '54px',
-                borderRadius: '16px',
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 8px 24px rgba(2, 132, 199, 0.45)',
-                color: '#fff'
-              }}>
-                <Anchor size={32} />
-              </div>
-              <div>
-                <span className="badge badge-info" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem' }}>
-                  Maritime Fleet Management System
-                </span>
-                <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: '0.2rem' }}>
-                  PT. PELAYARAN BAHARIMAS KALIMANTAN
-                </h1>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <span className="badge badge-info" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem', marginBottom: '0.85rem', display: 'inline-block' }}>
+                Maritime Fleet Management System
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <img
+                  src="/logo-white.png"
+                  alt="PT. Pelayaran Baharimas Kalimantan"
+                  style={{
+                    height: '68px',
+                    width: 'auto',
+                    maxWidth: '100%',
+                    objectFit: 'contain',
+                    filter: 'drop-shadow(0 6px 16px rgba(0, 0, 0, 0.6))'
+                  }}
+                />
               </div>
             </div>
 

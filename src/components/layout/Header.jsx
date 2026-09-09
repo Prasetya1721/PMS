@@ -90,7 +90,7 @@ export const Header = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.45rem',
+          gap: '0.6rem',
           background: 'rgba(2, 132, 199, 0.1)',
           border: '1px solid rgba(56, 189, 248, 0.25)',
           padding: '0.35rem 0.75rem',
@@ -100,6 +100,11 @@ export const Header = () => {
           fontWeight: 700,
           letterSpacing: '0.03em'
         }}>
+          <img
+            src="/logo-emblem.png"
+            alt="Logo PT Baharimas"
+            style={{ width: '16px', height: '16px', objectFit: 'contain' }}
+          />
           <span>PT. PELAYARAN BAHARIMAS KALIMANTAN</span>
         </div>
       </div>
