@@ -1,23 +1,25 @@
 {
-  "name": "pms-kapal",
-  "version": "1.1.0",
+  "name": "sistem-pms-kapal",
   "private": true,
+  "version": "2.0.0",
   "type": "module",
-  "description": "Sistem Planned Maintenance System (PMS) Kapal Enterprise",
+  "description": "Dashboard Sistem Planned Maintenance System (PMS) Kapal Enterprise",
   "scripts": {
-    "build": "node build-vercel.js",
-    "start": "node server.js",
-    "dev": "node server.js",
-    "api": "node apps/api/server.js",
-    "web": "node apps/web/server.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "engines": {
-    "node": "24.x"
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
-  "keywords": [
-    "pms",
-    "maritime",
-    "ship-management",
-    "planned-maintenance-system"
-  ]
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.14"
+  }
 }
