@@ -371,7 +371,7 @@ export const FleetOverview = () => {
                   Work Order Melewati Jam Servis
                 </div>
                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Kompresor Udara Sperre HL2 pada KM Nusantara Express telah melewati batas running hours (2510 / 2500 jam).
+                  Kompresor Udara Sperre HL2 pada kapal RP 2020 telah melewati batas running hours (2510 / 2500 jam).
                 </p>
                 <button
                   onClick={() => setActiveTab('maintenance')}

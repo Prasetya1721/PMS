@@ -20,10 +20,16 @@ import {
 
 const PMSContext = createContext();
 
+const PMS_STORAGE_VERSION = 'v2-17-ships-baharimas';
+
 export const PMSProvider = ({ children }) => {
   // Load state from localStorage or fallback to initial data
   const loadStored = (key, fallback) => {
     try {
+      const version = localStorage.getItem('pms_fleet_version');
+      if (version !== PMS_STORAGE_VERSION) {
+        return fallback;
+      }
       const saved = localStorage.getItem(`pms_${key}`);
       return saved ? JSON.parse(saved) : fallback;
     } catch {
@@ -31,13 +37,7 @@ export const PMSProvider = ({ children }) => {
     }
   };
 
-  const [vessels, setVessels] = useState(() => {
-    const loaded = loadStored('vessels', INITIAL_VESSELS);
-    if (loaded && loaded[0] && !loaded[0].name.includes('BAHARIMAS')) {
-      return INITIAL_VESSELS;
-    }
-    return loaded;
-  });
+  const [vessels, setVessels] = useState(() => loadStored('vessels', INITIAL_VESSELS));
   const [equipment, setEquipment] = useState(() => loadStored('equipment', INITIAL_EQUIPMENT));
   const [schedules, setSchedules] = useState(() => loadStored('schedules', INITIAL_MAINTENANCE_SCHEDULES));
   const [workOrders, setWorkOrders] = useState(() => loadStored('workOrders', INITIAL_WORK_ORDERS));
@@ -86,6 +86,7 @@ export const PMSProvider = ({ children }) => {
 
   // Sync to localStorage
   useEffect(() => {
+    localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
     localStorage.setItem('pms_vessels', JSON.stringify(vessels));
     localStorage.setItem('pms_equipment', JSON.stringify(equipment));
     localStorage.setItem('pms_schedules', JSON.stringify(schedules));
@@ -232,6 +233,254 @@ export const PMSProvider = ({ children }) => {
     };
     setDrills(prev => [d, ...prev]);
     showToast(`Laporan latihan keselamatan (Safety Drill) berhasil dicatat`, 'success');
+  };
+
+  // 4b. Vessel & Ship Document Actions
+  const addVessel = (vesselData) => {
+    const newId = `v-${Date.now()}`;
+    const isBarge = vesselData.type?.toLowerCase().includes('tongkang') || vesselData.type?.toLowerCase().includes('barge');
+    const newVessel = {
+      ...vesselData,
+      id: newId,
+      gt: Number(vesselData.gt) || (isBarge ? 3500 : 300),
+      dwt: Number(vesselData.dwt) || (isBarge ? 8500 : 450),
+      yearBuilt: Number(vesselData.yearBuilt) || new Date().getFullYear(),
+      speedKnots: Number(vesselData.speedKnots) || (isBarge ? 0 : 8.0),
+      flag: vesselData.flag || "Indonesia (IDN)",
+      portOfRegistry: vesselData.portOfRegistry || "Samarinda, Kalimantan Timur",
+      status: vesselData.status || "Operasional (Berlayar)",
+      ownershipStatus: vesselData.ownershipStatus || "As Owner & Operator",
+      photo: vesselData.photo || (
+        isBarge
+          ? "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80"
+          : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80"
+      )
+    };
+
+    setVessels(prev => [newVessel, ...prev]);
+
+    // Automatically create initial equipment for this newly added ship
+    if (isBarge) {
+      setEquipment(prev => [
+        {
+          id: `eq-${Date.now()}-1`,
+          vesselId: newId,
+          code: 'AW-01',
+          name: 'Diesel Engine Anchor Windlass (Mesin Jangkar)',
+          category: 'Deck Machinery',
+          model: 'Dongnam Hydraulic/Diesel 15T',
+          serialNumber: `DN-AW-${newVessel.regNo || 'NEW'}`,
+          maker: 'Dongnam Marine',
+          location: 'Forecastle Deck',
+          runningHours: 100,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 500,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Brake Band', 'Hydraulic Motor']
+        },
+        {
+          id: `eq-${Date.now()}-2`,
+          vesselId: newId,
+          code: 'FP-01',
+          name: 'Emergency Diesel Fire Pump',
+          category: 'Sistem Keselamatan',
+          model: 'Portable Fire Pump 50 m3/h',
+          serialNumber: `FP-${newVessel.regNo || 'NEW'}`,
+          maker: 'Koshin Marine',
+          location: 'Forward Store',
+          runningHours: 40,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 250,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Impeller', 'Diesel Engine Starter']
+        },
+        ...prev
+      ]);
+    } else {
+      setEquipment(prev => [
+        {
+          id: `eq-${Date.now()}-1`,
+          vesselId: newId,
+          code: 'ME-01',
+          name: 'Main Engine Portside (Mesin Induk Kiri)',
+          category: 'Propulsi',
+          model: 'Marine Diesel Engine (1600 BHP)',
+          serialNumber: `ME-${newVessel.regNo || 'NEW'}-P`,
+          maker: 'Yanmar / Caterpillar',
+          location: 'Engine Room Port',
+          runningHours: 450,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 1000,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Turbocharger', 'Fuel Injection Pump', 'Cylinder Liners']
+        },
+        {
+          id: `eq-${Date.now()}-2`,
+          vesselId: newId,
+          code: 'ME-02',
+          name: 'Main Engine Starboard (Mesin Induk Kanan)',
+          category: 'Propulsi',
+          model: 'Marine Diesel Engine (1600 BHP)',
+          serialNumber: `ME-${newVessel.regNo || 'NEW'}-S`,
+          maker: 'Yanmar / Caterpillar',
+          location: 'Engine Room Starboard',
+          runningHours: 450,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 1000,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Turbocharger', 'Fuel Injection Pump', 'Cylinder Liners']
+        },
+        {
+          id: `eq-${Date.now()}-3`,
+          vesselId: newId,
+          code: 'AE-01',
+          name: 'Auxiliary Generator #1 (Genset Kiri)',
+          category: 'Kelistrikan',
+          model: 'Diesel Genset 120 kVA',
+          serialNumber: `AE-${newVessel.regNo || 'NEW'}-1`,
+          maker: 'Cummins Marine',
+          location: 'Engine Room Platform',
+          runningHours: 350,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 1000,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Alternator', 'Injectors']
+        },
+        {
+          id: `eq-${Date.now()}-4`,
+          vesselId: newId,
+          code: 'TW-01',
+          name: 'Hydraulic Towing Winch 45T',
+          category: 'Deck Machinery',
+          model: 'Plimsoll Hydraulic 45T',
+          serialNumber: `TW-${newVessel.regNo || 'NEW'}`,
+          maker: 'Plimsoll Marine',
+          location: 'Aft Main Deck',
+          runningHours: 200,
+          lastMaintenanceHours: 0,
+          nextServiceHours: 1000,
+          status: 'Normal',
+          criticality: 'Tinggi',
+          installedDate: new Date().toISOString().split('T')[0],
+          subComponents: ['Hydraulic Motor', 'Brake Band']
+        },
+        ...prev
+      ]);
+    }
+
+    // Automatically create initial Captain & Chief Engineer crew for this new vessel
+    if (newVessel.masterCaptain) {
+      setCrew(prev => [
+        {
+          id: `crew-${Date.now()}-cap`,
+          vesselId: newId,
+          name: newVessel.masterCaptain,
+          rank: isBarge ? "Barge Master" : "Nakhoda (Master)",
+          department: "Deck",
+          seamanBookNo: `B-${Math.floor(100000 + Math.random() * 900000)}-ID`,
+          phone: "081288990011",
+          whatsapp: "+6281288990011",
+          status: "Onboard",
+          signOnDate: new Date().toISOString().split('T')[0],
+          signOffPlanDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          contractDurationMonths: 6,
+          leaveBalanceDays: 14,
+          photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
+        },
+        ...prev
+      ]);
+    }
+
+    if (newVessel.chiefEngineer) {
+      setCrew(prev => [
+        {
+          id: `crew-${Date.now()}-kkm`,
+          vesselId: newId,
+          name: newVessel.chiefEngineer,
+          rank: isBarge ? "Teknisi Tongkang / Juru Mesin" : "Chief Engineer (KKM)",
+          department: "Engine",
+          seamanBookNo: `B-${Math.floor(100000 + Math.random() * 900000)}-ID`,
+          phone: "081377881122",
+          whatsapp: "+6281377881122",
+          status: "Onboard",
+          signOnDate: new Date().toISOString().split('T')[0],
+          signOffPlanDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          contractDurationMonths: 6,
+          leaveBalanceDays: 14,
+          photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80"
+        },
+        ...prev
+      ]);
+    }
+
+    // Automatically create initial Special Survey & Annual Survey document templates
+    setShipDocuments(prev => [
+      {
+        id: `doc-s-${Date.now()}-ss`,
+        vesselId: newId,
+        category: "Classification",
+        name: "Special Survey (SS) - Pembaruan Kelas BKI",
+        documentNo: `BKI-SS-${newVessel.regNo || 'NEW'}`,
+        issuer: "Biro Klasifikasi Indonesia (BKI)",
+        issueDate: new Date().toISOString().split('T')[0],
+        expiryDate: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: "Active",
+        daysUntilExpiry: 1825,
+        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Samarinda'}`,
+        scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_ss.pdf`
+      },
+      {
+        id: `doc-s-${Date.now()}-as`,
+        vesselId: newId,
+        category: "Classification",
+        name: "Annual Survey (AS) - Survei Tahunan Lambung & Mesin",
+        documentNo: `BKI-AS-${newVessel.regNo || 'NEW'}`,
+        issuer: "Biro Klasifikasi Indonesia (BKI)",
+        issueDate: new Date().toISOString().split('T')[0],
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: "Active",
+        daysUntilExpiry: 365,
+        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Samarinda'}`,
+        scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_as.pdf`
+      },
+      ...prev
+    ]);
+
+    showToast(`Kapal ${newVessel.name} berhasil ditambahkan manual ke database armada!`, 'success');
+    return newVessel;
+  };
+
+  const addShipDocument = (docData) => {
+    const expiry = docData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const todayRef = new Date('2026-09-09T00:00:00Z');
+    const expDate = new Date(expiry + 'T00:00:00Z');
+    const days = Math.round((expDate.getTime() - todayRef.getTime()) / (1000 * 60 * 60 * 24));
+    let status = 'Active';
+    if (days <= 0) status = 'Expired';
+    else if (days <= 30) status = 'Due Soon';
+
+    const newDoc = {
+      ...docData,
+      id: `doc-s-${Date.now()}`,
+      expiryDate: expiry,
+      status: docData.status || status,
+      daysUntilExpiry: days,
+      issuer: docData.issuer || "Biro Klasifikasi Indonesia (BKI) / Ditjen Hubla",
+      mandatoryAuditor: docData.mandatoryAuditor || "BKI Surveyor"
+    };
+    setShipDocuments(prev => [newDoc, ...prev]);
+    showToast(`Sertifikat ${newDoc.name} berhasil ditambahkan!`, 'success');
+    return newDoc;
   };
 
   // 5. WhatsApp & Notification Engine
@@ -571,6 +820,9 @@ export const PMSProvider = ({ children }) => {
         addWorkOrder,
         updateSparepartStock,
         addRequisition,
+        addVessel,
+        setVessels,
+        addShipDocument,
         addCrew,
         approveLeave,
         submitLeave,

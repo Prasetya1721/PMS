@@ -42,7 +42,7 @@ export const NotificationCenter = () => {
   const [activeTab, setActiveTab] = useState('h30_automation'); // 'h30_automation' | 'logs' | 'settings' | 'simulator'
   const [testRecipient, setTestRecipient] = useState(crew[0]?.whatsapp || '+6281288991122');
   const [testMessage, setTestMessage] = useState(
-    'Yth. Nakhoda & Chief Engineer, berikut ringkasan status PMS harian KM Nusantara Express: 1 Work Order Overdue, 1 Dokumen expired. Harap tindak lanjuti segera.'
+    'Yth. Nakhoda & Chief Engineer, berikut ringkasan status PMS harian RP 2020 (PT. Pelayaran Baharimas Kalimantan): 1 Work Order Overdue, 1 Dokumen expired. Harap tindak lanjuti segera.'
   );
 
   const runDailySchedulerSimulation = () => {

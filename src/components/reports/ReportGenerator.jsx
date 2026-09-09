@@ -160,7 +160,7 @@ export const ReportGenerator = () => {
         <div style={{ borderBottom: '2px solid #0284c7', paddingBottom: '1.25rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              PT PELAYARAN NASIONAL NUSANTARA (PERSERO)
+              PT PELAYARAN BAHARIMAS KALIMANTAN
             </div>
             <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '0.2rem', color: '#0f172a' }}>
               {reportType === 'maintenance' && 'LAPORAN REKAPITULASI PLANNED MAINTENANCE SYSTEM (PMS)'}
