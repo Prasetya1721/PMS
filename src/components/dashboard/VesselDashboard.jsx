@@ -40,6 +40,7 @@ export const VesselDashboard = () => {
     workOrders,
     crew,
     crewCertificates,
+    allCrewCertificates,
     shipDocuments,
     allShipDocuments,
     allCrew,
@@ -74,25 +75,41 @@ export const VesselDashboard = () => {
     leaveBalanceDays: 14
   });
 
-  // New Doc Form State
+  // New Ship Doc Form State
   const [newDocData, setNewDocData] = useState({
-    name: 'Annual Survey (AS) - Pemeriksaan Tahunan',
+    name: '',
     category: 'Classification',
     documentNo: '',
     issuer: 'Biro Klasifikasi Indonesia (BKI)',
     expiryDate: '2027-06-30'
   });
 
-  // Current vessel
-  const currentShip = vessels.find(v => v.id === selectedVesselId) || vessels[0];
+  // Current vessel with safe fallback
+  const currentShip = (vessels && vessels.find(v => v.id === selectedVesselId)) || (vessels && vessels[0]) || {
+    id: 'v-001',
+    name: 'RP 2020',
+    type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
+    ownershipStatus: 'As Owner',
+    imo: '24587',
+    regNo: '24587',
+    callSign: 'YDB2458',
+    portOfRegistry: 'Samarinda, Kalimantan Timur',
+    builder: 'PT Dok & Perkapalan Baharimas Samarinda',
+    yearBuilt: 2020,
+    speedKnots: 7.8,
+    gt: 310,
+    status: 'Operasional (Berlayar)',
+    currentLocation: 'Muara Berau (Towing Tongkang)',
+    photo: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'
+  };
 
-  // Specific data filtered for THIS ship
-  const shipCrew = allCrew.filter(c => c.vesselId === currentShip.id);
-  const shipCrewCerts = crewCertificates.filter(c => c.vesselId === currentShip.id);
-  const shipDocs = allShipDocuments.filter(d => d.vesselId === currentShip.id);
-  const shipEquipment = allEquipment.filter(e => e.vesselId === currentShip.id);
-  const shipWOs = allWorkOrders.filter(w => w.vesselId === currentShip.id);
-  const shipParts = allSpareparts.filter(s => s.vesselId === currentShip.id);
+  // Specific data filtered for THIS ship with defensive checks
+  const shipCrew = (allCrew || []).filter(c => c.vesselId === currentShip.id);
+  const shipCrewCerts = (allCrewCertificates || crewCertificates || []).filter(c => c.vesselId === currentShip.id);
+  const shipDocs = (allShipDocuments || []).filter(d => d.vesselId === currentShip.id);
+  const shipEquipment = (allEquipment || []).filter(e => e.vesselId === currentShip.id);
+  const shipWOs = (allWorkOrders || []).filter(w => w.vesselId === currentShip.id);
+  const shipParts = (allSpareparts || []).filter(s => s.vesselId === currentShip.id);
 
   const overdueWO = shipWOs.filter(w => w.status === 'Overdue');
   const inProgressWO = shipWOs.filter(w => w.status === 'In Progress');
@@ -179,8 +196,20 @@ export const VesselDashboard = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <h2 style={{ fontSize: '1.85rem', fontWeight: 800 }}>{currentShip.name}</h2>
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        background: currentShip.ownershipStatus === 'As Operator' ? 'rgba(2, 132, 199, 0.95)' : 'rgba(5, 150, 105, 0.95)',
+                        color: '#fff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      {currentShip.ownershipStatus === 'As Operator' ? '⚙️ Register: As Operator' : '⚓ Register: As Owner'}
+                    </span>
                     <span className="badge badge-info">{currentShip.type}</span>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
@@ -197,13 +226,22 @@ export const VesselDashboard = () => {
                     value={currentShip.id}
                     onChange={(e) => setSelectedVesselId(e.target.value)}
                     className="select-control"
-                    style={{ width: '210px', fontSize: '0.825rem', fontWeight: 600, background: 'var(--bg-surface)' }}
+                    style={{ width: '250px', fontSize: '0.825rem', fontWeight: 600, background: 'var(--bg-surface)' }}
                   >
-                    {vessels.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.type.split(' ')[0]})
-                      </option>
-                    ))}
+                    <optgroup label="⚓ AS OWNER (17 Kapal Milik)">
+                      {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
+                        <option key={v.id} value={v.id}>
+                          🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="⚙️ AS OPERATOR (11 Kapal Operasional)">
+                      {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
+                        <option key={v.id} value={v.id}>
+                          ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
               </div>

@@ -17,6 +17,56 @@ import { NotificationCenter } from './components/notification/NotificationCenter
 import { ReportGenerator } from './components/reports/ReportGenerator';
 import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('PMS Cockpit Error Caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '50vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem'
+        }}>
+          <div className="glass-card" style={{ maxWidth: '520px', textAlign: 'center', padding: '2rem' }}>
+            <AlertTriangle size={44} color="#f87171" style={{ margin: '0 auto 1rem' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f87171' }}>
+              Terjadi Kendala Memuat Modul Ini
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+              {this.state.error?.message || 'Sistem menemukan ketidaksesuaian data pada modul.'}
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="btn btn-primary"
+              style={{ marginTop: '1.25rem' }}
+            >
+              Segarkan Tampilan (Reload)
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AppContent = () => {
   const { activeTab, selectedVesselId, toastMessage } = usePMS();
 
@@ -58,7 +108,9 @@ const AppContent = () => {
         <UrgencyBanner />
 
         <main className="page-body">
-          {renderContent()}
+          <ErrorBoundary>
+            {renderContent()}
+          </ErrorBoundary>
         </main>
       </div>
 

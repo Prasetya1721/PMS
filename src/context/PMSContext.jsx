@@ -20,7 +20,25 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v2-17-ships-baharimas';
+const PMS_STORAGE_VERSION = 'v6-fleet-28-sync-all-data';
+
+// Auto-purge stale localStorage if version mismatch occurs
+if (typeof window !== 'undefined') {
+  try {
+    const currentVersion = localStorage.getItem('pms_fleet_version');
+    if (currentVersion !== PMS_STORAGE_VERSION) {
+      console.log(`[PMS] Purging stale localStorage version (${currentVersion}) -> ${PMS_STORAGE_VERSION}`);
+      const preservedUser = localStorage.getItem('pms_current_user');
+      localStorage.clear();
+      if (preservedUser) {
+        localStorage.setItem('pms_current_user', preservedUser);
+      }
+      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
+    }
+  } catch (err) {
+    console.error('[PMS] Storage purge check error:', err);
+  }
+}
 
 export const PMSProvider = ({ children }) => {
   // Load state from localStorage or fallback to initial data
@@ -31,7 +49,16 @@ export const PMSProvider = ({ children }) => {
         return fallback;
       }
       const saved = localStorage.getItem(`pms_${key}`);
-      return saved ? JSON.parse(saved) : fallback;
+      if (!saved) return fallback;
+      const parsed = JSON.parse(saved);
+      // Extra safeguard: if stored vessels array doesn't have 28 items or lacks v-op-, force reload fallback
+      if (key === 'vessels' && (!Array.isArray(parsed) || parsed.length !== fallback.length || !parsed.some(v => v.id?.startsWith('v-op-')))) {
+        return fallback;
+      }
+      if (key === 'shipDocuments' && (!Array.isArray(parsed) || parsed.length !== fallback.length)) {
+        return fallback;
+      }
+      return parsed;
     } catch {
       return fallback;
     }
@@ -106,6 +133,49 @@ export const PMSProvider = ({ children }) => {
     costs, crew, leaves, drills, crewCertificates, shipDocuments,
     notificationSettings, notificationLogs
   ]);
+
+  // Auto-heal state immediately if stale fleet data is present in memory
+  useEffect(() => {
+    const isStale =
+      vessels.length !== INITIAL_VESSELS.length ||
+      !vessels.some(v => v.id?.startsWith('v-op-')) ||
+      vessels.some(v => v.ownershipStatus === 'As Owner & Operator') ||
+      shipDocuments.length !== INITIAL_SHIP_DOCUMENTS.length ||
+      equipment.length !== INITIAL_EQUIPMENT.length ||
+      crew.length !== INITIAL_CREW.length;
+
+    if (isStale) {
+      console.log('Synchronizing fleet database to 28 vessels and 215 documents...');
+      setVessels(INITIAL_VESSELS);
+      setEquipment(INITIAL_EQUIPMENT);
+      setSchedules(INITIAL_MAINTENANCE_SCHEDULES);
+      setWorkOrders(INITIAL_WORK_ORDERS);
+      setSpareparts(INITIAL_SPAREPARTS);
+      setRequisitions(INITIAL_REQUISITIONS);
+      setCosts(INITIAL_COSTS);
+      setCrew(INITIAL_CREW);
+      setLeaves(INITIAL_LEAVES);
+      setDrills(INITIAL_DRILLS);
+      setCrewCertificates(INITIAL_CREW_CERTIFICATES);
+      setShipDocuments(INITIAL_SHIP_DOCUMENTS);
+      setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
+      setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
+
+      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
+      localStorage.setItem('pms_vessels', JSON.stringify(INITIAL_VESSELS));
+      localStorage.setItem('pms_equipment', JSON.stringify(INITIAL_EQUIPMENT));
+      localStorage.setItem('pms_schedules', JSON.stringify(INITIAL_MAINTENANCE_SCHEDULES));
+      localStorage.setItem('pms_workOrders', JSON.stringify(INITIAL_WORK_ORDERS));
+      localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
+      localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
+      localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
+      localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
+      localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
+      localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
+      localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
+      localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
+    }
+  }, [vessels, shipDocuments, equipment, crew]);
 
   const showToast = (msg, type = 'info') => {
     setToastMessage({ message: msg, type });
@@ -712,8 +782,27 @@ export const PMSProvider = ({ children }) => {
     setShipDocuments(INITIAL_SHIP_DOCUMENTS);
     setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
     setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
+
+    const preservedUser = localStorage.getItem('pms_current_user');
     localStorage.clear();
-    showToast('Seluruh data berhasil di-reset ke data maritim awal!', 'info');
+    if (preservedUser) {
+      localStorage.setItem('pms_current_user', preservedUser);
+    }
+    localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
+    localStorage.setItem('pms_vessels', JSON.stringify(INITIAL_VESSELS));
+    localStorage.setItem('pms_equipment', JSON.stringify(INITIAL_EQUIPMENT));
+    localStorage.setItem('pms_schedules', JSON.stringify(INITIAL_MAINTENANCE_SCHEDULES));
+    localStorage.setItem('pms_workOrders', JSON.stringify(INITIAL_WORK_ORDERS));
+    localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
+    localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
+    localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
+    localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
+    localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
+    localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
+    localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
+    localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
+
+    showToast('Seluruh data armada (28 kapal & 215 dokumen BKI) berhasil di-sinkronisasi ulang!', 'info');
   };
 
   // Filtered views by selected vessel
@@ -764,11 +853,16 @@ export const PMSProvider = ({ children }) => {
   ];
   const h30ExpiringCount = h30ExpiringItems.length;
 
+  const ownerVessels = vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator');
+  const operatorVessels = vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator');
+
   return (
     <PMSContext.Provider
       value={{
         // Data
         vessels,
+        ownerVessels,
+        operatorVessels,
         equipment: filteredEquipment,
         allEquipment: equipment,
         schedules,

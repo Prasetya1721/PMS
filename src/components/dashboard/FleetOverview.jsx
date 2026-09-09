@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
   Ship,
@@ -34,6 +34,8 @@ export const FleetOverview = () => {
     lowStockCount
   } = usePMS();
 
+  const [fleetScope, setFleetScope] = useState('ALL'); // ALL | OWNER | OPERATOR
+
   // Fleet Calculations
   const totalEquipments = allEquipment.length;
   const totalRunningHours = allEquipment.reduce((acc, curr) => acc + (curr.runningHours || 0), 0);
@@ -64,7 +66,7 @@ export const FleetOverview = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
             <span className="badge badge-info">Fleet Control Center</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Monitoring 3 Kapal Niaga Indonesia
+              Monitoring {vessels.length} Kapal (17 As Owner & 11 As Operator)
             </span>
           </div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>
@@ -108,41 +110,45 @@ export const FleetOverview = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '0.35rem' }}>
               <span>{completedWO} Selesai</span>
-              <span>{allWorkOrders.length} Total WO</span>
+              <span>{inProgressWO} Dalam Pengerjaan</span>
             </div>
           </div>
         </div>
 
-        {/* Certificate Legal Health Card */}
+        {/* Expired Docs Radar Card */}
         <div className="glass-card" style={{ padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Kesiapan Sertifikat & Dokumen</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Dokumen / Sertifikat Expired</p>
               <h3 style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem', color: expiredDocsCount > 0 ? '#ef4444' : '#10b981' }}>
-                {expiredDocsCount > 0 ? `${expiredDocsCount} Expired` : '100% Valid'}
+                {expiredDocsCount}
               </h3>
             </div>
-            <div style={{ padding: '0.65rem', borderRadius: '10px', background: expiredDocsCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: expiredDocsCount > 0 ? '#ef4444' : '#10b981' }}>
+            <div style={{
+              padding: '0.65rem',
+              borderRadius: '10px',
+              background: expiredDocsCount > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              color: expiredDocsCount > 0 ? '#ef4444' : '#10b981'
+            }}>
               <FileCheck size={24} />
             </div>
           </div>
-          <div style={{ marginTop: '0.85rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>
-              {dueSoonDocsCount} Due Soon (H-90/H-30)
-            </span>
-            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-              {allCrewCertificates.length + allShipDocuments.length} Dokumen Total
-            </span>
-          </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.85rem' }}>
+            {dueSoonDocsCount > 0 ? (
+              <span style={{ color: '#fbbf24', fontWeight: 600 }}>⚠️ {dueSoonDocsCount} dokumen H-30 jatuh tempo</span>
+            ) : (
+              'Tidak ada dokumen mendekati jatuh tempo'
+            )}
+          </p>
         </div>
 
-        {/* Equipment & Running Hours Card */}
+        {/* Running Hours Card */}
         <div className="glass-card" style={{ padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Equipment Terpantau</p>
-              <h3 style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem' }}>
-                {totalEquipments} Unit
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Jam Operasi Mesin</p>
+              <h3 style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem', color: '#f59e0b' }}>
+                {totalEquipments}
               </h3>
             </div>
             <div style={{ padding: '0.65rem', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
@@ -182,29 +188,66 @@ export const FleetOverview = () => {
 
       {/* Vessel Cards Showcase */}
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Status Armada Kapal</h3>
             <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Pilih kapal untuk membuka dashboard teknis dan logbook spesifik</p>
           </div>
-          <button onClick={() => setActiveTab('fleet')} className="btn btn-secondary btn-sm">
-            <span>Kelola Detail Kapal</span>
-            <ArrowUpRight size={14} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-surface-elevated)', padding: '0.25rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              {[
+                { id: 'ALL', label: `Semua (${vessels.length})` },
+                { id: 'OWNER', label: `⚓ As Owner (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length})` },
+                { id: 'OPERATOR', label: `⚙️ As Operator (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length})` }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFleetScope(tab.id)}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.78rem',
+                    fontWeight: fleetScope === tab.id ? 700 : 500,
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: fleetScope === tab.id ? '#0284c7' : 'transparent',
+                    color: fleetScope === tab.id ? '#fff' : 'var(--text-muted)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setActiveTab('fleet')} className="btn btn-secondary btn-sm">
+              <span>Kelola Detail Kapal</span>
+              <ArrowUpRight size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="grid-cols-3">
-          {vessels.map(ship => {
+          {vessels.filter(v => {
+            if (fleetScope === 'OWNER') return !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator';
+            if (fleetScope === 'OPERATOR') return v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator';
+            return true;
+          }).map(ship => {
             const shipWO = allWorkOrders.filter(w => w.vesselId === ship.id);
             const shipOverdue = shipWO.filter(w => w.status === 'Overdue').length;
             const shipEquipment = allEquipment.filter(e => e.vesselId === ship.id);
             const shipCrew = allCrew.filter(c => c.vesselId === ship.id);
+            const isOperator = ship.id.startsWith('v-op-') || ship.ownershipStatus === 'As Operator';
 
             return (
               <div
                 key={ship.id}
                 className="glass-card glass-card-interactive"
-                style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                style={{
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: isOperator ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+                }}
                 onClick={() => {
                   setSelectedVesselId(ship.id);
                   setActiveTab('dashboard');
@@ -231,6 +274,18 @@ export const FleetOverview = () => {
                       ship.status.includes('Operasional') ? 'badge-success' : 'badge-warning'
                     }`}>
                       {ship.status.split(' ')[0]}
+                    </span>
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        background: isOperator ? 'rgba(2, 132, 199, 0.95)' : 'rgba(5, 150, 105, 0.95)',
+                        color: '#fff',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.4)'
+                      }}
+                    >
+                      {isOperator ? '⚙️ As Operator' : '⚓ As Owner'}
                     </span>
                   </div>
                   <div style={{

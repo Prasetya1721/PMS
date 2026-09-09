@@ -79,8 +79,8 @@ export const VesselList = () => {
   // Filter and Search logic
   const filteredVessels = vessels.filter(v => {
     let matchFilter = true;
-    if (filterType === 'OWNER') matchFilter = v.ownershipStatus?.includes('Owner');
-    else if (filterType === 'OPERATOR') matchFilter = v.ownershipStatus?.includes('Operator');
+    if (filterType === 'OWNER') matchFilter = !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator';
+    else if (filterType === 'OPERATOR') matchFilter = v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator';
     else if (filterType === 'TUGBOAT') matchFilter = v.type?.toLowerCase().includes('tugboat') || v.type?.toLowerCase().includes('tunda') || v.type?.toLowerCase().includes('penarik');
     else if (filterType === 'BARGE') matchFilter = v.type?.toLowerCase().includes('tongkang') || v.type?.toLowerCase().includes('barge');
 
@@ -90,6 +90,7 @@ export const VesselList = () => {
       (v.imo && v.imo.toLowerCase().includes(search.toLowerCase())) ||
       (v.callSign && v.callSign.toLowerCase().includes(search.toLowerCase())) ||
       (v.portOfRegistry && v.portOfRegistry.toLowerCase().includes(search.toLowerCase())) ||
+      (v.ownershipStatus && v.ownershipStatus.toLowerCase().includes(search.toLowerCase())) ||
       (v.masterCaptain && v.masterCaptain.toLowerCase().includes(search.toLowerCase()));
 
     return matchFilter && matchSearch;
@@ -107,7 +108,7 @@ export const VesselList = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Daftar resmi 17 armada kapal niaga, manajemen sertifikasi survei BKI, perwira penanggung jawab, dan penambahan kapal manual
+            Daftar resmi 28 armada kapal niaga terpisah (17 As Owner & 11 As Operator), manajemen sertifikasi survei BKI, perwira penanggung jawab, dan penambahan kapal manual
           </p>
         </div>
 
@@ -129,8 +130,8 @@ export const VesselList = () => {
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
           {[
             { id: 'ALL', label: 'Semua Armada', count: vessels.length },
-            { id: 'OPERATOR', label: 'As Operator', count: vessels.filter(v => v.ownershipStatus?.includes('Operator')).length },
-            { id: 'OWNER', label: 'As Owner', count: vessels.length },
+            { id: 'OWNER', label: '⚓ As Owner (17 Milik)', count: vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length },
+            { id: 'OPERATOR', label: '⚙️ As Operator (11 Operasi)', count: vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length },
             { id: 'TUGBOAT', label: 'Tugboat', count: vessels.filter(v => v.type?.toLowerCase().includes('tugboat') || v.type?.toLowerCase().includes('tunda') || v.type?.toLowerCase().includes('penarik')).length },
             { id: 'BARGE', label: 'Tongkang / Barge', count: vessels.filter(v => v.type?.toLowerCase().includes('tongkang') || v.type?.toLowerCase().includes('barge')).length }
           ].map(f => (
@@ -153,7 +154,7 @@ export const VesselList = () => {
           <Search size={15} color="var(--text-subtle)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
-            placeholder="Cari nama kapal, No Reg, Nakhoda..."
+            placeholder="Cari nama kapal, No Reg, status..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input-control"
@@ -162,20 +163,52 @@ export const VesselList = () => {
         </div>
       </div>
 
+      {/* Fleet Verification Banner */}
+      <div style={{
+        padding: '0.85rem 1.25rem',
+        borderRadius: '10px',
+        background: 'rgba(2, 132, 199, 0.08)',
+        border: '1px solid rgba(56, 189, 248, 0.25)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.75rem',
+        fontSize: '0.825rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <ShieldCheck size={18} color="#38bdf8" />
+          <span>
+            <strong>Pemisahan Master Kapal Sesuai Dokumen:</strong> Terdaftar total <strong>28 entitas kapal</strong> yang dipisahkan menjadi <strong>17 Kapal As Owner</strong> (Milik Sendiri) dan <strong>11 Kapal As Operator</strong> (Pengoperasian), dengan total <strong>215 Dokumen Survei BKI</strong>.
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>17 Kapal As Owner</span>
+          <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>11 Kapal As Operator</span>
+          <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>215 Sertifikat BKI</span>
+        </div>
+      </div>
+
       {/* Grid of Vessels */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {filteredVessels.map(v => {
+          const shipWO = allWorkOrders.filter(w => w.vesselId === v.id);
           const shipEquipment = allEquipment.filter(e => e.vesselId === v.id);
           const shipCrew = allCrew.filter(c => c.vesselId === v.id);
-          const shipWO = allWorkOrders.filter(w => w.vesselId === v.id);
           const shipDocs = allShipDocuments.filter(d => d.vesselId === v.id);
+
           const overdueCount = shipWO.filter(w => w.status === 'Overdue').length;
           const expiredDocs = shipDocs.filter(d => d.status === 'Expired').length;
           const dueSoonDocs = shipDocs.filter(d => d.status === 'Due Soon').length;
           const totalHours = shipEquipment.reduce((sum, e) => sum + (e.runningHours || 0), 0);
 
+          const isOperator = v.ownershipStatus === 'As Operator';
+
           return (
-            <div key={v.id} className="glass-card" style={{ overflow: 'hidden' }}>
+            <div key={v.id} className="glass-card" style={{
+              overflow: 'hidden',
+              border: isOperator ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
+            }}>
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '320px 1fr',
@@ -192,8 +225,17 @@ export const VesselList = () => {
                     <span className={`badge ${v.status?.includes('Operasional') ? 'badge-success' : 'badge-warning'}`}>
                       {v.status}
                     </span>
-                    <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
-                      {v.ownershipStatus || 'As Owner'}
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        background: isOperator ? 'rgba(2, 132, 199, 0.9)' : 'rgba(5, 150, 105, 0.9)',
+                        color: '#fff',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      {isOperator ? '⚙️ As Operator' : '⚓ As Owner'}
                     </span>
                   </div>
                 </div>
@@ -205,10 +247,22 @@ export const VesselList = () => {
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                           <h3 style={{ fontSize: '1.55rem', fontWeight: 800 }}>{v.name}</h3>
-                          <span className="badge badge-info">{v.type}</span>
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              background: isOperator ? 'rgba(2, 132, 199, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              color: isOperator ? '#38bdf8' : '#34d399',
+                              border: isOperator ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(52, 211, 153, 0.4)'
+                            }}
+                          >
+                            {isOperator ? '⚙️ Kapal Pengoperasian (Operator)' : '⚓ Kapal Milik Sendiri (Owner)'}
+                          </span>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{v.type}</span>
                         </div>
                         <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          Bendera: <strong style={{ color: '#fff' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
+                          No. Reg BKI: <strong className="mono" style={{ color: '#fff' }}>{v.regNo || v.imo}</strong> • Bendera: <strong style={{ color: '#fff' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
                           <strong style={{ color: '#fff' }}>{v.portOfRegistry}</strong> • Galangan:{' '}
                           <strong style={{ color: '#fff' }}>{v.builder} ({v.yearBuilt})</strong>
                         </p>

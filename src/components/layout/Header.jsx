@@ -53,14 +53,23 @@ export const Header = () => {
             value={selectedVesselId}
             onChange={(e) => setSelectedVesselId(e.target.value)}
             className="select-control"
-            style={{ width: '240px', fontWeight: 600, background: 'var(--bg-surface)' }}
+            style={{ width: '275px', fontWeight: 600, background: 'var(--bg-surface)' }}
           >
-            <option value="all">🌐 Seluruh Armada (Fleet Level)</option>
-            {vessels.map(v => (
-              <option key={v.id} value={v.id}>
-                🚢 {v.name} ({v.type.split(' ')[0]})
-              </option>
-            ))}
+            <option value="all">🌐 Seluruh Armada (28 Entitas Kapal)</option>
+            <optgroup label="⚓ AS OWNER (17 Kapal Milik)">
+              {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
+                <option key={v.id} value={v.id}>
+                  🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="⚙️ AS OPERATOR (11 Kapal Operasional)">
+              {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
+                <option key={v.id} value={v.id}>
+                  ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 
