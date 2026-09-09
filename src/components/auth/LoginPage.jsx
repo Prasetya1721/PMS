@@ -127,14 +127,14 @@ export const LoginPage = () => {
         zIndex: 10
       }}>
         {/* Left Column: Maritime Company Branding */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', minWidth: 0 }}>
           {/* Logo & Company Title */}
           <div>
             <div style={{ marginBottom: '1.25rem' }}>
               <span className="badge badge-info" style={{ letterSpacing: '0.06em', textTransform: 'uppercase', fontSize: '0.72rem', marginBottom: '0.85rem', display: 'inline-block' }}>
                 Maritime Fleet Management System
               </span>
-              <div>
+              <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                 <BaharimasLogo variant="white" size="lg" />
               </div>
             </div>

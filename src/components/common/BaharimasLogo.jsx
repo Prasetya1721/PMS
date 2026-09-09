@@ -38,13 +38,13 @@ export const BaharimasLogo = ({
   className = '',
   style = {}
 }) => {
-  // Dimension presets
+  // Dimension presets calibrated for crisp proportion and responsive fit
   const config = {
-    sm: { emblemSize: 28, fontSize: '1.05rem', gap: '0.6rem', letterSpacing: '0.03em' },
-    md: { emblemSize: 38, fontSize: '1.45rem', gap: '0.85rem', letterSpacing: '0.03em' },
-    lg: { emblemSize: 52, fontSize: '1.95rem', gap: '1.15rem', letterSpacing: '0.035em' },
-    xl: { emblemSize: 64, fontSize: '2.35rem', gap: '1.35rem', letterSpacing: '0.04em' }
-  }[size] || { emblemSize: 52, fontSize: '1.95rem', gap: '1.15rem', letterSpacing: '0.035em' };
+    sm: { emblemSize: 24, fontSize: '0.9rem', gap: '0.5rem', letterSpacing: '0.02em' },
+    md: { emblemSize: 32, fontSize: '1.15rem', gap: '0.65rem', letterSpacing: '0.025em' },
+    lg: { emblemSize: 42, fontSize: 'clamp(1.1rem, 1.45vw, 1.38rem)', gap: '0.85rem', letterSpacing: '0.025em' },
+    xl: { emblemSize: 52, fontSize: '1.75rem', gap: '1.1rem', letterSpacing: '0.03em' }
+  }[size] || { emblemSize: 42, fontSize: '1.38rem', gap: '0.85rem', letterSpacing: '0.025em' };
 
   const textColor = variant === 'dark' ? '#0f172a' : '#ffffff';
 
@@ -57,6 +57,7 @@ export const BaharimasLogo = ({
         gap: config.gap,
         userSelect: 'none',
         lineHeight: 1,
+        maxWidth: '100%',
         ...style
       }}
     >
