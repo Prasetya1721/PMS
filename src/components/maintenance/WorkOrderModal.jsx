@@ -1,386 +1,1188 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
-  Wrench,
+  Package,
   X,
   CheckCircle,
   Clock,
   User,
-  Package,
-  DollarSign,
-  AlertTriangle,
   Plus,
-  Trash2
+  Trash2,
+  Printer,
+  Send,
+  Copy,
+  Check,
+  FileText,
+  Ship,
+  Users,
+  AlertTriangle,
+  Calendar,
+  MapPin,
+  Sparkles,
+  ArrowLeft,
+  ChevronDown
 } from 'lucide-react';
 
 export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
   const {
     vessels,
-    allEquipment,
+    allCrew,
+    crew,
     spareparts,
-    toggleChecklist,
-    updateWorkOrderStatus,
-    addWorkOrder
+    addRequisition,
+    showToast
   } = usePMS();
 
   const isEdit = Boolean(workOrder);
 
-  // Form state for creating a new WO
+  // Current vessel target
+  const initialVesselId = workOrder?.vesselId || vesselId || vessels[0]?.id || 'v-001';
+  const currentVessel = vessels.find(v => v.id === initialVesselId) || vessels[0];
+
+  // List of crew on this vessel for quick PIC selection
+  const vesselCrewList = useMemo(() => {
+    const list = (allCrew || crew || []).filter(c => c.vesselId === initialVesselId);
+    return list;
+  }, [allCrew, crew, initialVesselId]);
+
+  // Initial Captain Name
+  const captainName = useMemo(() => {
+    return (
+      currentVessel?.masterCaptain ||
+      currentVessel?.particulars?.masterCaptain ||
+      vesselCrewList.find(c => c.rank?.toLowerCase().includes('nakhoda') || c.rank?.toLowerCase().includes('master'))?.name ||
+      'Capt. Hendra Gunawan, M.Mar'
+    );
+  }, [currentVessel, vesselCrewList]);
+
+  // Initial PIC / Requester
+  const defaultPic = useMemo(() => {
+    const chief = vesselCrewList.find(c => c.rank?.toLowerCase().includes('chief') || c.rank?.toLowerCase().includes('kkm'));
+    if (chief) {
+      return { name: chief.name, role: chief.rank };
+    }
+    return {
+      name: currentVessel?.chiefEngineer || 'Ir. Bambang Wijaya',
+      role: 'Chief Engineer (KKM)'
+    };
+  }, [vesselCrewList, currentVessel]);
+
+  // View Mode: 'form' (input formulir) | 'letter' (surat permintaan resmi)
+  const [viewMode, setViewMode] = useState(isEdit ? 'letter' : 'form');
+
+  // Form State
   const [formData, setFormData] = useState({
-    title: workOrder?.title || '',
-    vesselId: workOrder?.vesselId || vesselId || vessels[0]?.id || 'v-001',
-    equipmentId: workOrder?.equipmentId || allEquipment[0]?.id || 'eq-101',
-    category: workOrder?.category || 'Planned Preventive Maintenance',
-    priority: workOrder?.priority || 'Tinggi',
-    assignedTo: workOrder?.assignedTo || '',
-    supervisor: workOrder?.supervisor || '',
-    dueDate: workOrder?.dueDate || new Date().toISOString().split('T')[0],
-    targetHours: workOrder?.targetHours || '',
-    notes: workOrder?.notes || '',
-    laborHoursEstimated: workOrder?.laborHoursEstimated || 4,
-    costEstimated: workOrder?.costEstimated || 2500000
+    documentNo: `REQ-PBK/2026/09/${Math.floor(100 + Math.random() * 900)}`,
+    vesselId: initialVesselId,
+    mainCategory: 'Kebutuhan Kapal', // 'Kebutuhan Kapal' | 'Kebutuhan Crew'
+    subCategory: 'Mesin & Sparepart (Engine Parts)',
+    picName: defaultPic.name,
+    picRole: defaultPic.role,
+    priority: 'Penting (Segera)',
+    requestDate: new Date().toISOString().split('T')[0],
+    neededDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    deliveryLocation: 'Dermaga Pelabuhan Samarinda',
+    notes: 'Mohon dipersiapkan sebelum kapal menyelesaikan bongkar muat di Samarinda.'
   });
 
-  const [newChecklistText, setNewChecklistText] = useState('');
+  // Requisition items table state
+  const [items, setItems] = useState([
+    {
+      id: 'it-1',
+      name: 'Oli Mesin Meditran SX 15W-40',
+      qty: 2,
+      unit: 'Drum',
+      category: 'Kebutuhan Kapal',
+      notes: 'Penggantian oli rutin Main Engine Portside'
+    },
+    {
+      id: 'it-2',
+      name: 'Filter Oli Fleetguard LF9009 Cummins',
+      qty: 4,
+      unit: 'Pcs',
+      category: 'Kebutuhan Kapal',
+      notes: 'Servis berkala 1000 jam kerja mesin'
+    },
+    {
+      id: 'it-3',
+      name: 'Tali Towing Polypropylene 8-Strand 55mm',
+      qty: 1,
+      unit: 'Roll',
+      category: 'Kebutuhan Kapal',
+      notes: 'Cadangan tali towing tongkang batubara'
+    }
+  ]);
 
-  const targetEquipment = allEquipment.find(e => e.id === (isEdit ? workOrder.equipmentId : formData.equipmentId));
-  const targetVessel = vessels.find(v => v.id === (isEdit ? workOrder.vesselId : formData.vesselId));
+  // Input state for adding manual items
+  const [manualItem, setManualItem] = useState({
+    name: '',
+    qty: 1,
+    unit: 'Pcs',
+    notes: ''
+  });
 
-  const handleCreateSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.title || !formData.assignedTo) return;
+  const [copiedText, setCopiedText] = useState(false);
 
-    addWorkOrder({
-      ...formData,
-      currentRunningHours: targetEquipment?.runningHours || 0,
-      targetHours: formData.targetHours ? Number(formData.targetHours) : null,
-      laborHoursEstimated: Number(formData.laborHoursEstimated),
-      costEstimated: Number(formData.costEstimated),
-      laborHoursActual: 0,
-      costActual: 0
-    });
-    onClose();
+  // Catalog Presets categorized by Kebutuhan Kapal & Kebutuhan Crew
+  const CATALOG_PRESETS = useMemo(() => {
+    return {
+      'Kebutuhan Kapal': [
+        { name: 'Oli Mesin Meditran SX 15W-40 (200L)', unit: 'Drum', notes: 'Pelumas Mesin Utama / Genset' },
+        { name: 'Oli Rored HDA 90/140 Gearbox', unit: 'Pail', notes: 'Pelumas Gearbox & Steering Gear' },
+        { name: 'Filter Oli Fleetguard LF9009', unit: 'Pcs', notes: 'Suku Cadang Mesin Utama' },
+        { name: 'Filter Solar Fleetguard FS1000', unit: 'Pcs', notes: 'Penyaring Bahan Bakar' },
+        { name: 'Tali Towing Polypropylene 55mm (220M)', unit: 'Roll', notes: 'Tali Towing & Tambat Kapal' },
+        { name: 'Cat Marine Anti-Fouling Red (20L)', unit: 'Pail', notes: 'Pengecatan Lambung Bawah Air' },
+        { name: 'Cat Marine Alkyd Gloss White (20L)', unit: 'Pail', notes: 'Pengecatan Superstructure' },
+        { name: 'Thinner A Spesial Super (5L)', unit: 'Kaleng', notes: 'Pengencer Cat Kapal' },
+        { name: 'Zinc Anode Lambung 10 Kg', unit: 'Pcs', notes: 'Proteksi Katodik Korosi Lambung' },
+        { name: 'Majun Putih Super (Kain Pembersih)', unit: 'Kg', notes: 'Pembersih Mesin & Kamar Mesin' },
+        { name: 'Bohlam Lampu Sorot Deck 1000W Halogen', unit: 'Pcs', notes: 'Penerangan Navigasi & Deck' },
+        { name: 'Lifebuoy Ring 2.5kg (Pelampung)', unit: 'Pcs', notes: 'Peralatan Keselamatan SOLAS' },
+        { name: 'Elektroda Las Kobe Steel LB-52 3.2mm', unit: 'Dus', notes: 'Perbaikan & Pengelasan Konstruksi' }
+      ],
+      'Kebutuhan Crew': [
+        { name: 'Beras Premium Ramos 25 Kg', unit: 'Zak', notes: 'Ransum Pokok Galley Kapal' },
+        { name: 'Minyak Goreng Kemasan 2 Liter', unit: 'Dus', notes: 'Bahan Dapur & Masak Awak' },
+        { name: 'Telur Ayam Boiler Segar (30 Butir)', unit: 'Piring', notes: 'Konsumsi Ransum Harian Kru' },
+        { name: 'Daging Sapi Segar & Daging Ayam', unit: 'Kg', notes: 'Lauk Pauk Segar Pelayaran' },
+        { name: 'Mie Instan Indomie Campur (40 Bks)', unit: 'Dus', notes: 'Ransum Makanan Cepat Saji' },
+        { name: 'Air Minum Galon Aqua 19 Liter', unit: 'Galon', notes: 'Air Bersih Konsumsi Awak Kapal' },
+        { name: 'Wearpack Pelaut Katun Logo Baharimas', unit: 'Stel', notes: 'APD Seragam Kerja Pelaut' },
+        { name: 'Safety Shoes Pelaut Ujung Besi SNI', unit: 'Pasang', notes: 'Sepatu Keselamatan Kerja Deck & Mesin' },
+        { name: 'Paket Obat-obatan P3K & Vitamin Maritim', unit: 'Set', notes: 'Kesehatan & P3K Standar Maritim' },
+        { name: 'Sprei & Sarung Bantal Kamar Kru', unit: 'Set', notes: 'Perlengkapan Mess & Kamar Awak' },
+        { name: 'Sabun Cuci Deterjen & Pembersih Lantai', unit: 'Dus', notes: 'Kebersihan Kamar & Toilet Kapal' },
+        { name: 'Kopi Kapal Api & Gula Pasir 1 Kg', unit: 'Paket', notes: 'Minuman Hangat Jaga Malam Awak' }
+      ]
+    };
+  }, []);
+
+  const SUB_CATEGORIES = useMemo(() => {
+    return {
+      'Kebutuhan Kapal': [
+        'Mesin & Sparepart (Engine Parts)',
+        'Minyak Pelumas & Oli (Lubricants)',
+        'Deck Machinery & Tali Towing',
+        'Cat, Thinner & Perlengkapan Lambung',
+        'Alat Keselamatan Kapal (SOLAS / LSA / FFA)',
+        'Listrik & Peralatan Navigasi',
+        'Consumables & Bengkel (Majun, Baut, Las)'
+      ],
+      'Kebutuhan Crew': [
+        'Bahan Makanan Basah & Kering (Galley / Ransum)',
+        'Air Minum Galon & Minuman',
+        'APD & Seragam Wearpack Pelaut',
+        'Perlengkapan Mess & Kamar Kru',
+        'Obat-obatan P3K & Suplemen Kesehatan',
+        'Sabun Cuci, Deterjen & Kebersihan Mess'
+      ]
+    };
+  }, []);
+
+  // Handler: Change Main Category
+  const handleMainCategoryChange = (newCat) => {
+    setFormData(prev => ({
+      ...prev,
+      mainCategory: newCat,
+      subCategory: SUB_CATEGORIES[newCat][0]
+    }));
   };
 
-  const handleStatusChange = (newStatus) => {
-    if (!workOrder) return;
-    updateWorkOrderStatus(workOrder.id, newStatus);
+  // Handler: Add item from catalog preset
+  const handleAddPresetItem = (preset) => {
+    const newItem = {
+      id: `it-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: preset.name,
+      qty: 1,
+      unit: preset.unit || 'Pcs',
+      category: formData.mainCategory,
+      notes: preset.notes || ''
+    };
+    setItems(prev => [...prev, newItem]);
+    showToast(`✓ Ditambahkan ke daftar: ${preset.name}`, 'info');
+  };
+
+  // Handler: Add manual item
+  const handleAddManualItem = (e) => {
+    e?.preventDefault?.();
+    if (!manualItem.name.trim()) {
+      showToast('Nama barang wajib diisi!', 'warning');
+      return;
+    }
+    const newItem = {
+      id: `it-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      name: manualItem.name.trim(),
+      qty: Number(manualItem.qty) || 1,
+      unit: manualItem.unit || 'Pcs',
+      category: formData.mainCategory,
+      notes: manualItem.notes.trim() || '-'
+    };
+    setItems(prev => [...prev, newItem]);
+    setManualItem({ name: '', qty: 1, unit: 'Pcs', notes: '' });
+    showToast(`✓ Barang manual "${newItem.name}" ditambahkan ke daftar!`, 'success');
+  };
+
+  // Handler: Remove item
+  const handleRemoveItem = (itemId) => {
+    setItems(prev => prev.filter(i => i.id !== itemId));
+  };
+
+  // Handler: Submit Form & Generate Letter
+  const handleGenerateLetter = (e) => {
+    e.preventDefault();
+    if (items.length === 0) {
+      showToast('Mohon tambahkan minimal 1 barang ke dalam daftar permintaan!', 'warning');
+      return;
+    }
+    if (!formData.picName.trim()) {
+      showToast('Nama PIC / Pemohon wajib diisi!', 'warning');
+      return;
+    }
+
+    // Save to system requisitions
+    if (addRequisition) {
+      addRequisition({
+        id: formData.documentNo,
+        vesselId: formData.vesselId,
+        category: formData.mainCategory,
+        subCategory: formData.subCategory,
+        requesterName: `${formData.picName} (${formData.picRole})`,
+        urgency: formData.priority,
+        status: 'Submitted',
+        items: items.map(i => ({
+          name: i.name,
+          qty: i.qty,
+          unit: i.unit,
+          notes: i.notes
+        })),
+        notes: formData.notes
+      });
+    }
+
+    // Switch to letter preview
+    setViewMode('letter');
+    showToast('Surat Permintaan Barang ke Gudang berhasil diterbitkan!', 'success');
+  };
+
+  // Handler: Print
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Handler: WhatsApp Dispatch
+  const handleSendWA = () => {
+    const vesselName = currentVessel?.name || 'Kapal Armada';
+    const lines = [
+      `*SURAT PERMINTAAN BARANG KE GUDANG (MATERIAL REQUISITION)*`,
+      `*PT. PELAYARAN BAHARIMAS KALIMANTAN*`,
+      `═════════════════════════════════`,
+      `📄 No. Dokumen: *${formData.documentNo}*`,
+      `🚢 Kapal: *${vesselName}*`,
+      `🏷️ Kategori: *${formData.mainCategory}* (${formData.subCategory})`,
+      `👤 PIC / Pemohon: *${formData.picName}* (${formData.picRole})`,
+      `⚓ Mengetahui (Nakhoda): *${captainName}*`,
+      `📅 Tgl Permintaan: ${formData.requestDate}`,
+      `⏰ Tgl Dibutuhkan: *${formData.neededDate}*`,
+      `⚡ Prioritas: *${formData.priority}*`,
+      `📍 Lokasi Penyerahan: ${formData.deliveryLocation}`,
+      ``,
+      `*DAFTAR BARANG YANG DIMINTA:*`,
+      ...items.map((it, idx) => `${idx + 1}. *${it.name}* - ${it.qty} ${it.unit} (${it.notes || '-'})`),
+      ``,
+      formData.notes ? `📝 *Catatan Tambahan:* ${formData.notes}` : '',
+      `═════════════════════════════════`,
+      `_Mohon untuk dipersiapkan oleh Tim Gudang & Logistik PT. PBK. Terima kasih._`
+    ].filter(Boolean);
+
+    const waText = encodeURIComponent(lines.join('\n'));
+    window.open(`https://api.whatsapp.com/send?phone=6281288991122&text=${waText}`, '_blank');
+  };
+
+  // Handler: Copy text
+  const handleCopyText = () => {
+    const vesselName = currentVessel?.name || 'Kapal Armada';
+    const text = [
+      `SURAT PERMINTAAN BARANG KE GUDANG - PT. PELAYARAN BAHARIMAS KALIMANTAN`,
+      `No: ${formData.documentNo}`,
+      `Kapal: ${vesselName}`,
+      `Kategori: ${formData.mainCategory} (${formData.subCategory})`,
+      `PIC / Pemohon: ${formData.picName} (${formData.picRole})`,
+      `Nakhoda: ${captainName}`,
+      `Tgl Dibutuhkan: ${formData.neededDate}`,
+      `Prioritas: ${formData.priority}`,
+      `Lokasi: ${formData.deliveryLocation}`,
+      ``,
+      `DAFTAR BARANG:`,
+      ...items.map((it, idx) => `${idx + 1}. ${it.name} - ${it.qty} ${it.unit} (${it.notes || '-'})`)
+    ].join('\n');
+
+    navigator.clipboard.writeText(text);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2000);
+    showToast('Teks ringkasan permintaan berhasil disalin ke clipboard!', 'info');
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog modal-dialog-large" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Wrench size={20} color="#38bdf8" />
+      <div
+        className="modal-dialog modal-dialog-large"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: viewMode === 'letter' ? '860px' : '820px',
+          width: '95%',
+          maxHeight: '92vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        {/* ========================================================================= */}
+        {/* MODAL TOP BAR (NO-PRINT)                                                  */}
+        {/* ========================================================================= */}
+        <div className="modal-header no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#38bdf8'
+            }}>
+              <Package size={20} />
+            </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                {isEdit ? `Work Order: ${workOrder.id}` : 'Buat Work Order Perawatan Baru'}
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
+                  {viewMode === 'letter'
+                    ? 'Surat Permintaan Barang ke Gudang'
+                    : 'Formulir Permintaan Barang ke Gudang'}
+                </h3>
+                <span className="badge badge-info" style={{ fontSize: '0.68rem', fontFamily: 'monospace' }}>
+                  {formData.documentNo}
+                </span>
+              </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {targetVessel?.name} • {targetEquipment?.name}
+                {currentVessel?.name} • Divisi Logistik & Gudang Armada PT. Pelayaran Baharimas Kalimantan
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-          >
-            <X size={20} />
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {viewMode === 'letter' ? (
+              <button
+                type="button"
+                onClick={() => setViewMode('form')}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
+              >
+                <ArrowLeft size={14} />
+                <span>Edit Kembali Form</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setViewMode('letter')}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem' }}
+              >
+                <FileText size={14} />
+                <span>Lihat Surat Permintaan</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}
+              title="Tutup"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        {isEdit ? (
-          /* Detail View for existing WO */
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Status & Priority Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+        {/* ========================================================================= */}
+        {/* VIEW 1: FORMULIR INPUT PERMINTAAN BARANG                                 */}
+        {/* ========================================================================= */}
+        {viewMode === 'form' && (
+          <form onSubmit={handleGenerateLetter} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.25rem' }}>
+
+              {/* 1. KATEGORI KEBUTUHAN: KAPAL & CRAW (CREW) */}
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status Pengerjaan:</span>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
-                  {['Scheduled', 'In Progress', 'Completed'].map(st => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => handleStatusChange(st)}
-                      className={`btn btn-sm ${workOrder.status === st ? 'btn-primary' : 'btn-secondary'}`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                <label className="field-label" style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                  1. Pilih Kategori Kebutuhan *
+                </label>
 
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Prioritas & Target:</span>
-                <div style={{ marginTop: '0.2rem' }}>
-                  <span className={`badge ${
-                    workOrder.priority === 'Sangat Tinggi' || workOrder.priority === 'Tinggi' ? 'badge-danger' : 'badge-warning'
-                  }`}>
-                    {workOrder.priority}
-                  </span>
-                  <span className="mono" style={{ marginLeft: '0.5rem', fontSize: '0.825rem', color: '#38bdf8' }}>
-                    {workOrder.targetHours ? `${workOrder.targetHours} Jam Operasi` : workOrder.dueDate}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Title & Description */}
-            <div>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{workOrder.title}</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.35rem' }}>
-                {workOrder.notes || 'Tidak ada catatan tambahan.'}
-              </p>
-            </div>
-
-            {/* Technician Assignment & Running Hours Specs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-              <div style={{ padding: '0.75rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Teknisi Pelaksana</span>
-                <p style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.2rem' }}>{workOrder.assignedTo}</p>
-              </div>
-              <div style={{ padding: '0.75rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Supervisor / Approver</span>
-                <p style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.2rem' }}>{workOrder.supervisor || '-'}</p>
-              </div>
-              <div style={{ padding: '0.75rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Jam Operasi Aktual</span>
-                <p className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38bdf8', marginTop: '0.2rem' }}>
-                  {workOrder.currentRunningHours || targetEquipment?.runningHours} Jam
-                </p>
-              </div>
-            </div>
-
-            {/* Interactive Checklist */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                <h5 style={{ fontSize: '0.95rem', fontWeight: 700 }}>
-                  Checklist Tugas Perawatan ({workOrder.checklist?.filter(c => c.done).length || 0}/{workOrder.checklist?.length || 0})
-                </h5>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Klik item untuk mencentang pengerjaan
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {workOrder.checklist?.map(item => (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  {/* Card Kebutuhan Kapal */}
                   <div
-                    key={item.id}
-                    onClick={() => toggleChecklist(workOrder.id, item.id)}
+                    onClick={() => handleMainCategoryChange('Kebutuhan Kapal')}
                     style={{
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      background: item.done ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-surface-elevated)',
-                      border: item.done ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)',
+                      padding: '0.9rem 1rem',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      border: formData.mainCategory === 'Kebutuhan Kapal'
+                        ? '2px solid #38bdf8'
+                        : '1px solid var(--border-subtle)',
+                      background: formData.mainCategory === 'Kebutuhan Kapal'
+                        ? 'rgba(56, 189, 248, 0.12)'
+                        : 'rgba(255, 255, 255, 0.02)',
+                      transition: 'all 0.2s ease',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.75rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      gap: '0.75rem'
                     }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={item.done}
-                      onChange={() => {}}
-                      style={{ cursor: 'pointer', accentColor: '#10b981', width: '16px', height: '16px' }}
-                    />
-                    <span style={{
-                      fontSize: '0.85rem',
-                      color: item.done ? '#a7f3d0' : 'var(--text-main)',
-                      textDecoration: item.done ? 'line-through' : 'none'
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: formData.mainCategory === 'Kebutuhan Kapal' ? '#38bdf8' : 'rgba(255, 255, 255, 0.08)',
+                      color: formData.mainCategory === 'Kebutuhan Kapal' ? '#0f172a' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}>
-                      {item.text}
-                    </span>
+                      <Ship size={22} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.925rem', color: 'var(--text-primary)', display: 'block' }}>
+                        ⚓ Kebutuhan Kapal
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Deck, Mesin, Oli/Pelumas, Cat Lambung, Tali Towing, Alat SOLAS
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Spareparts Required */}
-            {workOrder.partsRequired && workOrder.partsRequired.length > 0 && (
-              <div>
-                <h5 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                  Sparepart & Suku Cadang Terkait
-                </h5>
-                <div className="table-container">
-                  <table className="pms-table">
+                  {/* Card Kebutuhan Crew (Craw) */}
+                  <div
+                    onClick={() => handleMainCategoryChange('Kebutuhan Crew')}
+                    style={{
+                      padding: '0.9rem 1rem',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      border: formData.mainCategory === 'Kebutuhan Crew'
+                        ? '2px solid #10b981'
+                        : '1px solid var(--border-subtle)',
+                      background: formData.mainCategory === 'Kebutuhan Crew'
+                        ? 'rgba(16, 185, 129, 0.12)'
+                        : 'rgba(255, 255, 255, 0.02)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem'
+                    }}
+                  >
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: formData.mainCategory === 'Kebutuhan Crew' ? '#10b981' : 'rgba(255, 255, 255, 0.08)',
+                      color: formData.mainCategory === 'Kebutuhan Crew' ? '#0f172a' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Users size={22} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.925rem', color: 'var(--text-primary)', display: 'block' }}>
+                        👥 Kebutuhan Crew (Awak Kapal)
+                      </strong>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Bahan Makanan/Galley, Air Minum, APD Pelaut, Mess, P3K & Sabun
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-Category Dropdown */}
+                <div style={{ marginTop: '0.65rem' }}>
+                  <label className="field-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Sub-Kategori Spesifikasi:
+                  </label>
+                  <select
+                    value={formData.subCategory}
+                    onChange={(e) => setFormData(prev => ({ ...prev, subCategory: e.target.value }))}
+                    className="select-control"
+                    style={{ fontSize: '0.825rem', fontWeight: 600 }}
+                  >
+                    {SUB_CATEGORIES[formData.mainCategory].map(sc => (
+                      <option key={sc} value={sc}>{sc}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* 2. DATA KAPAL & PIC PEMOHON (EQUIPMENT DIHAPUS, TEKNISI DIGANTI PIC) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="field-label">Kapal Pemohon *</label>
+                  <select
+                    value={formData.vesselId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vesselId: e.target.value }))}
+                    className="select-control"
+                  >
+                    {vessels.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.ownershipStatus || 'Owner'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">PIC / Pemohon (Person In Charge) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Ir. Bambang Wijaya (KKM)"
+                    value={formData.picName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, picName: e.target.value }))}
+                    className="input-control"
+                  />
+                  {/* Quick Crew PIC Dropdown Selector */}
+                  <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', overflowX: 'auto' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Pilih Cepat:</span>
+                    {vesselCrewList.slice(0, 3).map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, picName: c.name, picRole: c.rank }))}
+                        className="badge"
+                        style={{
+                          fontSize: '0.65rem',
+                          background: formData.picName === c.name ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          color: formData.picName === c.name ? '#38bdf8' : 'var(--text-muted)',
+                          border: '1px solid var(--border-subtle)',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {c.name.split(',')[0]} ({c.rank.split(' ')[0]})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. PRIORITAS, TANGGAL & LOKASI (TARGET JAM HILANGKAN) */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="field-label">Prioritas Pengiriman</label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                    className="select-control"
+                  >
+                    <option value="Rutin / Normal">Rutin / Normal</option>
+                    <option value="Penting (Segera)">Penting (Segera)</option>
+                    <option value="Mendesak / Emergency">Mendesak / Emergency (Kritis)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">Batas Tgl Dibutuhkan *</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.neededDate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, neededDate: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Lokasi Penyerahan Barang</label>
+                  <input
+                    type="text"
+                    placeholder="Dermaga Pelabuhan Samarinda / Muara Berau"
+                    value={formData.deliveryLocation}
+                    onChange={(e) => setFormData(prev => ({ ...prev, deliveryLocation: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+              </div>
+
+              {/* 4. DAFTAR KEBUTUHAN BARANG (KATALOG CEPAT & INPUT MANUAL) */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderRadius: '12px',
+                padding: '1rem',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Daftar Kebutuhan Barang ke Gudang
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Pilih barang dari katalog cepat {formData.mainCategory} atau ketik manual di bawah.
+                    </p>
+                  </div>
+                  <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
+                    {items.length} Barang Siap Diminta
+                  </span>
+                </div>
+
+                {/* A. Katalog Cepat (Presets) */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', display: 'block', marginBottom: '0.35rem' }}>
+                    📦 PILIH CEPAT DARI KATALOG {formData.mainCategory.toUpperCase()}:
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', maxHeight: '110px', overflowY: 'auto', padding: '0.2rem' }}>
+                    {CATALOG_PRESETS[formData.mainCategory].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleAddPresetItem(preset)}
+                        className="badge"
+                        style={{
+                          fontSize: '0.72rem',
+                          padding: '0.35rem 0.65rem',
+                          background: 'rgba(56, 189, 248, 0.08)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid rgba(56, 189, 248, 0.25)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title={`Klik untuk menambahkan: ${preset.name} (${preset.unit})`}
+                      >
+                        <Plus size={12} color="#38bdf8" />
+                        <span>{preset.name}</span>
+                        <span style={{ fontSize: '0.62rem', opacity: 0.7 }}>[{preset.unit}]</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* B. Form Input Manual Barang */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 80px 100px 2fr auto',
+                  gap: '0.5rem',
+                  alignItems: 'flex-end',
+                  background: 'rgba(0, 0, 0, 0.2)',
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-glass)'
+                }}>
+                  <div>
+                    <label className="field-label" style={{ fontSize: '0.72rem' }}>Nama Barang (Manual) *</label>
+                    <input
+                      type="text"
+                      placeholder="Ketik nama barang yang diminta..."
+                      value={manualItem.name}
+                      onChange={(e) => setManualItem(prev => ({ ...prev, name: e.target.value }))}
+                      className="input-control"
+                      style={{ fontSize: '0.8rem', padding: '0.45rem 0.65rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="field-label" style={{ fontSize: '0.72rem' }}>Jumlah *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={manualItem.qty}
+                      onChange={(e) => setManualItem(prev => ({ ...prev, qty: e.target.value }))}
+                      className="input-control mono"
+                      style={{ fontSize: '0.8rem', padding: '0.45rem 0.5rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="field-label" style={{ fontSize: '0.72rem' }}>Satuan *</label>
+                    <select
+                      value={manualItem.unit}
+                      onChange={(e) => setManualItem(prev => ({ ...prev, unit: e.target.value }))}
+                      className="select-control"
+                      style={{ fontSize: '0.8rem', padding: '0.45rem 0.4rem' }}
+                    >
+                      {['Pcs', 'Drum', 'Liter', 'Zak', 'Kg', 'Roll', 'Kaleng', 'Pail', 'Box', 'Dus', 'Set', 'Pasang', 'Lusin', 'Galon', 'Meter'].map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="field-label" style={{ fontSize: '0.72rem' }}>Keterangan / Spesifikasi</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Untuk Main Engine / Ransum 14 hari"
+                      value={manualItem.notes}
+                      onChange={(e) => setManualItem(prev => ({ ...prev, notes: e.target.value }))}
+                      className="input-control"
+                      style={{ fontSize: '0.8rem', padding: '0.45rem 0.65rem' }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddManualItem}
+                    className="btn btn-primary btn-sm"
+                    style={{ height: '36px', display: 'flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}
+                  >
+                    <Plus size={14} />
+                    <span>+ Tambah</span>
+                  </button>
+                </div>
+
+                {/* C. Tabel Daftar Barang yang Akan Dikirim */}
+                <div style={{ marginTop: '0.85rem', overflowX: 'auto' }}>
+                  <table className="pms-table" style={{ fontSize: '0.825rem' }}>
                     <thead>
                       <tr>
-                        <th>Nama Part</th>
-                        <th>Jumlah</th>
-                        <th>Estimasi Biaya</th>
+                        <th style={{ width: '40px' }}>No</th>
+                        <th>Nama Barang / Material</th>
+                        <th style={{ width: '120px' }}>Jumlah</th>
+                        <th>Kategori</th>
+                        <th>Keterangan / Spesifikasi</th>
+                        <th style={{ width: '60px', textAlign: 'center' }}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {workOrder.partsRequired.map((part, idx) => (
-                        <tr key={idx}>
-                          <td>{part.name}</td>
-                          <td>{part.qty} {part.unit}</td>
-                          <td className="mono">
-                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(part.cost || 0)}
+                      {items.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                            Belum ada barang yang ditambahkan. Silakan klik katalog di atas atau input manual.
+                          </td>
+                        </tr>
+                      ) : (
+                        items.map((item, index) => (
+                          <tr key={item.id}>
+                            <td className="mono" style={{ color: 'var(--text-muted)' }}>{index + 1}</td>
+                            <td>
+                              <strong style={{ color: 'var(--text-primary)' }}>{item.name}</strong>
+                            </td>
+                            <td className="mono">
+                              <span style={{ fontWeight: 700, color: '#38bdf8' }}>{item.qty}</span> {item.unit}
+                            </td>
+                            <td>
+                              <span className="badge" style={{
+                                fontSize: '0.68rem',
+                                background: item.category === 'Kebutuhan Crew' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                                color: item.category === 'Kebutuhan Crew' ? '#10b981' : '#38bdf8'
+                              }}>
+                                {item.category}
+                              </span>
+                            </td>
+                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                              {item.notes || '-'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="btn-icon"
+                                style={{ color: '#ef4444', padding: '4px' }}
+                                title="Hapus Barang"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 5. INSTRUKSI / CATATAN KHUSUS UNTUK GUDANG */}
+              <div>
+                <label className="field-label">Catatan / Instruksi Tambahan untuk Petugas Gudang</label>
+                <textarea
+                  rows="2"
+                  placeholder="Catatan tambahan seperti jam penyerahan, kontak agen pelabuhan, dll."
+                  value={formData.notes}
+                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="input-control"
+                  style={{ fontSize: '0.825rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer Form */}
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button type="button" onClick={onClose} className="btn btn-secondary">
+                Batal
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                >
+                  <FileText size={16} />
+                  <span>Terbitkan & Cetak Surat Permintaan</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIEW 2: SURAT PERMINTAAN RESMI (TABEL + TTD KAPTEN & PEMOHON)            */}
+        {/* ========================================================================= */}
+        {viewMode === 'letter' && (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+            {/* Action Bar (No-Print) */}
+            <div className="no-print" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.75rem 1.25rem',
+              background: 'rgba(56, 189, 248, 0.08)',
+              borderBottom: '1px solid var(--border-subtle)',
+              flexWrap: 'wrap',
+              gap: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle size={16} color="#10b981" />
+                <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Surat Permintaan Siap Ditandatangani & Dikirim ke Gudang
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={handleCopyText}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+                >
+                  {copiedText ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                  <span>{copiedText ? 'Tersalin!' : 'Salin Teks'}</span>
+                </button>
+
+                <button
+                  onClick={handleSendWA}
+                  className="btn btn-whatsapp btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem' }}
+                >
+                  <Send size={14} />
+                  <span>Kirim WA ke Gudang</span>
+                </button>
+
+                <button
+                  onClick={handlePrint}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700 }}
+                >
+                  <Printer size={14} />
+                  <span>Cetak Surat (Print / PDF)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* PRINTABLE LETTER CONTAINER */}
+            <div className="modal-body" style={{ padding: '1.25rem' }}>
+              <div
+                className="particulars-sheet"
+                style={{
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  padding: '2rem',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
+                  fontFamily: '"Segoe UI", Arial, sans-serif'
+                }}
+              >
+                {/* 1. KOP SURAT RESMI */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', borderBottom: '3px double #0f172a', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
+                  <BaharimasEmblem size={52} />
+                  <div style={{ flex: 1 }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: 0, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                      PT. PELAYARAN BAHARIMAS KALIMANTAN
+                    </h2>
+                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0369a1', margin: '2px 0 0 0', textTransform: 'uppercase' }}>
+                      SHIP MANAGEMENT & FLEET LOGISTICS SUPPLY DIVISION
+                    </p>
+                    <p style={{ fontSize: '0.72rem', color: '#475569', margin: '2px 0 0 0' }}>
+                      Jl. P. Untung Suropati No. 88, Samarinda, Kalimantan Timur 75126 • Telp: (0541) 741234 • Email: logistics@baharimas.co.id
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right', borderLeft: '1px solid #cbd5e1', paddingLeft: '1rem' }}>
+                    <span style={{ fontSize: '0.65rem', color: '#64748b', display: 'block' }}>FORMULIR LOGISTIK</span>
+                    <strong style={{ fontSize: '0.8rem', color: '#0f172a', fontFamily: 'monospace' }}>FORM-LOG-04/REV.02</strong>
+                  </div>
+                </div>
+
+                {/* 2. JUDUL DOKUMEN & NOMOR */}
+                <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                  <h3 style={{
+                    fontSize: '1.15rem',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    textDecoration: 'underline'
+                  }}>
+                    SURAT PERMINTAAN BARANG KE GUDANG
+                  </h3>
+                  <p style={{ fontSize: '0.78rem', fontStyle: 'italic', color: '#64748b', margin: '2px 0 0 0' }}>
+                    (MATERIAL / STORE REQUISITION FORM)
+                  </p>
+                  <p style={{ fontSize: '0.825rem', fontWeight: 700, color: '#0369a1', margin: '4px 0 0 0', fontFamily: 'monospace' }}>
+                    Nomor: {formData.documentNo}
+                  </p>
+                </div>
+
+                {/* 3. METADATA PERMINTAAN */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.85rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.8rem',
+                  background: '#f8fafc',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>Nama Kapal:</span>
+                      <strong style={{ color: '#0f172a' }}>{currentVessel?.name} ({currentVessel?.type?.split(' ')[0]})</strong>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>Kategori Kebutuhan:</span>
+                      <strong style={{ color: formData.mainCategory === 'Kebutuhan Crew' ? '#059669' : '#0284c7' }}>
+                        {formData.mainCategory} ({formData.subCategory})
+                      </strong>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>PIC / Pemohon:</span>
+                      <strong style={{ color: '#0f172a' }}>{formData.picName} ({formData.picRole})</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>Tanggal Pengajuan:</span>
+                      <strong style={{ color: '#0f172a' }}>{formData.requestDate}</strong>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>Tanggal Dibutuhkan:</span>
+                      <strong style={{ color: '#dc2626' }}>{formData.neededDate}</strong>
+                    </div>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ width: '130px', color: '#64748b' }}>Prioritas / Lokasi:</span>
+                      <strong style={{ color: '#0f172a' }}>{formData.priority} • {formData.deliveryLocation}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. TABEL PERMINTAAN BARANG RESMI (SEPERTI YANG DIMINTA PENGGUNA) */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: '0.8rem',
+                    border: '1px solid #0f172a'
+                  }}>
+                    <thead>
+                      <tr style={{ background: '#e2e8f0', color: '#0f172a', borderBottom: '2px solid #0f172a' }}>
+                        <th style={{ border: '1px solid #0f172a', padding: '6px 8px', width: '35px', textAlign: 'center' }}>NO</th>
+                        <th style={{ border: '1px solid #0f172a', padding: '6px 10px', textAlign: 'left' }}>NAMA BARANG / MATERIAL</th>
+                        <th style={{ border: '1px solid #0f172a', padding: '6px 8px', width: '110px', textAlign: 'center' }}>JUMLAH</th>
+                        <th style={{ border: '1px solid #0f172a', padding: '6px 10px', textAlign: 'left' }}>KETERANGAN / SPESIFIKASI / PERUNTUKAN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                          <td style={{ border: '1px solid #0f172a', padding: '6px 8px', textAlign: 'center', fontWeight: 600 }}>
+                            {idx + 1}
+                          </td>
+                          <td style={{ border: '1px solid #0f172a', padding: '6px 10px', fontWeight: 700, color: '#0f172a' }}>
+                            {item.name}
+                          </td>
+                          <td style={{ border: '1px solid #0f172a', padding: '6px 8px', textAlign: 'center', fontWeight: 700, color: '#0369a1' }}>
+                            {item.qty} {item.unit}
+                          </td>
+                          <td style={{ border: '1px solid #0f172a', padding: '6px 10px', color: '#334155' }}>
+                            {item.notes || '-'}
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Form for creating new WO */
-          <form onSubmit={handleCreateSubmit}>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                  Judul Pekerjaan Perawatan
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Overhaul Katup Silinder Mesin Utama #2"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="input-control"
-                />
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Kapal
-                  </label>
-                  <select
-                    value={formData.vesselId}
-                    onChange={(e) => setFormData({ ...formData, vesselId: e.target.value })}
-                    className="select-control"
-                  >
-                    {vessels.map(v => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
+                {/* 5. CATATAN TAMBAHAN */}
+                {formData.notes && (
+                  <div style={{ marginBottom: '1.5rem', fontSize: '0.75rem', color: '#475569', fontStyle: 'italic' }}>
+                    <strong>Catatan Khusus:</strong> {formData.notes}
+                  </div>
+                )}
+
+                {/* 6. TANDA TANGAN (TTD PEMOHON & KAPTEN SEPERTI YANG DIMINTA PENGGUNA) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr',
+                  gap: '1rem',
+                  marginTop: '1.75rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px dashed #cbd5e1',
+                  textAlign: 'center'
+                }}>
+                  {/* Kolom 1: Pemohon / PIC */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.2rem' }}>
+                      Diajukan oleh (PIC):
+                    </span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                      {formData.picRole || 'Pemohon'}
+                    </span>
+                    {/* Digital Signature Representation */}
+                    <div style={{
+                      height: '65px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: '"Brush Script MT", cursive, sans-serif',
+                      fontSize: '1.4rem',
+                      color: '#0369a1',
+                      opacity: 0.85
+                    }}>
+                      {formData.picName.split(' ')[0]} Sign.
+                    </div>
+                    <strong style={{ fontSize: '0.8rem', color: '#0f172a', borderTop: '1px solid #0f172a', width: '85%', paddingTop: '3px' }}>
+                      ( {formData.picName} )
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                      Tgl: {formData.requestDate}
+                    </span>
+                  </div>
+
+                  {/* Kolom 2: Petugas Gudang (Logistik) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.2rem' }}>
+                      Diterima oleh (Gudang):
+                    </span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                      Petugas Gudang & Logistik
+                    </span>
+                    {/* Warehouse Stamp / Sign */}
+                    <div style={{
+                      height: '65px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{
+                        border: '2px dashed #0284c7',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '0.65rem',
+                        color: '#0284c7',
+                        fontWeight: 800,
+                        transform: 'rotate(-4deg)'
+                      }}>
+                        LOGISTIK GUDANG PT. PBK<br/>[ TERIMA / VALIDASI ]
+                      </div>
+                    </div>
+                    <strong style={{ fontSize: '0.8rem', color: '#0f172a', borderTop: '1px solid #0f172a', width: '85%', paddingTop: '3px' }}>
+                      ( Staff Gudang Samarinda )
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                      Tgl: __ / __ / 2026
+                    </span>
+                  </div>
+
+                  {/* Kolom 3: Mengetahui & Menyetujui: Kapten / Nakhoda */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '0.2rem' }}>
+                      Mengetahui & Menyetujui:
+                    </span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#0f172a' }}>
+                      Nakhoda / Master Kapal
+                    </span>
+                    {/* Captain Round Stamp & Sign */}
+                    <div style={{
+                      height: '65px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      <div style={{
+                        width: '55px',
+                        height: '55px',
+                        borderRadius: '50%',
+                        border: '2px solid #059669',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.5rem',
+                        color: '#059669',
+                        fontWeight: 900,
+                        textAlign: 'center',
+                        lineHeight: 1.1,
+                        transform: 'rotate(8deg)'
+                      }}>
+                        <span>★ PBK ★</span>
+                        <span style={{ fontSize: '0.45rem' }}>CAPTAIN</span>
+                        <span style={{ fontSize: '0.45rem' }}>RP 2020</span>
+                      </div>
+                    </div>
+                    <strong style={{ fontSize: '0.8rem', color: '#0f172a', borderTop: '1px solid #0f172a', width: '85%', paddingTop: '3px' }}>
+                      ( {captainName} )
+                    </strong>
+                    <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
+                      Reg BKI: {currentVessel?.regNo || 'B-24587-ID'}
+                    </span>
+                  </div>
                 </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Equipment / Mesin
-                  </label>
-                  <select
-                    value={formData.equipmentId}
-                    onChange={(e) => setFormData({ ...formData, equipmentId: e.target.value })}
-                    className="select-control"
-                  >
-                    {allEquipment.filter(e => e.vesselId === formData.vesselId).map(e => (
-                      <option key={e.id} value={e.id}>{e.code} - {e.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Prioritas
-                  </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="select-control"
-                  >
-                    <option value="Rendah">Rendah</option>
-                    <option value="Sedang">Sedang</option>
-                    <option value="Tinggi">Tinggi</option>
-                    <option value="Sangat Tinggi">Sangat Tinggi (Kritis)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Teknisi yang Ditugaskan
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Kurniawan (Masinis 2)"
-                    value={formData.assignedTo}
-                    onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                    className="input-control"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Target Jam Operasi (Running Hours)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="Contoh: 10000"
-                    value={formData.targetHours}
-                    onChange={(e) => setFormData({ ...formData, targetHours: e.target.value })}
-                    className="input-control mono"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                    Batas Tanggal (Due Date)
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="input-control"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                  Deskripsi / Instruksi Kerja Khusus
-                </label>
-                <textarea
-                  rows="2"
-                  placeholder="Lakukan pembersihan, pengukuran toleransi clearance dan uji coba running."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="input-control"
-                />
               </div>
             </div>
 
-            <div className="modal-footer">
-              <button type="button" onClick={onClose} className="btn btn-secondary">
-                Batal
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Terbitkan Work Order
-              </button>
-            </div>
-          </form>
-        )}
-
-        {isEdit && (
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-secondary">
-              Tutup
-            </button>
-            {workOrder.status !== 'Completed' && (
+            {/* Modal Footer Letter (No-Print) */}
+            <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button
                 type="button"
-                onClick={() => {
-                  handleStatusChange('Completed');
-                  onClose();
-                }}
-                className="btn btn-success"
+                onClick={() => setViewMode('form')}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                <CheckCircle size={16} />
-                <span>Selesaikan & Sign-Off WO</span>
+                <ArrowLeft size={16} />
+                <span>Ubah Daftar Barang</span>
               </button>
-            )}
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="btn btn-secondary"
+                >
+                  Selesai / Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                >
+                  <Printer size={16} />
+                  <span>Cetak Surat Permintaan</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

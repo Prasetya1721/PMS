@@ -111,6 +111,7 @@ export const PMSProvider = ({ children }) => {
   const [certificateCategories, setCertificateCategories] = useState(() => loadStored('certificateCategories', CERTIFICATE_CATEGORIES));
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
+  const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
 
   // Global App Controls
   const [selectedVesselId, setSelectedVesselId] = useState('all'); // 'all' or 'v-001' etc.
@@ -193,10 +194,11 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories));
     localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings));
     localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs));
+    localStorage.setItem('pms_users', JSON.stringify(users));
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, crew, leaves, drills, crewCertificates, shipDocuments,
-    certificateCategories, notificationSettings, notificationLogs
+    certificateCategories, notificationSettings, notificationLogs, users
   ]);
 
   // Auto-heal state immediately if stale fleet data is present in memory
@@ -384,6 +386,81 @@ export const PMSProvider = ({ children }) => {
     };
     setDrills(prev => [d, ...prev]);
     showToast(`Laporan latihan keselamatan (Safety Drill) berhasil dicatat`, 'success');
+  };
+
+  // 4c. User Management Actions
+  const addUser = (userData) => {
+    const newId = `u-${Date.now()}`;
+    const newUser = {
+      id: newId,
+      name: userData.name?.trim() || 'Pengguna Baru',
+      email: userData.email?.toLowerCase().trim() || `user_${Date.now()}@baharimas.co.id`,
+      password: userData.password || '123',
+      role: userData.role || 'Admin Kapal / Nakhoda',
+      title: userData.title?.trim() || 'Staff Operasional PT. PBK',
+      shipAccess: userData.shipAccess || 'All',
+      phone: userData.phone || '081288990011',
+      status: userData.status || 'Aktif',
+      avatar: userData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+      createdAt: new Date().toISOString()
+    };
+
+    setUsers(prev => {
+      const next = [newUser, ...prev];
+      localStorage.setItem('pms_users', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Pengguna ${newUser.name} (${newUser.role}) berhasil didaftarkan!`, 'success');
+    return newUser;
+  };
+
+  const updateUser = (userId, updatedFields) => {
+    setUsers(prev => {
+      const next = prev.map(u => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            ...updatedFields
+          };
+        }
+        return u;
+      });
+      localStorage.setItem('pms_users', JSON.stringify(next));
+      return next;
+    });
+
+    if (currentUser && currentUser.id === userId) {
+      const updatedCurrent = { ...currentUser, ...updatedFields };
+      setCurrentUser(updatedCurrent);
+      if (updatedFields.role) {
+        setCurrentRole(updatedFields.role);
+      }
+      localStorage.setItem('pms_current_user', JSON.stringify(updatedCurrent));
+    }
+
+    showToast('Data akun pengguna berhasil diperbarui!', 'success');
+  };
+
+  const deleteUser = (userId) => {
+    if (currentUser && currentUser.id === userId) {
+      showToast('Gagal: Anda tidak dapat menghapus akun yang sedang aktif digunakan!', 'error');
+      return false;
+    }
+
+    const targetUser = users.find(u => u.id === userId);
+    setUsers(prev => {
+      const next = prev.filter(u => u.id !== userId);
+      localStorage.setItem('pms_users', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Akun ${targetUser?.name || userId} berhasil dihapus dari sistem.`, 'info');
+    return true;
+  };
+
+  const resetUsers = () => {
+    setUsers(INITIAL_USERS);
+    localStorage.setItem('pms_users', JSON.stringify(INITIAL_USERS));
+    showToast('Daftar pengguna berhasil direset ke akun bawaan!', 'info');
   };
 
   // 4b. Vessel & Ship Document Actions
@@ -1387,6 +1464,7 @@ export const PMSProvider = ({ children }) => {
     setShipDocuments(INITIAL_SHIP_DOCUMENTS);
     setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
     setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
+    setUsers(INITIAL_USERS);
 
     const preservedUser = localStorage.getItem('pms_current_user');
     localStorage.clear();
@@ -1406,6 +1484,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
     localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
     localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
+    localStorage.setItem('pms_users', JSON.stringify(INITIAL_USERS));
 
     showToast('Seluruh data armada (28 kapal & 215 dokumen BKI) berhasil di-sinkronisasi ulang!', 'info');
   };
@@ -1513,7 +1592,11 @@ export const PMSProvider = ({ children }) => {
         allShipDocuments: shipDocuments,
         notificationSettings,
         notificationLogs,
-        users: INITIAL_USERS,
+        users,
+        addUser,
+        updateUser,
+        deleteUser,
+        resetUsers,
         currentUser,
         login,
         logout,

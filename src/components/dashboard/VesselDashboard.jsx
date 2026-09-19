@@ -300,9 +300,14 @@ export const VesselDashboard = () => {
 
             {/* Action Bar */}
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '0.85rem' }}>
-              <button onClick={() => setShowNewWOModal(true)} className="btn btn-primary btn-sm">
-                <Plus size={14} />
-                <span>Buat Work Order Kapal Ini</span>
+              <button
+                onClick={() => setShowNewWOModal(true)}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                title="Formulir Permintaan Barang ke Gudang (Material Requisition)"
+              >
+                <Package size={14} />
+                <span>Permintaan Barang ke Gudang</span>
               </button>
               <button onClick={() => setShowAddCrewModal(true)} className="btn btn-secondary btn-sm">
                 <Users size={14} />
