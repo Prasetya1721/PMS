@@ -19,6 +19,12 @@ import {
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../data/shipCertificatesMaster';
+import {
+  INITIAL_AUDITS,
+  INITIAL_AUDIT_FINDINGS,
+  ISM_DOC_ELEMENTS,
+  ISM_SMC_ELEMENTS
+} from '../data/auditMasterData';
 
 const PMSContext = createContext();
 
@@ -113,6 +119,8 @@ export const PMSProvider = ({ children }) => {
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
+  const [audits, setAudits] = useState(() => loadStored('audits', INITIAL_AUDITS));
+  const [auditFindings, setAuditFindings] = useState(() => loadStored('auditFindings', INITIAL_AUDIT_FINDINGS));
 
   // Global App Controls
   const [selectedVesselId, setSelectedVesselId] = useState('all'); // 'all' or 'v-001' etc.
@@ -197,10 +205,13 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings));
     localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs));
     localStorage.setItem('pms_users', JSON.stringify(users));
+    localStorage.setItem('pms_audits', JSON.stringify(audits));
+    localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings));
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, crew, leaves, drills, crewCertificates, shipDocuments,
-    certificateCategories, documentTemplates, notificationSettings, notificationLogs, users
+    certificateCategories, documentTemplates, notificationSettings, notificationLogs, users,
+    audits, auditFindings
   ]);
 
   // Auto-heal state immediately if stale fleet data is present in memory
@@ -928,6 +939,251 @@ export const PMSProvider = ({ children }) => {
     showToast(`Template "${tmplName}" berhasil dihapus dari Data Master.`, 'info');
   };
 
+  // =========================================================================
+  // 6. ISM Code Audit System (DOC & SMC, Internal & External, NC Open/Close)
+  // =========================================================================
+
+  const addAuditSession = (auditData) => {
+    const isInt = auditData.auditType === 'Internal';
+    const std = auditData.standard || 'DOC';
+    const year = new Date().getFullYear();
+    const randomCode = Math.floor(Math.random() * 900 + 100);
+    const auditNo = auditData.auditNo?.trim() || `AUD-${isInt ? 'INT' : 'EXT'}-${std}-${year}/${randomCode}`;
+
+    const newAudit = {
+      ...auditData,
+      id: `aud-${Date.now()}`,
+      auditNo,
+      auditType: auditData.auditType || 'Internal',
+      standard: std,
+      targetType: auditData.targetType || (std === 'DOC' ? 'Office' : 'Vessel'),
+      targetName: auditData.targetName || (auditData.vesselId ? (vessels.find(v => v.id === auditData.vesselId)?.name || 'Kapal Armada') : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Samarinda)'),
+      vesselId: auditData.vesselId || null,
+      leadAuditor: auditData.leadAuditor || (isInt ? 'DPA / Lead Auditor Internal PT. PBK' : 'Surveyor BKI / Ditjen Hubla'),
+      auditTeam: Array.isArray(auditData.auditTeam) ? auditData.auditTeam : (auditData.auditTeam ? [auditData.auditTeam] : ['Tim Inspektor Keselamatan']),
+      auditee: auditData.auditee || (std === 'DOC' ? 'Direktur Operasional & DPA' : 'Nakhoda & KKM'),
+      auditDate: auditData.auditDate || new Date().toISOString().split('T')[0],
+      targetCloseDate: auditData.targetCloseDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      scope: auditData.scope || `Audit ${auditData.auditType || 'Internal'} Kepatuhan ISM Code Standar ${std}.`,
+      status: auditData.status || 'In Progress',
+      totalItemsChecked: Number(auditData.totalItemsChecked) || 20,
+      itemsComplied: Number(auditData.itemsComplied) || 18,
+      findingsSummary: auditData.findingsSummary || {
+        majorNC: 0,
+        minorNC: 0,
+        observation: 0,
+        totalOpen: 0,
+        totalClosed: 0
+      }
+    };
+
+    setAudits(prev => {
+      const next = [newAudit, ...prev];
+      localStorage.setItem('pms_audits', JSON.stringify(next));
+      return next;
+    });
+
+    showToast(`Sesi audit ${newAudit.auditNo} (${newAudit.auditType} - ${newAudit.standard}) berhasil dibuat!`, 'success');
+    return newAudit;
+  };
+
+  const updateAuditSession = (auditId, updatedFields) => {
+    setAudits(prev => {
+      const next = prev.map(a => (a.id === auditId ? { ...a, ...updatedFields } : a));
+      localStorage.setItem('pms_audits', JSON.stringify(next));
+      return next;
+    });
+    showToast('Data sesi audit berhasil diperbarui!', 'success');
+  };
+
+  const deleteAuditSession = (auditId) => {
+    const target = audits.find(a => a.id === auditId);
+    setAudits(prev => {
+      const next = prev.filter(a => a.id !== auditId);
+      localStorage.setItem('pms_audits', JSON.stringify(next));
+      return next;
+    });
+    setAuditFindings(prev => {
+      const next = prev.filter(f => f.auditId !== auditId);
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Sesi audit ${target?.auditNo || auditId} berhasil dihapus.`, 'info');
+  };
+
+  const addAuditFinding = (findingData) => {
+    const std = findingData.standard || 'DOC';
+    const randomNum = Math.floor(Math.random() * 9000 + 1000);
+    const findingNo = findingData.findingNo?.trim() || `NC-${std}-${randomNum}`;
+
+    const newFinding = {
+      ...findingData,
+      id: `nc-${Date.now()}`,
+      findingNo,
+      auditId: findingData.auditId || (audits[0]?.id || 'aud-doc-001'),
+      auditNo: findingData.auditNo || (audits.find(a => a.id === findingData.auditId)?.auditNo || 'AUD-ISM'),
+      auditType: findingData.auditType || 'Internal',
+      standard: std,
+      targetName: findingData.targetName || (findingData.vesselId ? (vessels.find(v => v.id === findingData.vesselId)?.name) : 'Kantor Pusat'),
+      vesselId: findingData.vesselId || null,
+      clauseCode: findingData.clauseCode || 'ISM-10',
+      clauseName: findingData.clauseName || 'Pemeliharaan Kapal & Perlengkapan',
+      category: findingData.category || 'Minor NC',
+      status: 'NC Open',
+      description: findingData.description || '',
+      objectiveEvidence: findingData.objectiveEvidence || '',
+      dateIdentified: findingData.dateIdentified || new Date().toISOString().split('T')[0],
+      dueDate: findingData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      assignedTo: findingData.assignedTo || 'PIC Terkait',
+      auditor: findingData.auditor || 'Lead Auditor',
+      linkedRequisitionId: findingData.linkedRequisitionId || null,
+      linkedRequisitionTitle: findingData.linkedRequisitionTitle || null,
+      linkedCertificateId: findingData.linkedCertificateId || null,
+      evidence: {
+        hasSubmitted: false,
+        submissionDate: null,
+        submittedBy: null,
+        rootCause: null,
+        correctiveAction: null,
+        preventiveAction: null,
+        fileUrl: null,
+        fileName: null,
+        fileSize: null,
+        auditorReviewNotes: null,
+        closedDate: null
+      }
+    };
+
+    setAuditFindings(prev => {
+      const next = [newFinding, ...prev];
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+
+    if (newFinding.auditId) {
+      setAudits(prev => prev.map(a => {
+        if (a.id === newFinding.auditId) {
+          const currentSummary = a.findingsSummary || { majorNC: 0, minorNC: 0, observation: 0, totalOpen: 0, totalClosed: 0 };
+          return {
+            ...a,
+            findingsSummary: {
+              ...currentSummary,
+              majorNC: newFinding.category === 'Major NC' ? currentSummary.majorNC + 1 : currentSummary.majorNC,
+              minorNC: newFinding.category === 'Minor NC' ? currentSummary.minorNC + 1 : currentSummary.minorNC,
+              observation: newFinding.category === 'Observation' ? currentSummary.observation + 1 : currentSummary.observation,
+              totalOpen: currentSummary.totalOpen + 1
+            }
+          };
+        }
+        return a;
+      }));
+    }
+
+    showToast(`Temuan ${newFinding.findingNo} (${newFinding.category}) berhasil dicatat sebagai NC OPEN!`, 'warning');
+    return newFinding;
+  };
+
+  const updateAuditFinding = (findingId, updatedFields) => {
+    setAuditFindings(prev => {
+      const next = prev.map(f => (f.id === findingId ? { ...f, ...updatedFields } : f));
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+    showToast('Data temuan audit berhasil diperbarui!', 'success');
+  };
+
+  const deleteAuditFinding = (findingId) => {
+    const target = auditFindings.find(f => f.id === findingId);
+    setAuditFindings(prev => {
+      const next = prev.filter(f => f.id !== findingId);
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Temuan ${target?.findingNo || findingId} berhasil dihapus.`, 'info');
+  };
+
+  const submitAuditEvidence = (findingId, evidenceData) => {
+    setAuditFindings(prev => {
+      const next = prev.map(f => {
+        if (f.id === findingId) {
+          return {
+            ...f,
+            status: 'Eviden Submitted',
+            evidence: {
+              ...f.evidence,
+              ...evidenceData,
+              hasSubmitted: true,
+              submissionDate: new Date().toISOString().split('T')[0]
+            }
+          };
+        }
+        return f;
+      });
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+    showToast('Bukti eviden perbaikan berhasil diajukan! Menunggu verifikasi auditor.', 'info');
+  };
+
+  const closeAuditFinding = (findingId, auditorReviewNotes) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    let findingName = '';
+
+    setAuditFindings(prev => {
+      const next = prev.map(f => {
+        if (f.id === findingId) {
+          findingName = f.findingNo;
+          return {
+            ...f,
+            status: 'NC Close',
+            evidence: {
+              ...f.evidence,
+              auditorReviewNotes: auditorReviewNotes || 'Tindakan perbaikan dan bukti eviden telah diverifikasi memenuhi ISM Code.',
+              closedDate: todayStr
+            }
+          };
+        }
+        return f;
+      });
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } catch {}
+
+    showToast(`Temuan ${findingName} resmi diverifikasi & DITUTUP (NC CLOSE)!`, 'success');
+  };
+
+  const reopenAuditFinding = (findingId, reasonNotes) => {
+    let findingName = '';
+    setAuditFindings(prev => {
+      const next = prev.map(f => {
+        if (f.id === findingId) {
+          findingName = f.findingNo;
+          return {
+            ...f,
+            status: 'NC Open',
+            evidence: {
+              ...f.evidence,
+              auditorReviewNotes: reasonNotes || 'Eviden belum memadai, temuan dibuka kembali untuk perbaikan lanjutan.',
+              closedDate: null
+            }
+          };
+        }
+        return f;
+      });
+      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Temuan ${findingName} dibuka kembali (NC OPEN) untuk revisi eviden.`, 'warning');
+  };
+
   // 5. WhatsApp & Notification Engine (Multi-Interval: 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom & Auto-Send)
   const updateNotificationSettings = (newSettings) => {
     setNotificationSettings(prev => {
@@ -1521,6 +1777,8 @@ export const PMSProvider = ({ children }) => {
     setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
     setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
     setUsers(INITIAL_USERS);
+    setAudits(INITIAL_AUDITS);
+    setAuditFindings(INITIAL_AUDIT_FINDINGS);
 
     const preservedUser = localStorage.getItem('pms_current_user');
     localStorage.clear();
@@ -1541,8 +1799,10 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
     localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
     localStorage.setItem('pms_users', JSON.stringify(INITIAL_USERS));
+    localStorage.setItem('pms_audits', JSON.stringify(INITIAL_AUDITS));
+    localStorage.setItem('pms_auditFindings', JSON.stringify(INITIAL_AUDIT_FINDINGS));
 
-    showToast('Seluruh data armada (28 kapal & 215 dokumen BKI) berhasil di-sinkronisasi ulang!', 'info');
+    showToast('Seluruh data armada (28 kapal, 215 dokumen, sesi audit ISM DOC/SMC) berhasil di-sinkronisasi ulang!', 'info');
   };
 
   // Filtered views by selected vessel
@@ -1578,6 +1838,20 @@ export const PMSProvider = ({ children }) => {
     ? drills
     : drills.filter(d => d.vesselId === selectedVesselId);
 
+  // Filtered audits & findings (DOC is fleet/office-wide, SMC is vessel-specific)
+  const filteredAudits = selectedVesselId === 'all'
+    ? audits
+    : audits.filter(a => a.scope === 'DOC' || a.vesselId === selectedVesselId);
+
+  const filteredAuditFindings = selectedVesselId === 'all'
+    ? auditFindings
+    : auditFindings.filter(f => {
+        if (f.vesselId) return f.vesselId === selectedVesselId;
+        const parentAudit = audits.find(a => a.id === f.auditId);
+        if (parentAudit && parentAudit.scope === 'DOC') return true;
+        return parentAudit?.vesselId === selectedVesselId;
+      });
+
   // Critical counters
   const overdueWOCount = filteredWorkOrders.filter(w => w.status === 'Overdue').length;
   const expiredDocsCount = filteredShipDocs.filter(d => d.status === 'Expired').length +
@@ -1585,6 +1859,8 @@ export const PMSProvider = ({ children }) => {
   const dueSoonDocsCount = filteredShipDocs.filter(d => d.status === 'Due Soon').length +
                            filteredCrewCerts.filter(c => c.status === 'Due Soon').length;
   const lowStockCount = filteredSpareparts.filter(s => s.status === 'Low Stock' || s.status === 'Critical').length;
+  const openNCCount = filteredAuditFindings.filter(f => f.status === 'NC Open' || f.status === 'Eviden Submitted').length;
+  const closedNCCount = filteredAuditFindings.filter(f => f.status === 'NC Close').length;
 
   // Items within 1 month (H-30) of expiry: daysUntilExpiry <= 30
   const h30ExpiringItems = [
@@ -1646,6 +1922,12 @@ export const PMSProvider = ({ children }) => {
         allCrewCertificates: crewCertificates,
         shipDocuments: filteredShipDocs,
         allShipDocuments: shipDocuments,
+        audits: filteredAudits,
+        allAudits: audits,
+        auditFindings: filteredAuditFindings,
+        allAuditFindings: auditFindings,
+        ISM_DOC_ELEMENTS,
+        ISM_SMC_ELEMENTS,
         notificationSettings,
         notificationLogs,
         users,
@@ -1688,6 +1970,8 @@ export const PMSProvider = ({ children }) => {
         h365ExpiringItems,
         allExpiringCount,
         allExpiringItems,
+        openNCCount,
+        closedNCCount,
 
         // Actions
         updateRunningHours,
@@ -1733,7 +2017,18 @@ export const PMSProvider = ({ children }) => {
         updateAutoSendConfig,
         setTestScheduleTimeNowPlusOneMinute,
         resetToSeedData,
-        showToast
+        showToast,
+
+        // Audit Actions
+        addAuditSession,
+        updateAuditSession,
+        deleteAuditSession,
+        addAuditFinding,
+        updateAuditFinding,
+        deleteAuditFinding,
+        submitAuditEvidence,
+        closeAuditFinding,
+        reopenAuditFinding
       }}
     >
       {children}

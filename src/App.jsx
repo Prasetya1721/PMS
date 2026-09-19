@@ -16,6 +16,7 @@ import { DocumentTracker } from './components/documents/DocumentTracker';
 import { NotificationCenter } from './components/notification/NotificationCenter';
 import { ReportGenerator } from './components/reports/ReportGenerator';
 import { MasterDataAdmin } from './components/admin/MasterDataAdmin';
+import { AuditManager } from './components/audit/AuditManager';
 import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -89,6 +90,8 @@ const AppContent = () => {
         return <CrewManager />;
       case 'documents':
         return <DocumentTracker />;
+      case 'audit':
+        return <AuditManager />;
       case 'notifications':
         return <NotificationCenter />;
       case 'reports':

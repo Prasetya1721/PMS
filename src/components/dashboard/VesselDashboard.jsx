@@ -63,6 +63,8 @@ export const VesselDashboard = () => {
     allWorkOrders,
     allSpareparts,
     spareparts,
+    allAuditFindings,
+    allAudits,
     setActiveTab,
     sendWhatsAppReminder,
     openGoogleCalendar,
@@ -138,6 +140,10 @@ export const VesselDashboard = () => {
     ...shipCrewCerts.filter(c => c.status !== 'Active'),
     ...shipDocs.filter(d => d.status !== 'Active')
   ];
+
+  const shipAuditFindings = (allAuditFindings || []).filter(f => f.vesselId === currentShip.id);
+  const shipOpenNC = shipAuditFindings.filter(f => f.status !== 'NC Close').length;
+  const shipClosedNC = shipAuditFindings.filter(f => f.status === 'NC Close').length;
 
   const getRequisitionItems = (wo) => {
     if (wo.items && Array.isArray(wo.items) && wo.items.length > 0) {
@@ -419,7 +425,14 @@ export const VesselDashboard = () => {
             { id: 'documents', label: 'Sertifikat & Dokumen Kapal', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
             { id: 'equipment', label: 'Equipment & Jam Mesin', icon: Wrench, badge: shipEquipment.length },
             { id: 'workorders', label: 'Permintaan Barang ke Gudang', icon: ShoppingBag, badge: shipWOs.length, alert: overdueWO.length > 0 },
-            { id: 'spareparts', label: 'Inventaris Sparepart', icon: Package, badge: shipParts.length }
+            { id: 'spareparts', label: 'Inventaris Sparepart', icon: Package, badge: shipParts.length },
+            {
+              id: 'audit',
+              label: 'Audit SMC Kapal',
+              icon: ShieldCheck,
+              badge: shipAuditFindings.length > 0 ? `${shipOpenNC} NC` : null,
+              alert: shipOpenNC > 0
+            }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -1683,6 +1696,163 @@ export const VesselDashboard = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-TAB 8: AUDIT SMC KAPAL */}
+      {activeSubTab === 'audit' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Header & Status Card */}
+          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ padding: '0.75rem', borderRadius: '12px', background: 'rgba(56, 189, 248, 0.15)', border: '1px solid rgba(56, 189, 248, 0.3)', color: '#38bdf8' }}>
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Audit Safety Management Certificate (SMC) - {currentShip.name}</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Monitoring temuan ketidaksesuaian ISM Code, bukti perbaikan eviden, dan status NC Open / NC Close kapal ini
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('audit')}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.825rem' }}
+            >
+              <span>Buka Modul Audit Lengkap (DOC & SMC)</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+
+          {/* Quick Stats for this Vessel */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div className="glass-card" style={{ padding: '1.15rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total Temuan SMC</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.35rem' }}>
+                {shipAuditFindings.length} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-subtle)' }}>Temuan</span>
+              </div>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Tercatat pada sesi audit internal & eksternal kapal
+              </p>
+            </div>
+
+            <div className="glass-card" style={{ padding: '1.15rem', border: shipOpenNC > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: '0.8rem', color: shipOpenNC > 0 ? '#f87171' : 'var(--text-muted)', fontWeight: 700 }}>NC Open (Perlu Perbaikan)</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: shipOpenNC > 0 ? '#ef4444' : '#10b981', marginTop: '0.35rem' }}>
+                {shipOpenNC} <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Temuan</span>
+              </div>
+              <p style={{ fontSize: '0.74rem', color: shipOpenNC > 0 ? '#fca5a5' : 'var(--text-muted)', marginTop: '0.2rem' }}>
+                {shipOpenNC > 0 ? 'Membutuhkan tindakan korektif & eviden' : 'Nol temuan terbuka (All Complied)'}
+              </p>
+            </div>
+
+            <div className="glass-card" style={{ padding: '1.15rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 700 }}>NC Close (Terverifikasi)</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '0.35rem' }}>
+                {shipClosedNC} <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-subtle)' }}>Temuan</span>
+              </div>
+              <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Telah ditutup & disetujui Lead Auditor / DPA
+              </p>
+            </div>
+          </div>
+
+          {/* Findings Table */}
+          <div className="glass-card" style={{ padding: '1.5rem' }}>
+            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>
+              Daftar Temuan Audit ISM Code Kapal {currentShip.name}
+            </h4>
+
+            {shipAuditFindings.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                <ShieldCheck size={44} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Tidak Ada Temuan NC Terbuka untuk Kapal Ini
+                </h4>
+                <p style={{ fontSize: '0.825rem', marginTop: '0.3rem', maxWidth: '420px', margin: '0.3rem auto 1.25rem' }}>
+                  Implementasi ISM Code dan pemeliharaan alat keselamatan di atas kapal berjalan sesuai prosedur SMS PT. Pelayaran Baharimas Kalimantan.
+                </p>
+                <button
+                  onClick={() => setActiveTab('audit')}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Buka Modul Audit untuk Catat Temuan Baru
+                </button>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>No. Temuan</th>
+                      <th>Klausul ISM</th>
+                      <th>Kategori</th>
+                      <th>Deskripsi Ketidaksesuaian</th>
+                      <th>Jatuh Tempo</th>
+                      <th>Status NC</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shipAuditFindings.map(finding => (
+                      <tr key={finding.id}>
+                        <td>
+                          <span className="mono" style={{ fontWeight: 700, color: '#38bdf8' }}>
+                            {finding.findingNo}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', display: 'block' }}>
+                            {finding.auditType} SMC
+                          </span>
+                        </td>
+                        <td>
+                          <span className="mono" style={{ fontWeight: 700, fontSize: '0.75rem' }}>
+                            {finding.clauseCode}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                            {finding.clauseName}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${
+                            finding.category === 'Major NC' ? 'badge-danger-pulse' :
+                            finding.category === 'Minor NC' ? 'badge-warning' : 'badge-info'
+                          }`}>
+                            {finding.category}
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: '280px', fontSize: '0.8rem', lineHeight: '1.4' }}>
+                          {finding.description}
+                        </td>
+                        <td className="mono" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {finding.dueDate}
+                        </td>
+                        <td>
+                          <span className={`badge ${
+                            finding.status === 'NC Close' ? 'badge-success' :
+                            finding.status === 'Eviden Submitted' ? 'badge-warning' : 'badge-danger'
+                          }`}>
+                            {finding.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => setActiveTab('audit')}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
+                          >
+                            <span>Kelola Eviden</span>
+                            <ChevronRight size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
