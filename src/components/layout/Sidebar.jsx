@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   LogOut,
   Sun,
-  Moon
+  Moon,
+  Database
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -61,7 +62,14 @@ export const Sidebar = () => {
       badgeType: 'danger-pulse'
     },
     { id: 'notifications', label: 'Reminder & WA Bot', icon: BellRing },
-    { id: 'reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet }
+    { id: 'reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet },
+    {
+      id: 'master',
+      label: 'Data Master (Admin)',
+      icon: Database,
+      badge: 'Admin',
+      badgeType: 'info'
+    }
   ];
 
   return (

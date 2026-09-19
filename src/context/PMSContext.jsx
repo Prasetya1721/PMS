@@ -18,6 +18,7 @@ import {
   INITIAL_USERS
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
+import { CERTIFICATE_CATEGORIES } from '../data/shipCertificatesMaster';
 
 const PMSContext = createContext();
 
@@ -102,6 +103,7 @@ export const PMSProvider = ({ children }) => {
   const [drills, setDrills] = useState(() => loadStored('drills', INITIAL_DRILLS));
   const [crewCertificates, setCrewCertificates] = useState(() => loadStored('crewCertificates', INITIAL_CREW_CERTIFICATES));
   const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
+  const [certificateCategories, setCertificateCategories] = useState(() => loadStored('certificateCategories', CERTIFICATE_CATEGORIES));
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
 
@@ -183,26 +185,24 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_drills', JSON.stringify(drills));
     localStorage.setItem('pms_crewCertificates', JSON.stringify(crewCertificates));
     localStorage.setItem('pms_shipDocuments', JSON.stringify(shipDocuments));
+    localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories));
     localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings));
     localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs));
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, crew, leaves, drills, crewCertificates, shipDocuments,
-    notificationSettings, notificationLogs
+    certificateCategories, notificationSettings, notificationLogs
   ]);
 
   // Auto-heal state immediately if stale fleet data is present in memory
   useEffect(() => {
     const isStale =
-      vessels.length !== INITIAL_VESSELS.length ||
+      vessels.length === 0 ||
       !vessels.some(v => v.id?.startsWith('v-op-')) ||
-      vessels.some(v => v.ownershipStatus === 'As Owner & Operator') ||
-      shipDocuments.length !== INITIAL_SHIP_DOCUMENTS.length ||
-      equipment.length !== INITIAL_EQUIPMENT.length ||
-      crew.length !== INITIAL_CREW.length;
+      vessels.some(v => v.ownershipStatus === 'As Owner & Operator');
 
     if (isStale) {
-      console.log('Synchronizing fleet database to 28 vessels and 215 documents...');
+      console.log('Synchronizing fleet database to 28 vessels and standard documents...');
       setVessels(INITIAL_VESSELS);
       setEquipment(INITIAL_EQUIPMENT);
       setSchedules(INITIAL_MAINTENANCE_SCHEDULES);
@@ -334,6 +334,25 @@ export const PMSProvider = ({ children }) => {
     };
     setCrew(prev => [c, ...prev]);
     showToast(`Crew baru ${c.name} berhasil didaftarkan`, 'success');
+  };
+
+  const updateCrew = (crewId, updatedFields) => {
+    setCrew(prev => {
+      const next = prev.map(c => c.id === crewId ? { ...c, ...updatedFields } : c);
+      localStorage.setItem('pms_crew', JSON.stringify(next));
+      return next;
+    });
+    showToast('Data crew berhasil diperbarui!', 'success');
+  };
+
+  const deleteCrew = (crewId) => {
+    const crewMember = crew.find(c => c.id === crewId);
+    setCrew(prev => {
+      const next = prev.filter(c => c.id !== crewId);
+      localStorage.setItem('pms_crew', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Crew ${crewMember?.name || crewId} berhasil dihapus.`, 'info');
   };
 
   const approveLeave = (leaveId, newStatus) => {
@@ -651,6 +670,16 @@ export const PMSProvider = ({ children }) => {
     showToast('Data Kapal berhasil diperbarui!', 'success');
   };
 
+  const deleteVessel = (vesselId) => {
+    const vessel = vessels.find(v => v.id === vesselId);
+    setVessels(prev => {
+      const next = prev.filter(v => v.id !== vesselId);
+      localStorage.setItem('pms_vessels', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Kapal ${vessel?.name || vesselId} berhasil dihapus dari armada.`, 'info');
+  };
+
   const addShipDocument = (docData) => {
     const expiry = docData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const issue = docData.issueDate || new Date().toISOString().split('T')[0];
@@ -714,6 +743,51 @@ export const PMSProvider = ({ children }) => {
       return next;
     });
     showToast('Dokumen sertifikat berhasil dihapus.', 'info');
+  };
+
+  // Certificate Categories Management Actions (BKI, Statutory, Asuransi, KSOP, Kesehatan + Custom)
+  const addCertificateCategory = (newCat) => {
+    const catId = newCat.id || (newCat.label || newCat.name || 'CUSTOM').replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+    const colorPalette = ['#38bdf8', '#10b981', '#a855f7', '#f59e0b', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+    const assignedColor = newCat.color || colorPalette[certificateCategories.length % colorPalette.length];
+
+    const created = {
+      id: catId,
+      label: newCat.label || newCat.name || catId,
+      code: newCat.code || catId,
+      description: newCat.description || `Kategori dokumen ${newCat.label || catId}`,
+      badgeClass: newCat.badgeClass || 'badge-info',
+      color: assignedColor,
+      borderColor: `${assignedColor}59`,
+      bgColor: `${assignedColor}1f`,
+      isCustom: true
+    };
+
+    setCertificateCategories(prev => {
+      if (prev.some(c => c.id.toLowerCase() === catId.toLowerCase())) {
+        return prev;
+      }
+      const next = [...prev, created];
+      localStorage.setItem('pms_certificateCategories', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Kategori baru "${created.label}" berhasil ditambahkan!`, 'success');
+    return created;
+  };
+
+  const deleteCertificateCategory = (catId) => {
+    const coreIds = ['BKI', 'Statutory', 'Asuransi', 'KSOP', 'Kesehatan'];
+    if (coreIds.includes(catId)) {
+      showToast(`Kategori standar maritim ${catId} tidak dapat dihapus.`, 'warning');
+      return false;
+    }
+    setCertificateCategories(prev => {
+      const next = prev.filter(c => c.id !== catId);
+      localStorage.setItem('pms_certificateCategories', JSON.stringify(next));
+      return next;
+    });
+    showToast('Kategori kustom berhasil dihapus.', 'info');
+    return true;
   };
 
   // 5. WhatsApp & Notification Engine (Multi-Interval: 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom & Auto-Send)
@@ -1480,12 +1554,18 @@ export const PMSProvider = ({ children }) => {
         addRequisition,
         addVessel,
         updateVessel,
+        deleteVessel,
         updateVesselParticulars,
         setVessels,
         addShipDocument,
         updateShipDocument,
         deleteShipDocument,
+        certificateCategories,
+        addCertificateCategory,
+        deleteCertificateCategory,
         addCrew,
+        updateCrew,
+        deleteCrew,
         approveLeave,
         submitLeave,
         addDrill,

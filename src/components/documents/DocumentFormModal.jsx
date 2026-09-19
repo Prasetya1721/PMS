@@ -13,6 +13,7 @@ import {
   Plus
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../../data/shipCertificatesMaster';
+import { usePMS } from '../../context/PMSContext';
 
 export const DocumentFormModal = ({
   isOpen,
@@ -24,7 +25,13 @@ export const DocumentFormModal = ({
 }) => {
   if (!isOpen) return null;
 
+  const { certificateCategories: contextCategories, addCertificateCategory } = usePMS();
+  const activeCategories = contextCategories && contextCategories.length > 0 ? contextCategories : CERTIFICATE_CATEGORIES;
+
   const isEditing = !!initialData?.id;
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const [formData, setFormData] = useState({
     vesselId: defaultVesselId || vessels[0]?.id || 'v-001',
@@ -129,7 +136,13 @@ export const DocumentFormModal = ({
     onClose();
   };
 
-  const selectedCategoryMeta = CERTIFICATE_CATEGORIES.find(c => c.id === formData.category) || CERTIFICATE_CATEGORIES[3];
+  const selectedCategoryMeta = activeCategories.find(c => c.id === formData.category) || {
+    id: formData.category,
+    label: formData.category,
+    color: '#38bdf8',
+    bgColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: 'rgba(56, 189, 248, 0.35)'
+  };
 
   return (
     <div style={{
@@ -197,7 +210,7 @@ export const DocumentFormModal = ({
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Quick Template Picker */}
+          {/* Quick Template Picker (Dropdown) */}
           {!isEditing && (
             <div style={{
               padding: '0.85rem 1rem',
@@ -206,36 +219,52 @@ export const DocumentFormModal = ({
               border: '1px solid var(--border-subtle)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.5rem'
+              gap: '0.4rem'
             }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Pilih Cepat Dokumen Resmi (Daftar Standar KSOP / BKI / Statutory):
-              </span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxHeight: '110px', overflowY: 'auto' }}>
-                {STANDARD_CERTIFICATE_TEMPLATES.map(t => (
-                  <button
-                    key={t.name}
-                    type="button"
-                    onClick={() => handleTemplateSelect(t)}
-                    style={{
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.72rem',
-                      borderRadius: '6px',
-                      border: formData.name === t.name ? `1px solid ${selectedCategoryMeta.color}` : '1px solid var(--border-subtle)',
-                      background: formData.name === t.name ? selectedCategoryMeta.bgColor : 'var(--bg-surface)',
-                      color: formData.name === t.name ? selectedCategoryMeta.color : 'var(--text-main)',
-                      cursor: 'pointer',
-                      fontWeight: formData.name === t.name ? 700 : 500,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
-                  >
-                    <span>{t.name}</span>
-                    <span style={{ fontSize: '0.62rem', opacity: 0.75 }}>({t.category})</span>
-                  </button>
-                ))}
-              </div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>⚡ Pilih Cepat Dokumen Resmi (Daftar Standar KSOP / BKI / Statutory / Kesehatan):</span>
+              </label>
+              <select
+                className="select-control"
+                value={selectedTemplate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedTemplate(val);
+                  if (val && val !== 'MANUAL') {
+                    const tmpl = STANDARD_CERTIFICATE_TEMPLATES.find(t => t.name === val);
+                    if (tmpl) handleTemplateSelect(tmpl);
+                  }
+                }}
+                style={{ background: 'var(--bg-surface)', fontWeight: 600 }}
+              >
+                <option value="">-- Klik untuk Pilih dari Checklist Standar (19+ Sertifikat Maritim) --</option>
+                <optgroup label="📋 DOKUMEN KSOP (Checklist Standar Kesyahbandaran)">
+                  {STANDARD_CERTIFICATE_TEMPLATES.filter(t => t.category === 'KSOP').map(t => (
+                    <option key={t.name} value={t.name}>📋 {t.name} (KSOP)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="⚓ SERTIFIKAT KLASIFIKASI BKI">
+                  {STANDARD_CERTIFICATE_TEMPLATES.filter(t => t.category === 'BKI').map(t => (
+                    <option key={t.name} value={t.name}>⚓ {t.name} (BKI)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🛡️ STATUTORY CERTIFICATES (KESELAMATAN & POLUSI)">
+                  {STANDARD_CERTIFICATE_TEMPLATES.filter(t => t.category === 'Statutory').map(t => (
+                    <option key={t.name} value={t.name}>🛡️ {t.name} (Statutory)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="⚖️ ASURANSI & CLC BUNKER / WRECK REMOVAL">
+                  {STANDARD_CERTIFICATE_TEMPLATES.filter(t => t.category === 'Asuransi').map(t => (
+                    <option key={t.name} value={t.name}>⚖️ {t.name} (Asuransi)</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🏥 SANITASI & KESEHATAN KAPAL (KKP)">
+                  {STANDARD_CERTIFICATE_TEMPLATES.filter(t => t.category === 'Kesehatan').map(t => (
+                    <option key={t.name} value={t.name}>🏥 {t.name} (Kesehatan)</option>
+                  ))}
+                </optgroup>
+                <option value="MANUAL">✍️ Dokumen Lainnya (Input Bebas / Manual)</option>
+              </select>
             </div>
           )}
 
@@ -263,17 +292,92 @@ export const DocumentFormModal = ({
             </div>
 
             <div>
-              <label className="field-label">Kategori Dokumen *</label>
-              <select
-                value={formData.category}
-                onChange={(e) => handleCategoryChange(e.target.value)}
-                className="select-control"
-                required
-              >
-                {CERTIFICATE_CATEGORIES.map(c => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label className="field-label" style={{ marginBottom: 0 }}>Kategori Dokumen *</label>
+                {!isAddingNewCat && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewCat(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '0.15rem 0.5rem', fontSize: '0.7rem', color: '#38bdf8' }}
+                  >
+                    <Plus size={12} />
+                    <span>+ Kategori Baru</span>
+                  </button>
+                )}
+              </div>
+
+              {!isAddingNewCat ? (
+                <select
+                  value={formData.category}
+                  onChange={(e) => {
+                    if (e.target.value === '__ADD_NEW__') {
+                      setIsAddingNewCat(true);
+                    } else {
+                      handleCategoryChange(e.target.value);
+                    }
+                  }}
+                  className="select-control"
+                  required
+                >
+                  <optgroup label="Kategori Standar & Tersedia">
+                    {activeCategories.map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </optgroup>
+                  <option value="__ADD_NEW__">➕ + Tambah Kategori Baru (Manual)...</option>
+                </select>
+              ) : (
+                <div style={{
+                  padding: '0.5rem',
+                  borderRadius: '8px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-glass)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Ketik kategori baru (contoh: Bea Cukai / Komersial)"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="input-control"
+                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newCategoryName.trim()) return;
+                        const created = addCertificateCategory({ label: newCategoryName.trim() });
+                        setFormData(prev => ({ ...prev, category: created.id }));
+                        setNewCategoryName('');
+                        setIsAddingNewCat(false);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.7rem', fontSize: '0.75rem' }}
+                    >
+                      Simpan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewCat(false);
+                        setNewCategoryName('');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    Kategori baru akan otomatis tersimpan & muncul di semua filter.
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
