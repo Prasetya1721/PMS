@@ -31,6 +31,8 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
     crew,
     spareparts,
     addRequisition,
+    addWorkOrder,
+    updateWorkOrder,
     showToast
   } = usePMS();
 
@@ -49,15 +51,26 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
   // Initial Captain Name
   const captainName = useMemo(() => {
     return (
+      workOrder?.captain ||
       currentVessel?.masterCaptain ||
       currentVessel?.particulars?.masterCaptain ||
       vesselCrewList.find(c => c.rank?.toLowerCase().includes('nakhoda') || c.rank?.toLowerCase().includes('master'))?.name ||
       'Capt. Hendra Gunawan, M.Mar'
     );
-  }, [currentVessel, vesselCrewList]);
+  }, [workOrder, currentVessel, vesselCrewList]);
 
   // Initial PIC / Requester
   const defaultPic = useMemo(() => {
+    if (workOrder?.pic) {
+      return { name: workOrder.pic, role: workOrder.picRole || 'PIC' };
+    }
+    if (workOrder?.assignedTo) {
+      const parts = workOrder.assignedTo.split('(');
+      return {
+        name: parts[0]?.trim(),
+        role: parts[1] ? parts[1].replace(')', '').trim() : 'PIC'
+      };
+    }
     const chief = vesselCrewList.find(c => c.rank?.toLowerCase().includes('chief') || c.rank?.toLowerCase().includes('kkm'));
     if (chief) {
       return { name: chief.name, role: chief.rank };
@@ -66,53 +79,90 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
       name: currentVessel?.chiefEngineer || 'Ir. Bambang Wijaya',
       role: 'Chief Engineer (KKM)'
     };
-  }, [vesselCrewList, currentVessel]);
+  }, [workOrder, vesselCrewList, currentVessel]);
 
   // View Mode: 'form' (input formulir) | 'letter' (surat permintaan resmi)
   const [viewMode, setViewMode] = useState(isEdit ? 'letter' : 'form');
 
+  const isCrewCategory = workOrder?.mainCategory === 'Kebutuhan Crew' ||
+    workOrder?.category?.toLowerCase().includes('crew') ||
+    workOrder?.category?.toLowerCase().includes('awak') ||
+    workOrder?.category?.toLowerCase().includes('ransum');
+
   // Form State
   const [formData, setFormData] = useState({
-    documentNo: `REQ-PBK/2026/09/${Math.floor(100 + Math.random() * 900)}`,
-    vesselId: initialVesselId,
-    mainCategory: 'Kebutuhan Kapal', // 'Kebutuhan Kapal' | 'Kebutuhan Crew'
-    subCategory: 'Mesin & Sparepart (Engine Parts)',
+    documentNo: workOrder?.id || `REQ-PBK/2026/09/${Math.floor(100 + Math.random() * 900)}`,
+    vesselId: workOrder?.vesselId || initialVesselId,
+    mainCategory: workOrder?.mainCategory || (isCrewCategory ? 'Kebutuhan Crew' : 'Kebutuhan Kapal'),
+    subCategory: workOrder?.subCategory || (isCrewCategory ? 'Bahan Makanan Basah & Kering (Galley / Ransum)' : 'Mesin & Sparepart (Engine Parts)'),
     picName: defaultPic.name,
     picRole: defaultPic.role,
-    priority: 'Penting (Segera)',
-    requestDate: new Date().toISOString().split('T')[0],
-    neededDate: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    deliveryLocation: 'Dermaga Pelabuhan Samarinda',
-    notes: 'Mohon dipersiapkan sebelum kapal menyelesaikan bongkar muat di Samarinda.'
+    priority: workOrder?.priority || 'Penting (Segera)',
+    requestDate: workOrder?.requestDate || workOrder?.dueDate || new Date().toISOString().split('T')[0],
+    neededDate: workOrder?.neededDate || workOrder?.dueDate || new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    deliveryLocation: workOrder?.deliveryLocation || 'Dermaga Pelabuhan Samarinda',
+    notes: workOrder?.notes || workOrder?.title || 'Mohon dipersiapkan sebelum kapal menyelesaikan bongkar muat di Samarinda.'
   });
 
   // Requisition items table state
-  const [items, setItems] = useState([
-    {
-      id: 'it-1',
-      name: 'Oli Mesin Meditran SX 15W-40',
-      qty: 2,
-      unit: 'Drum',
-      category: 'Kebutuhan Kapal',
-      notes: 'Penggantian oli rutin Main Engine Portside'
-    },
-    {
-      id: 'it-2',
-      name: 'Filter Oli Fleetguard LF9009 Cummins',
-      qty: 4,
-      unit: 'Pcs',
-      category: 'Kebutuhan Kapal',
-      notes: 'Servis berkala 1000 jam kerja mesin'
-    },
-    {
-      id: 'it-3',
-      name: 'Tali Towing Polypropylene 8-Strand 55mm',
-      qty: 1,
-      unit: 'Roll',
-      category: 'Kebutuhan Kapal',
-      notes: 'Cadangan tali towing tongkang batubara'
+  const [items, setItems] = useState(() => {
+    if (workOrder?.items && workOrder.items.length > 0) {
+      return workOrder.items.map((it, idx) => ({
+        id: it.id || `it-${idx + 1}`,
+        name: it.name,
+        qty: it.qty || 1,
+        unit: it.unit || 'Pcs',
+        category: it.category || workOrder.mainCategory || (isCrewCategory ? 'Kebutuhan Crew' : 'Kebutuhan Kapal'),
+        notes: it.notes || it.keterangan || '-'
+      }));
     }
-  ]);
+    if (workOrder?.partsRequired && workOrder.partsRequired.length > 0) {
+      return workOrder.partsRequired.map((p, idx) => ({
+        id: `it-${idx + 1}`,
+        name: p.name,
+        qty: p.qty || 1,
+        unit: p.unit || 'Pcs',
+        category: 'Kebutuhan Kapal',
+        notes: `Pengadaan suku cadang untuk ${workOrder.title || 'permesinan'}`
+      }));
+    }
+    if (workOrder?.checklist && workOrder.checklist.length > 0) {
+      return workOrder.checklist.map((c, idx) => ({
+        id: c.id || `it-${idx + 1}`,
+        name: c.text,
+        qty: 1,
+        unit: 'Paket / Set',
+        category: 'Kebutuhan Kapal',
+        notes: `Kebutuhan operasional: ${workOrder.title}`
+      }));
+    }
+    return [
+      {
+        id: 'it-1',
+        name: 'Oli Mesin Meditran SX 15W-40',
+        qty: 2,
+        unit: 'Drum',
+        category: 'Kebutuhan Kapal',
+        notes: 'Penggantian oli rutin Main Engine Portside'
+      },
+      {
+        id: 'it-2',
+        name: 'Filter Oli Fleetguard LF9009 Cummins',
+        qty: 4,
+        unit: 'Pcs',
+        category: 'Kebutuhan Kapal',
+        notes: 'Servis berkala 1000 jam kerja mesin'
+      },
+      {
+        id: 'it-3',
+        name: 'Tali Towing Polypropylene 8-Strand 55mm',
+        qty: 1,
+        unit: 'Roll',
+        category: 'Kebutuhan Kapal',
+        notes: 'Cadangan tali towing tongkang batubara'
+      }
+    ];
+  });
 
   // Input state for adding manual items
   const [manualItem, setManualItem] = useState({
@@ -241,6 +291,34 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
       return;
     }
 
+    const payload = {
+      id: formData.documentNo,
+      vesselId: formData.vesselId,
+      title: `${formData.mainCategory}: ${items.map(i => i.name).slice(0, 2).join(', ')}${items.length > 2 ? ` (+${items.length - 2} item)` : ''}`,
+      mainCategory: formData.mainCategory,
+      category: formData.mainCategory,
+      subCategory: formData.subCategory,
+      priority: formData.priority,
+      status: workOrder?.status || 'Diajukan',
+      dueDate: formData.neededDate,
+      neededDate: formData.neededDate,
+      requestDate: formData.requestDate,
+      assignedTo: `${formData.picName} (${formData.picRole})`,
+      pic: formData.picName,
+      picRole: formData.picRole,
+      supervisor: captainName,
+      captain: captainName,
+      deliveryLocation: formData.deliveryLocation,
+      items: items,
+      notes: formData.notes
+    };
+
+    if (isEdit && updateWorkOrder) {
+      updateWorkOrder(workOrder.id, payload);
+    } else if (addWorkOrder) {
+      addWorkOrder(payload);
+    }
+
     // Save to system requisitions
     if (addRequisition) {
       addRequisition({
@@ -263,7 +341,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
 
     // Switch to letter preview
     setViewMode('letter');
-    showToast('Surat Permintaan Barang ke Gudang berhasil diterbitkan!', 'success');
+    showToast('Surat Permintaan Barang ke Gudang berhasil disimpan!', 'success');
   };
 
   // Handler: Print

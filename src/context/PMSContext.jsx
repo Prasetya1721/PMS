@@ -18,7 +18,7 @@ import {
   INITIAL_USERS
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
-import { CERTIFICATE_CATEGORIES } from '../data/shipCertificatesMaster';
+import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../data/shipCertificatesMaster';
 
 const PMSContext = createContext();
 
@@ -109,6 +109,7 @@ export const PMSProvider = ({ children }) => {
   const [crewCertificates, setCrewCertificates] = useState(() => loadStored('crewCertificates', INITIAL_CREW_CERTIFICATES));
   const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
   const [certificateCategories, setCertificateCategories] = useState(() => loadStored('certificateCategories', CERTIFICATE_CATEGORIES));
+  const [documentTemplates, setDocumentTemplates] = useState(() => loadStored('documentTemplates', STANDARD_CERTIFICATE_TEMPLATES));
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
@@ -192,13 +193,14 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_crewCertificates', JSON.stringify(crewCertificates));
     localStorage.setItem('pms_shipDocuments', JSON.stringify(shipDocuments));
     localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories));
+    localStorage.setItem('pms_documentTemplates', JSON.stringify(documentTemplates));
     localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings));
     localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs));
     localStorage.setItem('pms_users', JSON.stringify(users));
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, crew, leaves, drills, crewCertificates, shipDocuments,
-    certificateCategories, notificationSettings, notificationLogs, users
+    certificateCategories, documentTemplates, notificationSettings, notificationLogs, users
   ]);
 
   // Auto-heal state immediately if stale fleet data is present in memory
@@ -272,7 +274,14 @@ export const PMSProvider = ({ children }) => {
   const toggleChecklist = (woId, checkId) => {
     setWorkOrders(prev => prev.map(wo => {
       if (wo.id !== woId) return wo;
-      const updatedChecklist = wo.checklist.map(item =>
+      // support both new items format and legacy checklist
+      if (wo.items && wo.items.length > 0) {
+        const updatedItems = wo.items.map(item =>
+          item.id === checkId ? { ...item, received: !item.received } : item
+        );
+        return { ...wo, items: updatedItems };
+      }
+      const updatedChecklist = (wo.checklist || []).map(item =>
         item.id === checkId ? { ...item, done: !item.done } : item
       );
       return { ...wo, checklist: updatedChecklist };
@@ -284,27 +293,31 @@ export const PMSProvider = ({ children }) => {
       if (wo.id !== woId) return wo;
       return { ...wo, status: newStatus };
     }));
-    if (newStatus === 'Completed') {
+    if (newStatus === 'Completed' || newStatus === 'Diterima di Kapal (Selesai)' || newStatus === 'Diterima di Kapal') {
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-      showToast(`Work Order ${woId} berhasil diselesaikan!`, 'success');
+      showToast(`Permintaan ${woId} berhasil diselesaikan & diterima di kapal!`, 'success');
     } else {
-      showToast(`Status Work Order diperbarui menjadi ${newStatus}`, 'info');
+      showToast(`Status permintaan ${woId} diperbarui: ${newStatus}`, 'info');
     }
+  };
+
+  const updateWorkOrder = (woId, updatedData) => {
+    setWorkOrders(prev => prev.map(wo => {
+      if (wo.id !== woId) return wo;
+      return { ...wo, ...updatedData };
+    }));
+    showToast(`Data permintaan ${woId} berhasil diperbarui!`, 'success');
   };
 
   const addWorkOrder = (newWO) => {
     const generated = {
       ...newWO,
-      id: `WO-2026-${String(workOrders.length + 1).padStart(3, '0')}`,
-      status: newWO.status || 'Assigned',
-      checklist: newWO.checklist || [
-        { id: 'c1', text: 'Inspeksi awal dan keselamatan kerja', done: false },
-        { id: 'c2', text: 'Eksekusi perawatan & pembersihan', done: false },
-        { id: 'c3', text: 'Pengujian performa & operasional', done: false }
-      ]
+      id: newWO.id || `REQ-2026-${String(workOrders.length + 1).padStart(3, '0')}`,
+      status: newWO.status || 'Diajukan',
+      items: newWO.items || []
     };
     setWorkOrders(prev => [generated, ...prev]);
-    showToast(`Work order baru berhasil dibuat: ${generated.id}`, 'success');
+    showToast(`Permintaan barang baru berhasil dibuat: ${generated.id}`, 'success');
   };
 
   // 3. Sparepart & Inventory Actions
@@ -781,7 +794,12 @@ export const PMSProvider = ({ children }) => {
       status: docData.status || status,
       daysUntilExpiry: days,
       issuer: docData.issuer || (docData.category === 'KSOP' ? 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)' : 'Biro Klasifikasi Indonesia (BKI) / Ditjen Hubla'),
-      mandatoryAuditor: docData.mandatoryAuditor || (docData.category === 'KSOP' ? 'Syahbandar KSOP' : 'Surveyor BKI')
+      mandatoryAuditor: docData.mandatoryAuditor || (docData.category === 'KSOP' ? 'Syahbandar KSOP' : 'Surveyor BKI'),
+      fileUrl: docData.fileUrl || null,
+      fileName: docData.fileName || null,
+      fileSize: docData.fileSize || null,
+      fileType: docData.fileType || null,
+      uploadedAt: docData.uploadedAt || (docData.fileUrl ? new Date().toISOString() : null)
     };
     setShipDocuments(prev => [newDoc, ...prev]);
     showToast(`Sertifikat ${newDoc.name} (${newDoc.category}) berhasil ditambahkan!`, 'success');
@@ -870,6 +888,44 @@ export const PMSProvider = ({ children }) => {
     });
     showToast('Kategori kustom berhasil dihapus.', 'info');
     return true;
+  };
+
+  // Master Document Templates Management (Auto-save new templates to Data Master)
+  const addDocumentTemplate = (newTmpl) => {
+    if (!newTmpl || !newTmpl.name) return null;
+    const name = newTmpl.name.trim();
+    const category = newTmpl.category || 'KSOP';
+
+    const created = {
+      name,
+      category,
+      defaultValidityYears: Number(newTmpl.defaultValidityYears) || 1,
+      issuer: newTmpl.issuer || (category === 'KSOP' ? 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)' : category === 'BKI' ? 'Biro Klasifikasi Indonesia (BKI)' : 'Instansi Penerbit Terkait'),
+      docPrefix: newTmpl.docPrefix || name.substring(0, 4).toUpperCase(),
+      mandatoryAuditor: newTmpl.mandatoryAuditor || (category === 'KSOP' ? 'Syahbandar KSOP' : category === 'BKI' ? 'Surveyor BKI' : 'Auditor / Surveyor Resmi'),
+      isCustom: true
+    };
+
+    setDocumentTemplates(prev => {
+      if (prev.some(t => t.name.toLowerCase() === name.toLowerCase() && t.category.toLowerCase() === category.toLowerCase())) {
+        return prev;
+      }
+      const next = [...prev, created];
+      localStorage.setItem('pms_documentTemplates', JSON.stringify(next));
+      return next;
+    });
+
+    showToast(`Template dokumen "${created.name}" (${created.category}) otomatis tersimpan di Data Master!`, 'success');
+    return created;
+  };
+
+  const deleteDocumentTemplate = (tmplName, category) => {
+    setDocumentTemplates(prev => {
+      const next = prev.filter(t => !(t.name.toLowerCase() === tmplName.toLowerCase() && (!category || t.category.toLowerCase() === category.toLowerCase())));
+      localStorage.setItem('pms_documentTemplates', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Template "${tmplName}" berhasil dihapus dari Data Master.`, 'info');
   };
 
   // 5. WhatsApp & Notification Engine (Multi-Interval: 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom & Auto-Send)
@@ -1638,6 +1694,7 @@ export const PMSProvider = ({ children }) => {
         toggleChecklist,
         updateWorkOrderStatus,
         addWorkOrder,
+        updateWorkOrder,
         updateSparepartStock,
         addRequisition,
         addVessel,
@@ -1651,6 +1708,9 @@ export const PMSProvider = ({ children }) => {
         certificateCategories,
         addCertificateCategory,
         deleteCertificateCategory,
+        documentTemplates,
+        addDocumentTemplate,
+        deleteDocumentTemplate,
         addCrew,
         updateCrew,
         deleteCrew,

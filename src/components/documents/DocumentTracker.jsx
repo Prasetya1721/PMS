@@ -19,7 +19,8 @@ import {
   Calendar,
   Plus,
   Edit2,
-  Trash2
+  Trash2,
+  UserCheck
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { DocumentFormModal } from './DocumentFormModal';
@@ -267,11 +268,13 @@ export const DocumentTracker = () => {
               <tr>
                 <th>Kategori</th>
                 <th>Nama Dokumen / Sertifikat</th>
+                <th>Surveyor / Auditor</th>
                 <th>Pemilik / Kapal</th>
                 <th>Nomor Dokumen</th>
                 <th>Instansi Penerbit</th>
                 <th>Tgl Penerbitan</th>
                 <th>Tgl Expired</th>
+                <th>Berkas</th>
                 <th>Status Kelaikan</th>
                 <th style={{ textAlign: 'right' }}>Aksi</th>
               </tr>
@@ -333,6 +336,35 @@ export const DocumentTracker = () => {
                         </div>
                       )}
                     </td>
+                    <td style={{ minWidth: '150px' }}>
+                      {item.mandatoryAuditor ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '6px',
+                            background: 'rgba(56, 189, 248, 0.15)',
+                            color: '#38bdf8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}>
+                            <UserCheck size={12} />
+                          </span>
+                          <div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                              {item.mandatoryAuditor}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
+                              Pemeriksa Resmi
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>-</span>
+                      )}
+                    </td>
                     <td>
                       {item.crewName ? (
                         <div>
@@ -360,6 +392,37 @@ export const DocumentTracker = () => {
                       <div style={{ fontSize: '0.72rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-subtle)', fontWeight: isH30 ? 600 : 400 }}>
                         {item.daysUntilExpiry > 0 ? `${item.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(item.daysUntilExpiry)} HARI!`}
                       </div>
+                    </td>
+                    <td>
+                      {item.fileUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const win = window.open();
+                            if (win) {
+                              win.document.write(`<iframe src="${item.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                            }
+                          }}
+                          className="badge badge-info"
+                          style={{
+                            fontSize: '0.7rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            cursor: 'pointer',
+                            padding: '0.2rem 0.45rem',
+                            border: 'none',
+                            background: 'rgba(56, 189, 248, 0.15)',
+                            color: '#38bdf8'
+                          }}
+                          title={item.fileName ? `Lihat berkas: ${item.fileName}` : 'Lihat Berkas Scan'}
+                        >
+                          <FileText size={11} />
+                          <span>{item.fileName ? (item.fileName.length > 10 ? item.fileName.substring(0, 8) + '...' : item.fileName) : 'Berkas'}</span>
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>-</span>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${

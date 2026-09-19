@@ -3315,118 +3315,182 @@ export const INITIAL_MAINTENANCE_SCHEDULES = [
 
 export const INITIAL_WORK_ORDERS = [
   {
-    "id": "WO-2026-001",
+    "id": "REQ-2026-001",
     "vesselId": "v-001",
-    "equipmentId": "eq-105",
-    "scheduleId": "sch-02",
-    "title": "Overhaul Katup & Ganti Oli Kompresor Udara Sperre #1",
-    "category": "Planned Preventive Maintenance",
+    "title": "Permintaan Rutin Sparepart & Oli Kompresor Udara Sperre #1",
+    "mainCategory": "Kebutuhan Kapal",
+    "category": "Kebutuhan Kapal",
+    "subCategory": "Mesin & Sparepart (Engine Parts)",
     "priority": "Tinggi",
-    "status": "Overdue",
+    "status": "Diajukan",
+    "requestDate": "2026-09-01",
     "dueDate": "2026-09-05",
-    "currentRunningHours": 2510,
-    "targetHours": 2500,
+    "neededDate": "2026-09-05",
+    "pic": "Kurniawan (Masinis 2)",
+    "picRole": "Masinis 2",
     "assignedTo": "Kurniawan (Masinis 2)",
-    "supervisor": "Ir. Bambang Wijaya (KKM)",
-    "laborHoursEstimated": 6,
-    "laborHoursActual": 0,
-    "costEstimated": 4500000,
-    "costActual": 0,
-    "checklist": [
+    "captain": "Capt. Hendra Gunawan, M.Mar",
+    "supervisor": "Capt. Hendra Gunawan, M.Mar",
+    "deliveryLocation": "Dermaga Pelabuhan Samarinda",
+    "items": [
       {
-        "id": "c1",
-        "text": "LOTO breaker power kompresor",
-        "done": true
-      },
-      {
-        "id": "c2",
-        "text": "Kuras angin di air receiver",
-        "done": true
-      },
-      {
-        "id": "c3",
-        "text": "Bongkar valve plate LP dan HP",
-        "done": false
-      },
-      {
-        "id": "c4",
-        "text": "Ganti valve plate set Sperre baru",
-        "done": false
-      },
-      {
-        "id": "c5",
-        "text": "Isi oli Shell Corena S4 R 68 baru",
-        "done": false
-      }
-    ],
-    "partsRequired": [
-      {
-        "partId": "sp-101",
+        "id": "it-101",
         "name": "Valve Plate Set Sperre HL2",
         "qty": 2,
         "unit": "Set",
-        "cost": 1800000
+        "notes": "Untuk kompresor udara #1",
+        "received": true
       },
       {
-        "partId": "sp-102",
-        "name": "Oli Kompresor Shell Corena 68",
+        "id": "it-102",
+        "name": "Oli Kompresor Shell Corena S4 R 68",
         "qty": 10,
         "unit": "Liter",
-        "cost": 1200000
+        "notes": "Penggantian oli pelumas kompresor",
+        "received": true
+      },
+      {
+        "id": "it-103",
+        "name": "Packing Gasket Set Sperre HL2",
+        "qty": 2,
+        "unit": "Set",
+        "notes": "Penggantian rutin valve plate",
+        "received": false
+      },
+      {
+        "id": "it-104",
+        "name": "Majun Putih Super Bersih",
+        "qty": 5,
+        "unit": "Kg",
+        "notes": "Pembersihan ruang mesin & komponen",
+        "received": false
       }
     ],
-    "notes": "Sudah lewat 10 jam operasional, harus selesai sebelum towing trip ke Banjarmasin."
+    "notes": "Sudah lewat jam operasional servis, mohon disiapkan sebelum towing trip ke Banjarmasin."
   },
   {
-    "id": "WO-2026-002",
+    "id": "REQ-2026-002",
     "vesselId": "v-001",
-    "equipmentId": "eq-103",
-    "scheduleId": "sch-03",
-    "title": "Servis Berkala 2500 Jam Genset Cummins #1",
-    "category": "Planned Preventive Maintenance",
+    "title": "Permintaan Filter & Oli Servis Berkala Genset Cummins #1",
+    "mainCategory": "Kebutuhan Kapal",
+    "category": "Kebutuhan Kapal",
+    "subCategory": "Minyak Pelumas & Oli (Lubricants)",
     "priority": "Tinggi",
-    "status": "In Progress",
+    "status": "Disetujui Gudang",
+    "requestDate": "2026-09-08",
     "dueDate": "2026-09-12",
-    "currentRunningHours": 2480,
-    "targetHours": 2500,
+    "neededDate": "2026-09-12",
+    "pic": "Asep Sunandar (Masinis 3)",
+    "picRole": "Masinis 3",
     "assignedTo": "Asep Sunandar (Masinis 3)",
-    "supervisor": "Ir. Bambang Wijaya (KKM)",
-    "laborHoursEstimated": 8,
-    "laborHoursActual": 4,
-    "costEstimated": 6500000,
-    "costActual": 3200000,
-    "checklist": [
+    "captain": "Capt. Hendra Gunawan, M.Mar",
+    "supervisor": "Capt. Hendra Gunawan, M.Mar",
+    "deliveryLocation": "Muara Berau Anchorage",
+    "items": [
       {
-        "id": "c1",
-        "text": "Pindah beban genset ke Genset #2",
-        "done": true
+        "id": "it-201",
+        "name": "Filter Oli Fleetguard LF9009 Cummins",
+        "qty": 4,
+        "unit": "Pcs",
+        "notes": "Servis berkala genset #1 & #2",
+        "received": true
       },
       {
-        "id": "c2",
-        "text": "Ganti filter oli mesin & bypass filter",
-        "done": true
+        "id": "it-202",
+        "name": "Filter Solar Fuel Separator FS1000",
+        "qty": 4,
+        "unit": "Pcs",
+        "notes": "Water separator bahan bakar",
+        "received": true
       },
       {
-        "id": "c3",
-        "text": "Ganti fuel filter cartridge & water separator",
-        "done": false
+        "id": "it-203",
+        "name": "Oli Mesin Meditran S-40 (200L)",
+        "qty": 1,
+        "unit": "Drum",
+        "notes": "Stok pelumas genset kapal",
+        "received": false
       },
       {
-        "id": "c4",
-        "text": "Periksa tegangan belt alternator",
-        "done": false
-      }
-    ],
-    "partsRequired": [
-      {
-        "partId": "sp-103",
-        "name": "Filter Oli Cummins Fleetguard",
+        "id": "it-204",
+        "name": "V-Belt Alternator Cummins Heavy Duty",
         "qty": 2,
         "unit": "Pcs",
-        "cost": 1400000
+        "notes": "Cadangan darurat kamar mesin",
+        "received": false
       }
     ],
-    "notes": "Filter oli sudah diganti, proses penggantian filter BBM."
+    "notes": "Filter oli sudah siap di gudang, menunggu pengiriman drum oli pelumas ke dermaga."
+  },
+  {
+    "id": "REQ-2026-004",
+    "vesselId": "v-001",
+    "title": "Pengajuan Ransum Logistik Dapur & APD Crew Baru",
+    "mainCategory": "Kebutuhan Crew",
+    "category": "Kebutuhan Crew",
+    "subCategory": "Bahan Makanan Basah & Kering (Galley / Ransum)",
+    "priority": "Penting (Segera)",
+    "status": "Disetujui Nakhoda",
+    "requestDate": "2026-09-12",
+    "dueDate": "2026-09-18",
+    "neededDate": "2026-09-18",
+    "pic": "Dedi Mulyadi (Juru Masak / Cook)",
+    "picRole": "Juru Masak (Cook)",
+    "assignedTo": "Dedi Mulyadi (Juru Masak / Cook)",
+    "captain": "Capt. Hendra Gunawan, M.Mar",
+    "supervisor": "Capt. Hendra Gunawan, M.Mar",
+    "deliveryLocation": "Dermaga Pelabuhan Samarinda",
+    "items": [
+      {
+        "id": "it-401",
+        "name": "Beras Premium Ramos 25 Kg",
+        "qty": 4,
+        "unit": "Zak",
+        "notes": "Ransum pokok galley pelayaran 25 hari",
+        "received": true
+      },
+      {
+        "id": "it-402",
+        "name": "Minyak Goreng Kemasan 2 Liter",
+        "qty": 2,
+        "unit": "Dus",
+        "notes": "Bahan dapur masak awak",
+        "received": true
+      },
+      {
+        "id": "it-403",
+        "name": "Telur Ayam Boiler Segar (30 Butir)",
+        "qty": 6,
+        "unit": "Piring",
+        "notes": "Konsumsi ransum harian kru",
+        "received": false
+      },
+      {
+        "id": "it-404",
+        "name": "Air Minum Galon Aqua 19 Liter",
+        "qty": 20,
+        "unit": "Galon",
+        "notes": "Air minum dispenser awak kapal",
+        "received": false
+      },
+      {
+        "id": "it-405",
+        "name": "Wearpack Pelaut Katun Logo Baharimas",
+        "qty": 4,
+        "unit": "Stel",
+        "notes": "APD kru ABK baru naik kapal",
+        "received": false
+      },
+      {
+        "id": "it-406",
+        "name": "Safety Shoes Pelaut Ujung Besi SNI",
+        "qty": 2,
+        "unit": "Pasang",
+        "notes": "Sepatu keselamatan kerja deck & mesin",
+        "received": false
+      }
+    ],
+    "notes": "Ransum konsumsi pelayaran towing Muara Berau - Surabaya dan APD kru baru join."
   },
   {
     "id": "WO-2026-003",

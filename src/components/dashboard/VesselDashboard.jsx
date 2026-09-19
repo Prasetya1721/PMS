@@ -30,7 +30,13 @@ import {
   Edit3,
   Edit2,
   Trash2,
-  Camera
+  Camera,
+  ShoppingBag,
+  Printer,
+  Search,
+  FileSpreadsheet,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { RunningHoursModal } from '../equipment/RunningHoursModal';
 import { WorkOrderModal } from '../maintenance/WorkOrderModal';
@@ -74,6 +80,10 @@ export const VesselDashboard = () => {
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | particulars | crew | documents | equipment | workorders | spareparts
   const [selectedEqForHours, setSelectedEqForHours] = useState(null);
   const [showNewWOModal, setShowNewWOModal] = useState(false);
+  const [selectedWOForModal, setSelectedWOForModal] = useState(null);
+  const [reqCategoryFilter, setReqCategoryFilter] = useState('ALL');
+  const [reqStatusFilter, setReqStatusFilter] = useState('ALL');
+  const [reqSearchQuery, setReqSearchQuery] = useState('');
   const [showAddCrewModal, setShowAddCrewModal] = useState(false);
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [showParticularsModal, setShowParticularsModal] = useState(false);
@@ -128,6 +138,61 @@ export const VesselDashboard = () => {
     ...shipCrewCerts.filter(c => c.status !== 'Active'),
     ...shipDocs.filter(d => d.status !== 'Active')
   ];
+
+  const getRequisitionItems = (wo) => {
+    if (wo.items && Array.isArray(wo.items) && wo.items.length > 0) {
+      return wo.items;
+    }
+    if (wo.partsRequired && Array.isArray(wo.partsRequired) && wo.partsRequired.length > 0) {
+      return wo.partsRequired.map((p, idx) => ({
+        id: `it-${idx + 1}`,
+        name: p.name,
+        qty: p.qty || 1,
+        unit: p.unit || 'Pcs',
+        notes: `Pengadaan suku cadang mesin`,
+        received: false
+      }));
+    }
+    if (wo.checklist && Array.isArray(wo.checklist) && wo.checklist.length > 0) {
+      return wo.checklist.map((c, idx) => ({
+        id: c.id || `it-${idx + 1}`,
+        name: c.text,
+        qty: 1,
+        unit: 'Paket / Item',
+        notes: 'Kebutuhan operasional pemeliharaan',
+        received: c.done || false
+      }));
+    }
+    return [];
+  };
+
+  const handleSendWAtoWarehouse = (wo) => {
+    const items = getRequisitionItems(wo);
+    const lines = [
+      `*SURAT PERMINTAAN BARANG KE GUDANG (MATERIAL REQUISITION)*`,
+      `*PT. PELAYARAN BAHARIMAS KALIMANTAN*`,
+      `═════════════════════════════════`,
+      `📄 No. Dokumen: *${wo.id}*`,
+      `🚢 Kapal: *${currentShip.name}*`,
+      `🏷️ Kategori: *${wo.mainCategory || wo.category || 'Kebutuhan Kapal'}*`,
+      `👤 PIC / Pemohon: *${wo.pic || wo.assignedTo || '-'}*`,
+      `⚓ Mengetahui (Nakhoda): *${wo.captain || wo.supervisor || currentShip.masterCaptain || 'Capt. Hendra Gunawan, M.Mar'}*`,
+      `📅 Tgl Permintaan: ${wo.requestDate || wo.dueDate || '-'}`,
+      `⏰ Tgl Dibutuhkan: *${wo.neededDate || wo.dueDate || 'Segera'}*`,
+      `⚡ Prioritas: *${wo.priority}*`,
+      `📍 Lokasi Serah: ${wo.deliveryLocation || 'Dermaga Pelabuhan Samarinda'}`,
+      ``,
+      `*DAFTAR BARANG YANG DIMINTA:*`,
+      ...items.map((it, idx) => `${idx + 1}. *${it.name}* - ${it.qty} ${it.unit} (${it.notes || '-'})`),
+      ``,
+      wo.notes ? `📝 *Catatan Tambahan:* ${wo.notes}` : '',
+      `═════════════════════════════════`,
+      `_Mohon untuk dipersiapkan oleh Tim Logistik Gudang PBK. Terima kasih._`
+    ].filter(Boolean);
+
+    const waText = encodeURIComponent(lines.join('\n'));
+    window.open(`https://api.whatsapp.com/send?phone=6281288991122&text=${waText}`, '_blank');
+  };
 
   const handleCreateCrew = (e) => {
     e.preventDefault();
@@ -353,7 +418,7 @@ export const VesselDashboard = () => {
             { id: 'crew', label: 'Awak Kapal (Crew Roster)', icon: Users, badge: shipCrew.length },
             { id: 'documents', label: 'Sertifikat & Dokumen Kapal', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
             { id: 'equipment', label: 'Equipment & Jam Mesin', icon: Wrench, badge: shipEquipment.length },
-            { id: 'workorders', label: 'Work Orders & Servis', icon: Clock, badge: shipWOs.length, alert: overdueWO.length > 0 },
+            { id: 'workorders', label: 'Permintaan Barang ke Gudang', icon: ShoppingBag, badge: shipWOs.length, alert: overdueWO.length > 0 },
             { id: 'spareparts', label: 'Inventaris Sparepart', icon: Package, badge: shipParts.length }
           ].map(tab => {
             const Icon = tab.icon;
@@ -529,10 +594,10 @@ export const VesselDashboard = () => {
 
           {/* Active Work Orders & Urgent Certificates for THIS Ship */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr', gap: '1.5rem' }}>
-            {/* Work Orders List */}
+            {/* Work Orders / Requisitions List */}
             <div className="glass-card" style={{ padding: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Work Orders Aktif ({shipWOs.length})</h4>
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Permintaan Barang Gudang ({shipWOs.length})</h4>
                 <button onClick={() => setActiveSubTab('workorders')} className="btn btn-secondary btn-sm">
                   Lihat Semua
                 </button>
@@ -542,7 +607,7 @@ export const VesselDashboard = () => {
                 {shipWOs.length === 0 ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                     <CheckCircle size={32} color="#10b981" style={{ margin: '0 auto 0.5rem' }} />
-                    <p>Tidak ada work order yang tertunda untuk kapal ini.</p>
+                    <p>Tidak ada permintaan barang yang tertunda untuk kapal ini.</p>
                   </div>
                 ) : (
                   shipWOs.map(wo => (
@@ -562,23 +627,26 @@ export const VesselDashboard = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span className="mono" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#38bdf8' }}>{wo.id}</span>
                           <span className={`badge ${
-                            wo.priority === 'Sangat Tinggi' || wo.priority === 'Tinggi' ? 'badge-danger' : 'badge-warning'
+                            wo.priority === 'Sangat Tinggi' || wo.priority === 'Tinggi' || wo.priority === 'Urgent / Darurat' ? 'badge-danger' : 'badge-warning'
                           }`} style={{ fontSize: '0.65rem' }}>
                             {wo.priority}
+                          </span>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
+                            {wo.mainCategory || wo.category}
                           </span>
                         </div>
                         <h5 style={{ fontSize: '0.88rem', fontWeight: 600, marginTop: '0.25rem' }}>{wo.title}</h5>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Ditugaskan: <strong>{wo.assignedTo}</strong>
+                          PIC: <strong>{wo.pic || wo.assignedTo}</strong> • Dibutuhkan: <strong>{wo.neededDate || wo.dueDate || 'Segera'}</strong>
                         </p>
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem' }}>
                         <span className={`badge ${
-                          wo.status === 'Completed' ? 'badge-success' :
-                          wo.status === 'In Progress' ? 'badge-info' :
-                          wo.status === 'Overdue' ? 'badge-danger-pulse' :
-                          'badge-neutral'
+                          wo.status === 'Completed' || wo.status === 'Diterima di Kapal (Selesai)' ? 'badge-success' :
+                          wo.status === 'Disetujui Gudang' || wo.status === 'Disetujui Nakhoda' ? 'badge-info' :
+                          wo.status === 'Overdue' || wo.status === 'Urgent' ? 'badge-danger-pulse' :
+                          'badge-warning'
                         }`}>
                           {wo.status}
                         </span>
@@ -860,10 +928,12 @@ export const VesselDashboard = () => {
                   <tr>
                     <th>Kategori</th>
                     <th>Nama Sertifikat & Deskripsi</th>
+                    <th>Surveyor / Auditor</th>
                     <th>Nomor Dokumen</th>
                     <th>Instansi Penerbit</th>
                     <th>Tgl Penerbitan</th>
                     <th>Tgl Expired</th>
+                    <th>Berkas File</th>
                     <th>Status Kelaikan</th>
                     <th style={{ textAlign: 'right' }}>Aksi</th>
                   </tr>
@@ -910,11 +980,6 @@ export const VesselDashboard = () => {
                                 Catatan daftar: {d.rawNote}
                               </div>
                             )}
-                            {d.mandatoryAuditor && (
-                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                                Auditor / Surveyor: {d.mandatoryAuditor}
-                              </div>
-                            )}
                             {d.notificationReminders && d.notificationReminders.enabled !== false && (
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.2rem' }}>
                                 <span className="badge" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }} title="Interval Pengingat Expired Aktif">
@@ -924,6 +989,35 @@ export const VesselDashboard = () => {
                                   {d.notificationReminders.day?.enabled ? `${d.notificationReminders.day.value}Hr` : ''}
                                 </span>
                               </div>
+                            )}
+                          </td>
+                          <td style={{ minWidth: '160px' }}>
+                            {d.mandatoryAuditor ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                <span style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(56, 189, 248, 0.15)',
+                                  color: '#38bdf8',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <UserCheck size={13} />
+                                </span>
+                                <div>
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                    {d.mandatoryAuditor}
+                                  </div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
+                                    Pemeriksa Resmi
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>-</span>
                             )}
                           </td>
                           <td className="mono" style={{ fontSize: '0.8rem' }}>{d.documentNo || '-'}</td>
@@ -943,6 +1037,37 @@ export const VesselDashboard = () => {
                             <div style={{ fontSize: '0.72rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-subtle)', fontWeight: isH30 ? 600 : 400 }}>
                               {d.daysUntilExpiry > 0 ? `${d.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(d.daysUntilExpiry)} HARI!`}
                             </div>
+                          </td>
+                          <td>
+                            {d.fileUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const win = window.open();
+                                  if (win) {
+                                    win.document.write(`<iframe src="${d.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                  }
+                                }}
+                                className="badge badge-info"
+                                style={{
+                                  fontSize: '0.7rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  cursor: 'pointer',
+                                  padding: '0.2rem 0.5rem',
+                                  border: 'none',
+                                  background: 'rgba(56, 189, 248, 0.15)',
+                                  color: '#38bdf8'
+                                }}
+                                title={d.fileName ? `Lihat berkas: ${d.fileName}` : 'Lihat Berkas Scan'}
+                              >
+                                <FileText size={11} />
+                                <span>{d.fileName ? (d.fileName.length > 12 ? d.fileName.substring(0, 10) + '...' : d.fileName) : 'Lihat Berkas'}</span>
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Belum ada</span>
+                            )}
                           </td>
                           <td>
                             <span className={`badge ${isExpired ? 'badge-danger-pulse' : isH30 ? 'badge-warning' : 'badge-success'}`}>
@@ -997,7 +1122,7 @@ export const VesselDashboard = () => {
                     })}
                   {shipDocs.filter(d => shipDocCatFilter === 'ALL' || d.category === shipDocCatFilter).length === 0 && (
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <td colSpan="10" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                         <FileCheck size={36} color="var(--text-subtle)" style={{ margin: '0 auto 0.75rem' }} />
                         <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>Tidak ada sertifikat dalam kategori ini.</p>
                         <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klik "Tambah Sertifikat Baru" untuk mencatat sertifikat baru untuk kapal ini.</p>
@@ -1109,113 +1234,390 @@ export const VesselDashboard = () => {
         </div>
       )}
 
-      {/* SUB-TAB 5: WORK ORDERS & PERAWATAN */}
-      {activeSubTab === 'workorders' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                Work Orders & Pemeliharaan: {currentShip.name}
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Daftar instruksi kerja perawatan berkala, perbaikan darurat, dan checklist pengerjaan teknisi
-              </p>
+      {/* SUB-TAB 5: PERMINTAAN BARANG KE GUDANG (MATERIAL REQUISITION) */}
+      {activeSubTab === 'workorders' && (() => {
+        const totalShipReqs = shipWOs.length;
+        const kapalReqs = shipWOs.filter(w => (w.mainCategory || w.category) !== 'Kebutuhan Crew');
+        const crewReqs = shipWOs.filter(w => (w.mainCategory || w.category) === 'Kebutuhan Crew');
+        const pendingReqs = shipWOs.filter(w => !['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(w.status));
+
+        const filteredShipReqs = shipWOs.filter(wo => {
+          // Category Filter
+          if (reqCategoryFilter === 'KAPAL' && (wo.mainCategory || wo.category) === 'Kebutuhan Crew') return false;
+          if (reqCategoryFilter === 'CREW' && (wo.mainCategory || wo.category) !== 'Kebutuhan Crew') return false;
+
+          // Status Filter
+          if (reqStatusFilter === 'PENDING' && ['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status)) return false;
+          if (reqStatusFilter === 'APPROVED' && !['Disetujui Nakhoda', 'Disetujui Gudang', 'Disetujui Logistik & Gudang'].includes(wo.status)) return false;
+          if (reqStatusFilter === 'COMPLETED' && !['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status)) return false;
+
+          // Search Filter
+          if (reqSearchQuery.trim()) {
+            const q = reqSearchQuery.toLowerCase();
+            const titleMatch = (wo.title || '').toLowerCase().includes(q);
+            const idMatch = (wo.id || '').toLowerCase().includes(q);
+            const picMatch = (wo.pic || wo.assignedTo || '').toLowerCase().includes(q);
+            const itemsMatch = getRequisitionItems(wo).some(it => (it.name || '').toLowerCase().includes(q));
+            if (!titleMatch && !idMatch && !picMatch && !itemsMatch) return false;
+          }
+
+          return true;
+        });
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Header Section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <ShoppingBag size={22} color="#38bdf8" />
+                  <span>Permintaan Barang ke Gudang: {currentShip.name}</span>
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Daftar pengajuan kebutuhan kapal & crew, status approval gudang logistik, dan cetak Surat Permintaan Barang (SPB)
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedWOForModal(null);
+                  setShowNewWOModal(true);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
+              >
+                <Plus size={15} />
+                <span>+ Ajukan Permintaan Barang Baru</span>
+              </button>
             </div>
 
-            <button onClick={() => setShowNewWOModal(true)} className="btn btn-primary btn-sm">
-              <Plus size={14} />
-              <span>Buat Work Order Baru</span>
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {shipWOs.length === 0 ? (
-              <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <CheckCircle size={40} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
-                <h4>Semua Tugas Perawatan Selesai!</h4>
-                <p style={{ fontSize: '0.85rem' }}>Tidak ada pekerjaan perawatan yang tertunda pada kapal ini.</p>
-              </div>
-            ) : (
-              shipWOs.map(wo => (
-                <div key={wo.id} className="glass-card" style={{ padding: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                        <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38bdf8' }}>{wo.id}</span>
-                        <span className={`badge ${
-                          wo.priority === 'Sangat Tinggi' || wo.priority === 'Tinggi' ? 'badge-danger' : 'badge-warning'
-                        }`}>
-                          {wo.priority}
-                        </span>
-                        <span className="badge badge-neutral">{wo.category}</span>
-                      </div>
-                      <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginTop: '0.4rem' }}>{wo.title}</h4>
-                      <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                        Ditugaskan: <strong>{wo.assignedTo}</strong> • Supervisor: <strong>{wo.supervisor}</strong> • Batas Target: <strong>{wo.dueDate || `${wo.targetHours} Jam`}</strong>
-                      </p>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                      <select
-                        value={wo.status}
-                        onChange={(e) => updateWorkOrderStatus(wo.id, e.target.value)}
-                        className="select-control"
-                        style={{ width: '150px', fontSize: '0.8rem', fontWeight: 600 }}
-                      >
-                        <option value="Assigned">Assigned</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Overdue">Overdue</option>
-                      </select>
-
-                      {wo.status === 'Overdue' && (
-                        <button
-                          onClick={() => sendWhatsAppReminder(wo, 'work_order')}
-                          className="btn btn-whatsapp btn-sm"
-                        >
-                          <Send size={13} />
-                          <span>Alert WA</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Checklist */}
-                  {wo.checklist && wo.checklist.length > 0 && (
-                    <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>CHECKLIST PENGERJAAN:</span>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.6rem', marginTop: '0.5rem' }}>
-                        {wo.checklist.map(item => (
-                          <label
-                            key={item.id}
-                            onClick={() => toggleChecklist(wo.id, item.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.6rem',
-                              padding: '0.5rem 0.75rem',
-                              background: item.done ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-surface-elevated)',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                              fontSize: '0.825rem',
-                              border: item.done ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-subtle)'
-                            }}
-                          >
-                            <input type="checkbox" checked={item.done} onChange={() => {}} />
-                            <span style={{ textDecoration: item.done ? 'line-through' : 'none', color: item.done ? 'var(--text-muted)' : '#fff' }}>
-                              {item.text}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            {/* 4 Mini Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+              <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #38bdf8' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Total Pengajuan</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.25rem' }}>
+                  {totalShipReqs} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Dokumen</span>
                 </div>
-              ))
-            )}
+              </div>
+
+              <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #6366f1' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>🚢 Kebutuhan Kapal</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#818cf8', marginTop: '0.25rem' }}>
+                  {kapalReqs.length} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Permintaan</span>
+                </div>
+              </div>
+
+              <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #10b981' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>👥 Kebutuhan Crew</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#34d399', marginTop: '0.25rem' }}>
+                  {crewReqs.length} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Permintaan</span>
+                </div>
+              </div>
+
+              <div className="glass-card" style={{ padding: '1rem 1.25rem', borderLeft: '4px solid #f59e0b' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>⏳ Menunggu Gudang</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24', marginTop: '0.25rem' }}>
+                  {pendingReqs.length} <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>Pending</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="glass-card" style={{ padding: '0.85rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {/* Category Filters */}
+                <button
+                  onClick={() => setReqCategoryFilter('ALL')}
+                  className={`btn btn-sm ${reqCategoryFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                >
+                  Semua Kategori ({totalShipReqs})
+                </button>
+                <button
+                  onClick={() => setReqCategoryFilter('KAPAL')}
+                  className={`btn btn-sm ${reqCategoryFilter === 'KAPAL' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                >
+                  🚢 Kebutuhan Kapal ({kapalReqs.length})
+                </button>
+                <button
+                  onClick={() => setReqCategoryFilter('CREW')}
+                  className={`btn btn-sm ${reqCategoryFilter === 'CREW' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}
+                >
+                  👥 Kebutuhan Crew ({crewReqs.length})
+                </button>
+
+                <span style={{ color: 'var(--border-subtle)', margin: '0 0.25rem' }}>|</span>
+
+                {/* Status Filter Dropdown */}
+                <select
+                  value={reqStatusFilter}
+                  onChange={(e) => setReqStatusFilter(e.target.value)}
+                  className="select-control"
+                  style={{ fontSize: '0.78rem', padding: '0.35rem 0.65rem', height: '34px', width: '160px' }}
+                >
+                  <option value="ALL">Semua Status</option>
+                  <option value="PENDING">⏳ Menunggu Gudang</option>
+                  <option value="APPROVED">⚓ Disetujui</option>
+                  <option value="COMPLETED">✅ Selesai / Diterima</option>
+                </select>
+              </div>
+
+              {/* Search Box */}
+              <div style={{ position: 'relative', minWidth: '240px' }}>
+                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari barang, no. SPB, PIC..."
+                  value={reqSearchQuery}
+                  onChange={(e) => setReqSearchQuery(e.target.value)}
+                  className="input-control"
+                  style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.8rem', width: '100%' }}
+                />
+              </div>
+            </div>
+
+            {/* List of Material Requisitions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {filteredShipReqs.length === 0 ? (
+                <div className="glass-card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <CheckCircle size={40} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
+                  <h4 style={{ color: '#fff', fontSize: '1.1rem' }}>Tidak Ada Permintaan Barang</h4>
+                  <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                    {reqSearchQuery || reqCategoryFilter !== 'ALL' || reqStatusFilter !== 'ALL'
+                      ? 'Tidak ditemukan data pengajuan barang yang sesuai dengan filter pencarian.'
+                      : 'Belum ada pengajuan kebutuhan barang ke gudang untuk kapal ini.'}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSelectedWOForModal(null);
+                      setShowNewWOModal(true);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: '1rem' }}
+                  >
+                    <Plus size={14} />
+                    <span>Ajukan Permintaan Sekarang</span>
+                  </button>
+                </div>
+              ) : (
+                filteredShipReqs.map(wo => {
+                  const reqItems = getRequisitionItems(wo);
+                  const isCrew = (wo.mainCategory || wo.category) === 'Kebutuhan Crew';
+
+                  return (
+                    <div key={wo.id} className="glass-card" style={{ padding: '1.5rem' }}>
+                      {/* Top Row: Meta Badges & Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                            <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38bdf8' }}>
+                              {wo.id}
+                            </span>
+                            <span className={`badge ${
+                              wo.priority === 'Sangat Tinggi' || wo.priority === 'Tinggi' || wo.priority === 'Urgent / Darurat'
+                                ? 'badge-danger'
+                                : wo.priority === 'Penting (Segera)' || wo.priority === 'Penting'
+                                ? 'badge-warning'
+                                : 'badge-info'
+                            }`}>
+                              {wo.priority}
+                            </span>
+                            <span
+                              className="badge"
+                              style={{
+                                background: isCrew ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                                color: isCrew ? '#34d399' : '#818cf8',
+                                border: isCrew ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(99, 102, 241, 0.3)',
+                                fontWeight: 700
+                              }}
+                            >
+                              {isCrew ? '👥 Kebutuhan Crew' : '🚢 Kebutuhan Kapal'}
+                            </span>
+                            {wo.subCategory && (
+                              <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
+                                {wo.subCategory}
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginTop: '0.5rem', color: '#f8fafc' }}>
+                            {wo.title || 'Pengajuan Kebutuhan Barang Gudang'}
+                          </h4>
+
+                          <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                            PIC / Pemohon: <strong>{wo.pic || wo.assignedTo}</strong> • Mengetahui: <strong>{wo.captain || wo.supervisor || currentShip.masterCaptain || 'Capt. Hendra Gunawan, M.Mar'}</strong> • Tgl Permintaan: <strong>{wo.requestDate || wo.dueDate || '-'}</strong> • Target Dibutuhkan: <strong>{wo.neededDate || wo.dueDate || 'Segera'}</strong>
+                          </p>
+                          {wo.deliveryLocation && (
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '0.15rem' }}>
+                              📍 Titik Penyerahan: {wo.deliveryLocation}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Action Controls */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                          <select
+                            value={wo.status}
+                            onChange={(e) => updateWorkOrderStatus(wo.id, e.target.value)}
+                            className="select-control"
+                            style={{ width: '160px', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            <option value="Diajukan">Diajukan</option>
+                            <option value="Disetujui Nakhoda">Disetujui Nakhoda</option>
+                            <option value="Disetujui Gudang">Disetujui Gudang</option>
+                            <option value="Sedang Dikirim">Sedang Dikirim</option>
+                            <option value="Diterima di Kapal (Selesai)">Diterima di Kapal (Selesai)</option>
+                            <option value="Ditolak Gudang">Ditolak Gudang</option>
+                          </select>
+
+                          {/* Print / View SPB Button */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedWOForModal(wo)}
+                            className="btn btn-secondary btn-sm"
+                            title="Lihat & Cetak Surat Permintaan Barang Resmi"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}
+                          >
+                            <Printer size={13} color="#38bdf8" />
+                            <span>Lihat / Cetak SPB</span>
+                          </button>
+
+                          {/* Send WhatsApp to Warehouse Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleSendWAtoWarehouse(wo)}
+                            className="btn btn-whatsapp btn-sm"
+                            title="Kirim notifikasi daftar barang ke WA Gudang Logistik"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <Send size={13} />
+                            <span>Kirim WA Gudang</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* DAFTAR BARANG YANG DIMINTA KE GUDANG (TABLE) */}
+                      <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <Package size={15} />
+                            <span>DAFTAR BARANG YANG DIMINTA KE GUDANG ({reqItems.length} ITEM):</span>
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Klik status untuk menandai barang telah tiba di kapal
+                          </span>
+                        </div>
+
+                        {reqItems.length === 0 ? (
+                          <div style={{ padding: '0.75rem', background: 'var(--bg-surface-elevated)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                            Belum ada rincian item barang spesifik pada pengajuan ini.
+                          </div>
+                        ) : (
+                          <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ background: 'rgba(15, 23, 42, 0.7)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+                                  <th style={{ padding: '0.6rem 0.75rem', width: '45px', textAlign: 'center' }}>NO</th>
+                                  <th style={{ padding: '0.6rem 0.75rem' }}>NAMA BARANG & SPESIFIKASI</th>
+                                  <th style={{ padding: '0.6rem 0.75rem', width: '130px' }}>JUMLAH</th>
+                                  <th style={{ padding: '0.6rem 0.75rem' }}>KETERANGAN / KEPERLUAN</th>
+                                  <th style={{ padding: '0.6rem 0.75rem', width: '150px', textAlign: 'center' }}>STATUS DI KAPAL</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {reqItems.map((it, idx) => (
+                                  <tr
+                                    key={it.id || idx}
+                                    style={{
+                                      borderBottom: idx < reqItems.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                                      background: it.received ? 'rgba(16, 185, 129, 0.05)' : 'transparent'
+                                    }}
+                                  >
+                                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 700, color: 'var(--text-muted)' }}>
+                                      {idx + 1}
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                                      <strong style={{ color: it.received ? 'var(--text-muted)' : '#f8fafc', textDecoration: it.received ? 'line-through' : 'none' }}>
+                                        {it.name}
+                                      </strong>
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.75rem' }}>
+                                      <span className="badge badge-info" style={{ fontWeight: 700 }}>
+                                        {it.qty} {it.unit}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.75rem', color: 'var(--text-muted)' }}>
+                                      {it.notes || '-'}
+                                    </td>
+                                    <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleChecklist(wo.id, it.id)}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.35rem',
+                                          padding: '0.25rem 0.55rem',
+                                          borderRadius: '6px',
+                                          fontSize: '0.72rem',
+                                          cursor: 'pointer',
+                                          background: it.received ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-surface-elevated)',
+                                          border: it.received ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-subtle)',
+                                          color: it.received ? '#10b981' : 'var(--text-muted)'
+                                        }}
+                                      >
+                                        {it.received ? <CheckSquare size={13} /> : <Square size={13} />}
+                                        <span>{it.received ? 'Diterima ✓' : 'Belum Tiba'}</span>
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer: 3-Way Signature Verification */}
+                      <div style={{
+                        marginTop: '1rem',
+                        paddingTop: '0.85rem',
+                        borderTop: '1px dashed var(--border-subtle)',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '0.75rem',
+                        fontSize: '0.75rem'
+                      }}>
+                        <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(56, 189, 248, 0.05)', borderRadius: '6px', border: '1px solid rgba(56, 189, 248, 0.15)' }}>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>✍️ Pemohon / PIC:</div>
+                          <strong style={{ color: '#38bdf8' }}>{wo.pic || wo.assignedTo}</strong>
+                          <div style={{ fontSize: '0.68rem', color: '#10b981', marginTop: '0.15rem' }}>✓ Telah Diajukan</div>
+                        </div>
+
+                        <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '6px', border: '1px solid rgba(99, 102, 241, 0.15)' }}>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>⚓ Mengetahui (Nakhoda):</div>
+                          <strong style={{ color: '#818cf8' }}>{wo.captain || wo.supervisor || currentShip.masterCaptain || 'Capt. Hendra Gunawan, M.Mar'}</strong>
+                          <div style={{ fontSize: '0.68rem', color: '#10b981', marginTop: '0.15rem' }}>✓ Disetujui & Distempel Kapal</div>
+                        </div>
+
+                        <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>🏢 Logistik Gudang PBK:</div>
+                          <strong style={{ color: '#10b981' }}>Gudang Logistik Banjarmasin</strong>
+                          <div style={{ fontSize: '0.68rem', color: ['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status) ? '#10b981' : '#f59e0b', marginTop: '0.15rem' }}>
+                            {['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status) ? '✓ Selesai & Diterima di Kapal' : '⏳ Dalam Proses Gudang'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* SUB-TAB 6: INVENTARIS SPAREPARTS */}
       {activeSubTab === 'spareparts' && (
@@ -1419,10 +1821,14 @@ export const VesselDashboard = () => {
         />
       )}
 
-      {showNewWOModal && (
+      {(showNewWOModal || selectedWOForModal) && (
         <WorkOrderModal
+          workOrder={selectedWOForModal}
           vesselId={currentShip.id}
-          onClose={() => setShowNewWOModal(false)}
+          onClose={() => {
+            setShowNewWOModal(false);
+            setSelectedWOForModal(null);
+          }}
         />
       )}
 

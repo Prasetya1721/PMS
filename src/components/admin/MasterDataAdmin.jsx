@@ -56,6 +56,9 @@ export const MasterDataAdmin = () => {
     certificateCategories,
     addCertificateCategory,
     deleteCertificateCategory,
+    documentTemplates,
+    addDocumentTemplate,
+    deleteDocumentTemplate,
     addVessel,
     updateVessel,
     deleteVessel,
@@ -122,6 +125,17 @@ export const MasterDataAdmin = () => {
     code: '',
     description: '',
     color: '#38bdf8'
+  });
+
+  // Document Templates Management state
+  const [tmplSearch, setTmplSearch] = useState('');
+  const [tmplCatFilter, setTmplCatFilter] = useState('ALL');
+  const [newTmplData, setNewTmplData] = useState({
+    name: '',
+    category: 'KSOP',
+    defaultValidityYears: 1,
+    issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
+    mandatoryAuditor: 'Syahbandar KSOP Samarinda'
   });
 
   // User Management state
@@ -389,6 +403,36 @@ export const MasterDataAdmin = () => {
 
     setNewCatData({ label: '', code: '', description: '', color: '#38bdf8' });
   };
+
+  // Handle Add Document Template
+  const handleCreateTemplate = (e) => {
+    e.preventDefault();
+    if (!newTmplData.name.trim()) return;
+
+    addDocumentTemplate({
+      name: newTmplData.name.trim(),
+      category: newTmplData.category,
+      defaultValidityYears: Number(newTmplData.defaultValidityYears) || 1,
+      issuer: newTmplData.issuer.trim() || `Instansi Penerbit ${newTmplData.category}`,
+      mandatoryAuditor: newTmplData.mandatoryAuditor.trim() || `Surveyor / Auditor ${newTmplData.category}`
+    });
+
+    setNewTmplData({
+      name: '',
+      category: 'KSOP',
+      defaultValidityYears: 1,
+      issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
+      mandatoryAuditor: 'Syahbandar KSOP Samarinda'
+    });
+  };
+
+  const filteredTemplates = (documentTemplates || []).filter(t => {
+    const matchCat = tmplCatFilter === 'ALL' || t.category === tmplCatFilter;
+    const matchSearch = (t.name && t.name.toLowerCase().includes(tmplSearch.toLowerCase())) ||
+      (t.issuer && t.issuer.toLowerCase().includes(tmplSearch.toLowerCase())) ||
+      (t.mandatoryAuditor && t.mandatoryAuditor.toLowerCase().includes(tmplSearch.toLowerCase()));
+    return matchCat && matchSearch;
+  });
 
   // User Management filters and handlers
   const allUserList = users || [];
@@ -1320,10 +1364,12 @@ export const MasterDataAdmin = () => {
                     <th>Kapal Terkait</th>
                     <th>Kategori</th>
                     <th>Nama Sertifikat</th>
+                    <th>Surveyor / Auditor</th>
                     <th>Nomor Dokumen</th>
                     <th>Instansi Penerbit</th>
                     <th>Tgl Penerbitan</th>
                     <th>Tgl Expired</th>
+                    <th>Berkas</th>
                     <th>Status Kelaikan</th>
                     <th style={{ textAlign: 'right' }}>Aksi Admin</th>
                   </tr>
@@ -1369,8 +1415,37 @@ export const MasterDataAdmin = () => {
                           <strong style={{ fontSize: '0.92rem' }}>{d.name}</strong>
                           {d.rawNote && (
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
-                              {d.rawNote}
+                              Catatan daftar: {d.rawNote}
                             </div>
+                          )}
+                        </td>
+                        <td style={{ minWidth: '150px' }}>
+                          {d.mandatoryAuditor ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '6px',
+                                background: 'rgba(56, 189, 248, 0.15)',
+                                color: '#38bdf8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <UserCheck size={12} />
+                              </span>
+                              <div>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                                  {d.mandatoryAuditor}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: 'var(--text-subtle)' }}>
+                                  Pemeriksa Resmi
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>-</span>
                           )}
                         </td>
                         <td className="mono" style={{ fontSize: '0.8rem' }}>{d.documentNo || '-'}</td>
@@ -1383,6 +1458,37 @@ export const MasterDataAdmin = () => {
                           <div style={{ fontSize: '0.7rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-subtle)' }}>
                             {d.daysUntilExpiry > 0 ? `${d.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(d.daysUntilExpiry)} HARI!`}
                           </div>
+                        </td>
+                        <td>
+                          {d.fileUrl ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(`<iframe src="${d.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                }
+                              }}
+                              className="badge badge-info"
+                              style={{
+                                fontSize: '0.7rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                cursor: 'pointer',
+                                padding: '0.2rem 0.45rem',
+                                border: 'none',
+                                background: 'rgba(56, 189, 248, 0.15)',
+                                color: '#38bdf8'
+                              }}
+                              title={d.fileName ? `Lihat berkas: ${d.fileName}` : 'Lihat Berkas'}
+                            >
+                              <FileText size={11} />
+                              <span>{d.fileName ? (d.fileName.length > 10 ? d.fileName.substring(0, 8) + '...' : d.fileName) : 'Berkas'}</span>
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>-</span>
+                          )}
                         </td>
                         <td>
                           <span className={`badge ${isExpired ? 'badge-danger-pulse' : isH30 ? 'badge-warning' : 'badge-success'}`}>
@@ -1569,6 +1675,218 @@ export const MasterDataAdmin = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* ========================================================= */}
+          {/* MASTER TEMPLATE DOKUMEN PER KATEGORI                      */}
+          {/* ========================================================= */}
+          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📋 Master Template Dokumen Maritim ({filteredTemplates.length} Dokumen Tersedia)</span>
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Daftar template sertifikat yang muncul otomatis di pilihan cepat modal dokumen sesuai kategori yang dipilih.
+                </p>
+              </div>
+            </div>
+
+            {/* Form Tambah Template Dokumen Baru */}
+            <div className="glass-card" style={{ padding: '1.25rem' }}>
+              <h5 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981' }}>
+                <Plus size={15} />
+                <span>Tambah Template Sertifikat Baru ke Data Master</span>
+              </h5>
+              <form onSubmit={handleCreateTemplate} style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 110px 1.2fr 1.2fr auto', gap: '0.75rem', alignItems: 'end' }}>
+                <div>
+                  <label className="field-label">Nama Dokumen / Sertifikat *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Pas Sungai Dan Danau / Izin Navigasi"
+                    value={newTmplData.name}
+                    onChange={(e) => setNewTmplData(prev => ({ ...prev, name: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Kategori *</label>
+                  <select
+                    value={newTmplData.category}
+                    onChange={(e) => setNewTmplData(prev => ({ ...prev, category: e.target.value }))}
+                    className="select-control"
+                    required
+                  >
+                    {(certificateCategories || []).map(c => (
+                      <option key={c.id} value={c.id}>{c.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">Masa Berlaku</label>
+                  <select
+                    value={newTmplData.defaultValidityYears}
+                    onChange={(e) => setNewTmplData(prev => ({ ...prev, defaultValidityYears: Number(e.target.value) }))}
+                    className="select-control"
+                  >
+                    <option value={0.5}>6 Bulan</option>
+                    <option value={1}>1 Tahun</option>
+                    <option value={2}>2 Tahun</option>
+                    <option value={3}>3 Tahun</option>
+                    <option value={5}>5 Tahun</option>
+                    <option value={10}>10 Tahun</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="field-label">Instansi Penerbit</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: KSOP / KKP / Ditjen Hubla"
+                    value={newTmplData.issuer}
+                    onChange={(e) => setNewTmplData(prev => ({ ...prev, issuer: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Surveyor / Auditor Default</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Syahbandar KSOP / Surveyor BKI"
+                    value={newTmplData.mandatoryAuditor}
+                    onChange={(e) => setNewTmplData(prev => ({ ...prev, mandatoryAuditor: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+
+                <div>
+                  <button type="submit" className="btn btn-primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
+                    + Simpan Template
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Template Filters */}
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+                <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Cari template dokumen, instansi, surveyor..."
+                  value={tmplSearch}
+                  onChange={(e) => setTmplSearch(e.target.value)}
+                  className="input-control"
+                  style={{ paddingLeft: '2.5rem' }}
+                />
+              </div>
+
+              <select
+                value={tmplCatFilter}
+                onChange={(e) => setTmplCatFilter(e.target.value)}
+                className="select-control"
+                style={{ width: '220px' }}
+              >
+                <option value="ALL">Semua Kategori ({documentTemplates?.length || 0})</option>
+                {(certificateCategories || []).map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.label} ({(documentTemplates || []).filter(t => t.category === c.id).length})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Templates Table */}
+            <div className="glass-card" style={{ overflow: 'hidden' }}>
+              <div className="table-container">
+                <table className="pms-table">
+                  <thead>
+                    <tr>
+                      <th>Nama Sertifikat / Template</th>
+                      <th>Kategori</th>
+                      <th>Masa Berlaku</th>
+                      <th>Surveyor / Auditor Default</th>
+                      <th>Instansi Penerbit</th>
+                      <th>Tipe Template</th>
+                      <th style={{ textAlign: 'right' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTemplates.map((t, idx) => {
+                      const catMeta = (certificateCategories || []).find(c => c.id === t.category);
+                      return (
+                        <tr key={`${t.name}-${idx}`}>
+                          <td>
+                            <strong style={{ fontSize: '0.88rem' }}>{t.name}</strong>
+                          </td>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                background: catMeta?.bgColor || 'rgba(56, 189, 248, 0.15)',
+                                color: catMeta?.color || '#38bdf8',
+                                border: `1px solid ${catMeta?.borderColor || 'rgba(56, 189, 248, 0.35)'}`
+                              }}
+                            >
+                              {t.category}
+                            </span>
+                          </td>
+                          <td className="mono" style={{ fontSize: '0.82rem' }}>
+                            {t.defaultValidityYears} Tahun
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <UserCheck size={12} color="#38bdf8" />
+                              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{t.mandatoryAuditor || '-'}</span>
+                            </div>
+                          </td>
+                          <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {t.issuer || '-'}
+                          </td>
+                          <td>
+                            <span className={`badge ${t.isCustom ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.68rem' }}>
+                              {t.isCustom ? 'Kustom Tambahan' : 'Standar Resmi'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {t.isCustom ? (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Hapus template "${t.name}" (${t.category}) dari Data Master?`)) {
+                                    deleteDocumentTemplate(t.name, t.category);
+                                  }
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
+                                title="Hapus Template Kustom Ini"
+                              >
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Standar Maritim</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {filteredTemplates.length === 0 && (
+                      <tr>
+                        <td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                          Tidak ada template dokumen yang cocok dengan pencarian / filter ini.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
