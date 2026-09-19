@@ -13,7 +13,9 @@ import {
   Tag,
   Code,
   FileText,
-  Link
+  Link,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
@@ -31,6 +33,7 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
   } = usePMS();
 
   const isEdit = Boolean(finding);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const availableAudits = audits.length > 0 ? audits : allAudits;
 
@@ -149,7 +152,14 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="modal-dialog" style={{ maxWidth: '680px' }}>
+      <div
+        className={isFullscreen ? 'modal-fullscreen' : 'modal-dialog'}
+        style={{
+          maxWidth: isFullscreen ? '98vw' : '720px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -170,14 +180,26 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
-            <X size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.6rem' }}
+              title={isFullscreen ? 'Kecilkan Layar' : 'Layar Penuh (Fullscreen)'}
+            >
+              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              <span style={{ fontSize: '0.75rem' }}>{isFullscreen ? 'Normal' : 'Fullscreen'}</span>
+            </button>
+            <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             {/* Row 1: Audit Session & Finding No */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1rem' }}>
               <div>

@@ -18,7 +18,9 @@ import {
   RotateCcw,
   Check,
   Eye,
-  Camera
+  Camera,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export const SubmitEvidenceModal = ({ finding, onClose }) => {
@@ -31,6 +33,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     currentUser
   } = usePMS();
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const evidence = finding?.evidence || {};
 
   const [rootCause, setRootCause] = useState(
@@ -129,7 +132,14 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 1100 }}>
-      <div className="modal-dialog modal-dialog-large" style={{ maxWidth: '800px' }}>
+      <div
+        className={isFullscreen ? 'modal-fullscreen' : 'modal-dialog modal-dialog-large'}
+        style={{
+          maxWidth: isFullscreen ? '98vw' : '820px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -156,13 +166,25 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
-            <X size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.6rem' }}
+              title={isFullscreen ? 'Kecilkan Layar' : 'Layar Penuh (Fullscreen)'}
+            >
+              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+              <span style={{ fontSize: '0.75rem' }}>{isFullscreen ? 'Normal' : 'Fullscreen'}</span>
+            </button>
+            <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
-        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Finding Context Card */}
           <div style={{ padding: '1rem 1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
