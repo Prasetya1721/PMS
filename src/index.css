@@ -70,9 +70,9 @@
    High-contrast, clean maritime light mode cockpit
    ========================================================= */
 [data-theme='light'] {
-  --bg-app: #f4f6f9;
-  --bg-sidebar: #0b1426; /* Kept executive deep navy for maritime brand prestige */
-  --bg-header: rgba(255, 255, 255, 0.92);
+  --bg-app: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-header: #ffffff;
   --bg-surface: #ffffff;
   --bg-surface-elevated: #f8fafc;
   --bg-surface-card: #ffffff;
@@ -82,7 +82,7 @@
   /* Borders & Dividers */
   --border-subtle: #e2e8f0;
   --border-focus: #0284c7;
-  --border-glass: rgba(0, 0, 0, 0.06);
+  --border-glass: #e2e8f0;
 
   /* Primary Light Mode Tuning */
   --primary: #0284c7;
@@ -108,28 +108,45 @@ body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .in
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Light Mode Component Rules */
+/* Light Mode Pure White Background Rules */
+[data-theme='light'] body {
+  background-color: #ffffff !important;
+  color: #0f172a;
+}
+
+[data-theme='light'] .app-container {
+  background-color: #ffffff !important;
+}
+
 [data-theme='light'] .main-content {
-  background: radial-gradient(circle at 85% 10%, rgba(2, 132, 199, 0.04), transparent 45%),
-              radial-gradient(circle at 15% 70%, rgba(6, 182, 212, 0.03), transparent 40%),
-              #f4f6f9;
+  background: #ffffff !important;
+}
+
+[data-theme='light'] aside {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 [data-theme='light'] .glass-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='light'] .glass-card:hover {
-  border-color: #38bdf8;
-  box-shadow: 0 8px 24px -4px rgba(2, 132, 199, 0.12);
+  border-color: #93c5fd;
+  box-shadow: 0 4px 14px -2px rgba(2, 132, 199, 0.1);
 }
 
 [data-theme='light'] .pms-table th {
   background: #f8fafc;
-  color: #475569;
-  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 [data-theme='light'] .pms-table td {
@@ -169,11 +186,11 @@ body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .in
 [data-theme='light'] .modal-dialog {
   background: #ffffff;
   border-color: #cbd5e1;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme='light'] .modal-overlay {
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.45);
 }
 
 [data-theme='light'] .progress-bar-container {
@@ -188,9 +205,11 @@ body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .in
 [data-theme='light'] .glass-card h1[style*="color: #fff"],
 [data-theme='light'] .glass-card h2[style*="color: #fff"],
 [data-theme='light'] .glass-card h3[style*="color: #fff"],
+[data-theme='light'] .glass-card h4[style*="color: #fff"],
 [data-theme='light'] .glass-card h1[style*="color: #ffffff"],
 [data-theme='light'] .glass-card h2[style*="color: #ffffff"],
-[data-theme='light'] .glass-card h3[style*="color: #ffffff"] {
+[data-theme='light'] .glass-card h3[style*="color: #ffffff"],
+[data-theme='light'] .glass-card h4[style*="color: #ffffff"] {
   color: #0f172a !important;
 }
 
@@ -202,6 +221,16 @@ body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .in
 
 [data-theme='light'] div[style*="rgba(15, 28, 53, 0.8)"] h2 {
   color: #0f172a !important;
+}
+
+/* Auto-Send Status Banner adaptation in Light Mode */
+[data-theme='light'] div[style*="rgba(15, 28, 53, 0.85)"] {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  border-color: #bae6fd !important;
+}
+
+[data-theme='light'] div[style*="rgba(15, 28, 53, 0.85)"] span[style*="color: #38bdf8"] {
+  color: #0284c7 !important;
 }
 
 /* Urgency Marquee Alert in Light Mode */

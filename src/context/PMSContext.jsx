@@ -58,6 +58,21 @@ export const PMSProvider = ({ children }) => {
       if (key === 'shipDocuments' && (!Array.isArray(parsed) || parsed.length !== fallback.length)) {
         return fallback;
       }
+      if (key === 'notificationSettings') {
+        if (!parsed || !parsed.thresholds || !parsed.autoSend || !parsed.thresholds.some(t => t.id === 'th-1d')) {
+          return fallback;
+        }
+        return {
+          ...fallback,
+          ...parsed,
+          thresholds: parsed.thresholds || fallback.thresholds,
+          customThresholds: parsed.customThresholds || fallback.customThresholds,
+          autoSend: {
+            ...fallback.autoSend,
+            ...(parsed.autoSend || {})
+          }
+        };
+      }
       return parsed;
     } catch {
       return fallback;
@@ -111,19 +126,23 @@ export const PMSProvider = ({ children }) => {
     showToast('Anda telah keluar dari sesi PT. Pelayaran Baharimas Kalimantan.', 'info');
   };
 
-  // Theme Mode: 'dark' | 'light' (defaults to 'dark' for maritime cockpit)
+  // Theme Mode: 'light' | 'dark' (defaults to 'light' with pure white background)
   const [theme, setTheme] = useState(() => {
     try {
-      const savedTheme = localStorage.getItem('pms_theme');
-      return savedTheme === 'light' ? 'light' : 'dark';
+      const savedTheme = localStorage.getItem('pms_theme_mode');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        return savedTheme;
+      }
+      return 'light';
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
   useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('pms_theme_mode', theme);
       localStorage.setItem('pms_theme', theme);
     } catch (err) {
       console.error('[PMS] Failed to persist theme:', err);
@@ -132,8 +151,8 @@ export const PMSProvider = ({ children }) => {
 
   const toggleTheme = () => {
     setTheme((prev) => {
-      const nextTheme = prev === 'dark' ? 'light' : 'dark';
-      showToast(`Mode dialihkan ke: ${nextTheme === 'light' ? '☀️ Mode Terang (Light Mode)' : '🌙 Mode Gelap (Dark Mode)'}`, 'info');
+      const nextTheme = prev === 'light' ? 'dark' : 'light';
+      showToast(`Mode dialihkan ke: ${nextTheme === 'light' ? '☀️ Mode Terang (Latar Belakang Putih)' : '🌙 Mode Gelap (Dark Mode)'}`, 'info');
       return nextTheme;
     });
   };
@@ -580,89 +599,344 @@ export const PMSProvider = ({ children }) => {
     return newDoc;
   };
 
-  // 5. WhatsApp & Notification Engine
-  const sendWhatsAppReminder = (item, type = 'crew_cert') => {
+  // 5. WhatsApp & Notification Engine (Multi-Interval: 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom & Auto-Send)
+  const updateNotificationSettings = (newSettings) => {
+    setNotificationSettings(prev => {
+      const updated = typeof newSettings === 'function' ? newSettings(prev) : { ...prev, ...newSettings };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Konfigurasi notifikasi & auto-send berhasil disimpan!', 'success');
+  };
+
+  const addCustomThreshold = (days, label, description, notifyChannels) => {
+    const numDays = Math.max(1, parseInt(days, 10) || 1);
+    const newTh = {
+      id: `th-custom-${Date.now()}`,
+      days: numDays,
+      unit: 'custom',
+      label: label?.trim() || `H-${numDays} Hari (Kustom)`,
+      description: description?.trim() || `Pengingat kustom ${numDays} hari sebelum jatuh tempo`,
+      enabled: true,
+      notifyChannels: notifyChannels || ['WhatsApp', 'Google Calendar']
+    };
+
+    setNotificationSettings(prev => {
+      const updated = {
+        ...prev,
+        customThresholds: [...(prev.customThresholds || []), newTh]
+      };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+    showToast(`Ambang batas kustom H-${numDays} hari berhasil ditambahkan!`, 'success');
+    return newTh;
+  };
+
+  const removeCustomThreshold = (id) => {
+    setNotificationSettings(prev => {
+      const updated = {
+        ...prev,
+        customThresholds: (prev.customThresholds || []).filter(t => t.id !== id)
+      };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Ambang batas kustom berhasil dihapus.', 'info');
+  };
+
+  const toggleThresholdActive = (id, isCustom = false) => {
+    setNotificationSettings(prev => {
+      let updated;
+      if (isCustom) {
+        updated = {
+          ...prev,
+          customThresholds: (prev.customThresholds || []).map(t =>
+            t.id === id ? { ...t, enabled: !t.enabled } : t
+          )
+        };
+      } else {
+        updated = {
+          ...prev,
+          thresholds: (prev.thresholds || []).map(t =>
+            t.id === id ? { ...t, enabled: !t.enabled } : t
+          )
+        };
+      }
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const toggleThresholdChannel = (id, channelName, isCustom = false) => {
+    setNotificationSettings(prev => {
+      const updateList = (list) => list.map(t => {
+        if (t.id !== id) return t;
+        const exists = t.notifyChannels.includes(channelName);
+        const nextChannels = exists
+          ? t.notifyChannels.filter(c => c !== channelName)
+          : [...t.notifyChannels, channelName];
+        return { ...t, notifyChannels: nextChannels };
+      });
+
+      const updated = isCustom
+        ? { ...prev, customThresholds: updateList(prev.customThresholds || []) }
+        : { ...prev, thresholds: updateList(prev.thresholds || []) };
+
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateAutoSendConfig = (partial) => {
+    setNotificationSettings(prev => {
+      const updated = {
+        ...prev,
+        autoSend: {
+          ...prev.autoSend,
+          ...partial
+        }
+      };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Pengaturan jam & parameter Auto-Send berhasil diperbarui!', 'success');
+  };
+
+  // Helper quick test: set scheduled time to now + 1 minute
+  const setTestScheduleTimeNowPlusOneMinute = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 1);
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const newTime = `${hh}:${mm}`;
+
+    setNotificationSettings(prev => {
+      const updated = {
+        ...prev,
+        autoSend: {
+          ...prev.autoSend,
+          enabled: true,
+          scheduleTime: newTime,
+          lastRunDate: '' // Reset so it will fire on this minute
+        }
+      };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+
+    showToast(`⏱️ Waktu kirim otomatis diatur ke ${newTime} WIB (+1 menit)! Sistem akan mengeksekusi otomatis saat jarum jam mencapai ${newTime}.`, 'info');
+    return newTime;
+  };
+
+  // WhatsApp Sender with tailored messages per interval & optional direct API Gateway
+  const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}) => {
     let phone = '6281200000000';
     let recipientName = 'Crew / Admin';
-    let msg = '';
+    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : (item.daysUntilExpiry || 30);
+
+    const v = vessels.find(ship => ship.id === item.vesselId);
+    const vesselName = v?.name || 'Fleet';
 
     if (type === 'crew_cert') {
       const targetCrew = crew.find(c => c.id === item.crewId);
       phone = targetCrew?.whatsapp || '6281288991122';
       recipientName = targetCrew?.name || item.crewName;
-      msg = `*PEMBERITAHUAN RESMI SISTEM PMS - PT. PELAYARAN BAHARIMAS KALIMANTAN*\n\nYth. *${recipientName}*,\nSertifikat Anda: *${item.name}* (No: ${item.certificateNo}) akan segera kadaluarsa pada *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\nMohon segera melapor ke Nakhoda / Bagian Personalia untuk proses perpanjangan agar kelaiklautan kapal tetap terjaga.\n\n_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
     } else if (type === 'ship_doc') {
-      const v = vessels.find(ship => ship.id === item.vesselId);
-      recipientName = `Admin Kapal & Nakhoda ${v?.name || ''}`;
-      msg = `*PERINGATAN DOKUMEN KAPAL - SISTEM PMS*\n\nKepada: *${recipientName}*\nDokumen: *${item.name}* (No: ${item.documentNo})\nKapal: *${v?.name}*\nTanggal Jatuh Tempo: *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\nSegera hubungi Klasifikasi / Syahbandar untuk jadwal survey dan perpanjangan sertifikat.\n\n_Pusat Pengendali Armada PMS_`;
+      recipientName = `Admin Kapal & Nakhoda ${vesselName}`;
+      phone = '6281288991122';
     } else if (type === 'work_order') {
       recipientName = item.assignedTo || 'Teknisi / Chief Engineer';
-      msg = `*PERINGATAN WORK ORDER OVERDUE*\n\nKepada: *${recipientName}*\nWork Order: *${item.title}* (ID: ${item.id})\nStatus: OVERDUE\nTarget: ${item.targetHours} Jam (Saat ini: ${item.currentRunningHours} Jam).\n\nHarap segera menindaklanjuti pekerjaan perawatan tersebut dan update status di PMS.`;
+      phone = '6281288991122';
+    }
+
+    let headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO DOKUMEN*';
+    let urgencyBadge = 'Rentang 30 Hari';
+    if (offsetDays === 1) {
+      headerPrefix = '*🚨 PERINGATAN DARURAT H-1 (HARI TERAKHIR)*';
+      urgencyBadge = 'H-1 Hari';
+    } else if (offsetDays === 7) {
+      headerPrefix = '*⚠️ PERINGATAN KRITIS H-1 MINGGU (H-7)*';
+      urgencyBadge = 'H-1 Minggu';
+    } else if (offsetDays === 30) {
+      headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO H-1 BULAN (H-30)*';
+      urgencyBadge = 'H-1 Bulan';
+    } else if (offsetDays === 365) {
+      headerPrefix = '*📋 PERSIAPAN ANGGARAN DINI H-1 TAHUN (H-365)*';
+      urgencyBadge = 'H-1 Tahun';
+    } else if (offsetDays > 0) {
+      headerPrefix = `*📌 PENGINGAT JATUH TEMPO H-${offsetDays} HARI*`;
+      urgencyBadge = `H-${offsetDays} Hari`;
+    }
+
+    let msg = options.customMessage;
+    if (!msg) {
+      if (type === 'crew_cert') {
+        msg = `${headerPrefix} - SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN\n\n` +
+          `Yth. *${recipientName}*,\n` +
+          `Sertifikat Anda: *${item.name}* (No: ${item.certificateNo})\n` +
+          `Tanggal Jatuh Tempo: *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\n` +
+          (offsetDays <= 1
+            ? `PENTING: Besok adalah hari terakhir masa berlaku! Harap segera lapor Nakhoda untuk pengurusan darurat kelaiklautan.\n\n`
+            : offsetDays <= 7
+            ? `PENTING: Tersisa 1 minggu sebelum sertifikat habis masa berlaku. Mohon koordinasikan dengan personalia kapal.\n\n`
+            : offsetDays <= 30
+            ? `Harap segera memproses perpanjangan sertifikasi ke Bagian Personalia agar kelaiklautan kapal tetap terjaga.\n\n`
+            : offsetDays <= 365
+            ? `Pemberitahuan awal 1 tahun untuk persiapan pembaharuan sertifikat kepelautan STCW.\n\n`
+            : `Harap koordinasikan pembaruan dokumen ini tepat waktu.\n\n`) +
+          `_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
+      } else if (type === 'ship_doc') {
+        msg = `${headerPrefix} - SISTEM PMS BAHARIMAS\n\n` +
+          `Kepada: *${recipientName}*\n` +
+          `Dokumen: *${item.name}* (No: ${item.documentNo})\n` +
+          `Kapal: *${vesselName}*\n` +
+          `Tanggal Jatuh Tempo: *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\n` +
+          (offsetDays <= 1
+            ? `TINDAKAN MENDESAK: Sertifikat akan kadaluarsa besok! Pastikan dispensasi atau survey BKI/Syahbandar telah terkonfirmasi.\n\n`
+            : offsetDays <= 7
+            ? `PERHATIAN KRITIS: Tersisa 7 hari. Konfirmasi jadwal kedatangan surveyor BKI/Syahbandar ke atas kapal.\n\n`
+            : offsetDays <= 30
+            ? `Segera daftarkan permohonan survey ke Kantor BKI / Syahbandar terdekat.\n\n`
+            : offsetDays <= 365
+            ? `Perencanaan anggaran survey besar & pembaharuan sertifikat kelas untuk tahun anggaran mendatang.\n\n`
+            : `Segera tindak lanjuti sebelum batas toleransi habis.\n\n`) +
+          `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
+      } else {
+        msg = `*PERINGATAN WORK ORDER OVERDUE*\n\nKepada: *${recipientName}*\nWork Order: *${item.title}* (ID: ${item.id})\nStatus: OVERDUE\nTarget: ${item.targetHours} Jam (Saat ini: ${item.currentRunningHours} Jam).\n\nHarap segera menindaklanjuti servicing.`;
+      }
     }
 
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
 
+    const gateway = notificationSettings.autoSend?.whatsappGateway;
+    let deliveryStatus = 'Delivered';
+    let channelLabel = 'WhatsApp Direct';
+
+    // Direct API Gateway dispatch if API key provided and requested
+    if (options.useGatewayApi && gateway?.apiKey && gateway?.apiUrl) {
+      try {
+        await fetch(gateway.apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': gateway.apiKey },
+          body: JSON.stringify({ phone: cleanPhone, message: msg })
+        });
+        deliveryStatus = `Delivered (${gateway.provider})`;
+        channelLabel = `WhatsApp API (${gateway.provider})`;
+      } catch (err) {
+        console.warn('API Gateway send error, falling back to URL:', err);
+      }
+    }
+
     // Log to notification audit
     const newLog = {
       id: `notif-${Date.now()}`,
       timestamp: new Date().toLocaleString('id-ID'),
-      channel: 'WhatsApp Direct',
+      channel: channelLabel,
       target: `${recipientName} (${phone})`,
-      vesselName: vessels.find(v => v.id === item.vesselId)?.name || 'Fleet',
-      subject: `Reminder: ${item.name || item.title}`,
+      vesselName,
+      subject: `Reminder ${urgencyBadge}: ${item.name || item.title}`,
       message: msg,
-      status: 'Delivered',
-      thresholdTriggered: item.daysUntilExpiry ? `H-${item.daysUntilExpiry}` : 'Direct Trigger'
+      status: deliveryStatus,
+      thresholdTriggered: urgencyBadge
     };
 
     setNotificationLogs(prev => [newLog, ...prev]);
-    window.open(waUrl, '_blank');
-    showToast(`Pesan WhatsApp telah disiapkan dan dibuka ke ${recipientName}`, 'success');
+
+    if (!options.silent) {
+      if (!options.useGatewayApi || !gateway?.apiKey) {
+        window.open(waUrl, '_blank');
+      }
+      showToast(`Pesan WhatsApp telah disiapkan & dibuka ke ${recipientName} (${urgencyBadge})`, 'success');
+    }
+
+    return newLog;
   };
 
-  // Google Calendar URL Generator
-  const getGoogleCalendarUrl = (item) => {
+  // Google Calendar URL Generator with custom offset days and scheduled hour
+  const getGoogleCalendarUrl = (item, options = {}) => {
+    // options: { offsetDays: 0 | 1 | 7 | 30 | 365 | number, eventTime: '08:00' }
+    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : 30;
+    const eventTime = options.eventTime || notificationSettings.autoSend?.scheduleTime || '08:00';
+    const [evHH, evMM] = eventTime.split(':').map(Number);
+
     const vessel = vessels.find(v => v.id === item.vesselId);
     const vesselName = vessel?.name || 'Armada Kapal';
     const docNo = item.certificateNo || item.documentNo || '-';
     const holder = item.crewName ? `Kru: ${item.crewName}` : `Kapal: ${vesselName}`;
 
-    let startDate = '';
-    let endDate = '';
+    let startIso = '';
+    let endIso = '';
+
     if (item.expiryDate) {
-      const parts = item.expiryDate.split('-');
-      if (parts.length === 3) {
-        startDate = `${parts[0]}${parts[1]}${parts[2]}`;
-        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        d.setDate(d.getDate() + 1);
-        const nextY = d.getFullYear();
-        const nextM = String(d.getMonth() + 1).padStart(2, '0');
-        const nextD = String(d.getDate()).padStart(2, '0');
-        endDate = `${nextY}${nextM}${nextD}`;
+      const [year, month, day] = item.expiryDate.split('-').map(Number);
+      const targetDate = new Date(year, month - 1, day);
+
+      if (offsetDays > 0) {
+        targetDate.setDate(targetDate.getDate() - offsetDays);
       }
+
+      const tYear = targetDate.getFullYear();
+      const tMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const tDay = String(targetDate.getDate()).padStart(2, '0');
+
+      const startH = String(evHH || 8).padStart(2, '0');
+      const startM = String(evMM || 0).padStart(2, '0');
+      const endH = String(Math.min(23, (evHH || 8) + 1)).padStart(2, '0');
+      const endM = startM;
+
+      startIso = `${tYear}${tMonth}${tDay}T${startH}${startM}00`;
+      endIso = `${tYear}${tMonth}${tDay}T${endH}${endM}00`;
     }
 
-    const title = `[PMS H-30] Jatuh Tempo: ${item.name}`;
-    const details = `PERINGATAN JATUH TEMPO DOKUMEN SISTEM PMS KAPAL:\n` +
+    let intervalLabel = 'H-30 (1 Bulan)';
+    if (offsetDays === 1) intervalLabel = 'H-1 (1 Hari Terakhir)';
+    else if (offsetDays === 7) intervalLabel = 'H-7 (1 Minggu)';
+    else if (offsetDays === 30) intervalLabel = 'H-30 (1 Bulan)';
+    else if (offsetDays === 365) intervalLabel = 'H-365 (1 Tahun Persiapan)';
+    else if (offsetDays === 0) intervalLabel = 'JATUH TEMPO HARI-H';
+    else if (offsetDays > 0) intervalLabel = `H-${offsetDays} Hari`;
+
+    const title = `[PMS ${intervalLabel}] ${item.name} (${vesselName})`;
+    const details = `PENGINGAT RESMI SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN:\n` +
       `----------------------------------------\n` +
-      `Nama Dokumen: ${item.name}\n` +
+      `Kategori Peringatan: ${intervalLabel}\n` +
+      `Waktu Pengingat: Jam ${eventTime} WIB\n` +
+      `Nama Dokumen/Sertifikat: ${item.name}\n` +
       `Nomor Dokumen: ${docNo}\n` +
-      `Pemilik/Subjek: ${holder}\n` +
+      `Subjek/Pemilik: ${holder}\n` +
       `Kapal: ${vesselName}\n` +
-      `Penerbit: ${item.issuer || '-'}\n` +
-      `Tanggal Jatuh Tempo: ${item.expiryDate}\n` +
+      `Instansi Penerbit: ${item.issuer || '-'}\n` +
+      `Tanggal Jatuh Tempo: ${item.expiryDate} (${item.daysUntilExpiry} hari lagi)\n` +
       `Status Kelaikan: ${item.status}\n\n` +
-      `PENTING: Segera hubungi Syahbandar / Biro Klasifikasi untuk survey & perpanjangan sebelum masa berlaku habis!`;
+      `INSTRUKSI TINDAK LANJUT:\n` +
+      (offsetDays === 1
+        ? `🚨 DARURAT: Hari ini/besok masa berlaku habis! Segera hubungi Syahbandar/BKI untuk dispensasi atau survey mendesak.`
+        : offsetDays === 7
+        ? `⚠️ KRITIS: Tersisa 7 hari. Pastikan surveyor telah ditunjuk dan dokumen persiapan kapal siap di pelabuhan.`
+        : offsetDays === 30
+        ? `🔔 FORMAL: Masuk jendela survei perpanjangan 30 hari. Hubungi Bagian Legal Armada & BKI Surveyor.`
+        : offsetDays === 365
+        ? `📋 TAHUNAN: Rencanakan anggaran docking & survey pembaharuan (Renewal Survey) tahun depan.`
+        : `Segera tindak lanjuti sebelum batas toleransi survey habis.`);
 
-    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Indonesia'}`;
+    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Samarinda / Banjarmasin'}`;
 
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDate}/${endDate}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startIso}/${endIso}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
   };
 
-  const openGoogleCalendar = (item) => {
-    const url = getGoogleCalendarUrl(item);
+  const openGoogleCalendar = (item, options = {}) => {
+    const url = getGoogleCalendarUrl(item, options);
     const vesselName = vessels.find(v => v.id === item.vesselId)?.name || 'Armada';
+    const offsetDays = options.offsetDays !== undefined ? options.offsetDays : 30;
+    const eventTime = options.eventTime || notificationSettings.autoSend?.scheduleTime || '08:00';
+
+    let tagLabel = `H-${offsetDays}`;
+    if (offsetDays === 1) tagLabel = 'H-1 Hari';
+    else if (offsetDays === 7) tagLabel = 'H-1 Minggu';
+    else if (offsetDays === 30) tagLabel = 'H-1 Bulan';
+    else if (offsetDays === 365) tagLabel = 'H-1 Tahun';
 
     const newLog = {
       id: `notif-${Date.now()}`,
@@ -670,64 +944,80 @@ export const PMSProvider = ({ children }) => {
       channel: 'Google Calendar Sync',
       target: `Google Calendar (${item.crewName || vesselName})`,
       vesselName,
-      subject: `Sinkron Kalender: ${item.name}`,
-      message: `Event pengingat jatuh tempo H-30 berhasil dijadwalkan di Google Calendar untuk tanggal ${item.expiryDate}`,
+      subject: `Sinkron Kalender (${tagLabel} @ ${eventTime} WIB): ${item.name}`,
+      message: `Event pengingat jatuh tempo ${tagLabel} berhasil dijadwalkan di Google Calendar untuk tanggal ${item.expiryDate} pukul ${eventTime} WIB`,
       status: 'Delivered',
-      thresholdTriggered: 'H-30 G-Cal'
+      thresholdTriggered: `${tagLabel} G-Cal`
     };
 
     setNotificationLogs(prev => [newLog, ...prev]);
     window.open(url, '_blank');
-    showToast(`Google Calendar dibuka untuk event: ${item.name}`, 'success');
+    showToast(`Google Calendar dibuka untuk event pengingat ${tagLabel} pukul ${eventTime} WIB: ${item.name}`, 'success');
   };
 
-  // Export .ics calendar file for all H-30 items
-  const exportH30CalendarICS = () => {
-    const expiringItems = [
-      ...crewCertificates.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 30 && c.daysUntilExpiry >= -30),
-      ...shipDocuments.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 30 && d.daysUntilExpiry >= -30)
+  // Export .ics calendar file with multi-alarm (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom)
+  const exportMultiIntervalICS = (filterOffset = null) => {
+    const activeThresholds = [
+      ...(notificationSettings.thresholds || []).filter(t => t.enabled),
+      ...(notificationSettings.customThresholds || []).filter(t => t.enabled)
     ];
 
-    if (expiringItems.length === 0) {
-      showToast('Tidak ada dokumen yang jatuh tempo dalam rentang 1 bulan (H-30).', 'info');
+    const allItems = [
+      ...crewCertificates.map(c => ({ ...c, itemCategory: 'crew_cert' })),
+      ...shipDocuments.map(d => ({ ...d, itemCategory: 'ship_doc' }))
+    ];
+
+    let targetItems = allItems;
+    if (filterOffset !== null) {
+      targetItems = allItems.filter(i => i.daysUntilExpiry !== undefined && i.daysUntilExpiry <= filterOffset && i.daysUntilExpiry >= -30);
+    } else {
+      const maxDays = Math.max(...activeThresholds.map(t => t.days), 365);
+      targetItems = allItems.filter(i => i.daysUntilExpiry !== undefined && i.daysUntilExpiry <= maxDays && i.daysUntilExpiry >= -30);
+    }
+
+    if (targetItems.length === 0) {
+      showToast('Tidak ada dokumen yang cocok dengan ambang batas yang dipilih.', 'info');
       return;
     }
 
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//PT. Pelayaran Baharimas Kalimantan//PMS Reminder H-30//ID',
+      'PRODID:-//PT. Pelayaran Baharimas Kalimantan//PMS Statutory Multi-Alarm Calendar//ID',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:PT. Pelayaran Baharimas Kalimantan - Reminder H-30',
+      'X-WR-CALNAME:PT. Pelayaran Baharimas Kalimantan - Dokumen & Sertifikat Kapal',
       'X-WR-TIMEZONE:Asia/Jakarta'
     ];
 
-    expiringItems.forEach((item, idx) => {
+    targetItems.forEach((item, idx) => {
       const vessel = vessels.find(v => v.id === item.vesselId);
       const vesselName = vessel?.name || 'Kapal';
-      const cleanDate = item.expiryDate ? item.expiryDate.replace(/-/g, '') : '20260909';
+      const cleanDate = item.expiryDate ? item.expiryDate.replace(/-/g, '') : '20260918';
+      const eventTime = notificationSettings.autoSend?.scheduleTime?.replace(':', '') || '0800';
 
       icsContent.push(
         'BEGIN:VEVENT',
-        `UID:pms-cert-${item.id}-${idx}@pmskapal.com`,
-        `DTSTAMP:${cleanDate}T000000Z`,
+        `UID:pms-cert-${item.id}-${idx}@baharimas.co.id`,
+        `DTSTAMP:${cleanDate}T${eventTime}00Z`,
         `DTSTART;VALUE=DATE:${cleanDate}`,
-        `SUMMARY:[PMS H-30] ${item.name} (${vesselName})`,
-        `DESCRIPTION:Pengingat jatuh tempo dokumen ${item.name} (No: ${item.certificateNo || item.documentNo}). Segera lakukan perpanjangan kelaiklautan.`,
-        `LOCATION:${vesselName}`,
-        'BEGIN:VALARM',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:Reminder H-30 Jatuh Tempo Dokumen PMS Kapal',
-        'TRIGGER:-P30D',
-        'END:VALARM',
-        'BEGIN:VALARM',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:Reminder H-7 Kritis Jatuh Tempo Dokumen PMS Kapal',
-        'TRIGGER:-P7D',
-        'END:VALARM',
-        'END:VEVENT'
+        `SUMMARY:[PMS JATUH TEMPO] ${item.name} (${vesselName})`,
+        `DESCRIPTION:Pengingat jatuh tempo dokumen ${item.name} (No: ${item.certificateNo || item.documentNo}). Pemegang: ${item.crewName || vesselName}. Segera lakukan perpanjangan kelaiklautan kapal.`,
+        `LOCATION:${vesselName}, ${vessel?.portOfRegistry || 'Indonesia'}`
       );
+
+      // Add VALARM for each active threshold
+      activeThresholds.forEach(th => {
+        icsContent.push(
+          'BEGIN:VALARM',
+          'ACTION:DISPLAY',
+          `DESCRIPTION:Pengingat ${th.label} - Dokumen ${item.name}`,
+          `TRIGGER:-P${th.days}D`,
+          'END:VALARM'
+        );
+      });
+
+      icsContent.push('END:VEVENT');
     });
 
     icsContent.push('END:VCALENDAR');
@@ -735,49 +1025,141 @@ export const PMSProvider = ({ children }) => {
     const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', `PMS_Reminder_H30_GoogleCalendar_${new Date().toISOString().split('T')[0]}.ics`);
+    link.setAttribute('download', `PMS_MultiAlarm_Calendar_${new Date().toISOString().split('T')[0]}.ics`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    showToast(`File .ics berhasil diunduh (${expiringItems.length} event). Siap diimpor ke Google Calendar / Outlook!`, 'success');
+    showToast(`File .ics multi-alarm berhasil diunduh (${targetItems.length} dokumen dengan alarm 1 hari, 1 minggu, 1 bulan, 1 tahun)!`, 'success');
   };
 
-  // Auto-send WhatsApp for all H-30 items
-  const autoDispatchH30WhatsApp = () => {
-    const expiringItems = [
-      ...crewCertificates.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 30 && c.daysUntilExpiry >= -30),
-      ...shipDocuments.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 30 && d.daysUntilExpiry >= -30)
+  // Alias for backward compatibility
+  const exportH30CalendarICS = () => exportMultiIntervalICS(30);
+
+  // Automated Dispatch Engine: Scans all items matching enabled intervals and dispatches
+  const runAutoDispatchNotifications = async (isManual = false) => {
+    const activeThresholds = [
+      ...(notificationSettings.thresholds || []).filter(t => t.enabled),
+      ...(notificationSettings.customThresholds || []).filter(t => t.enabled)
     ];
 
-    if (expiringItems.length === 0) {
-      showToast('Tidak ada dokumen yang jatuh tempo dalam rentang 1 bulan (H-30).', 'info');
-      return;
-    }
+    const allItems = [
+      ...crewCertificates.map(c => ({ ...c, itemCategory: 'crew_cert' })),
+      ...shipDocuments.map(d => ({ ...d, itemCategory: 'ship_doc' }))
+    ];
 
-    const newLogs = expiringItems.map(item => {
-      const vessel = vessels.find(v => v.id === item.vesselId);
-      const recipientName = item.crewName || `Nakhoda & Admin ${vessel?.name || ''}`;
+    const matchedDispatches = [];
+
+    activeThresholds.forEach(th => {
+      const matched = allItems.filter(item => {
+        if (item.daysUntilExpiry === undefined) return false;
+        if (th.days === 1) return item.daysUntilExpiry <= 1 && item.daysUntilExpiry >= 0;
+        if (th.days === 7) return item.daysUntilExpiry <= 7 && item.daysUntilExpiry > 1;
+        if (th.days === 30) return item.daysUntilExpiry <= 30 && item.daysUntilExpiry > 7;
+        if (th.days === 365) return item.daysUntilExpiry <= 365 && item.daysUntilExpiry > 30;
+        return item.daysUntilExpiry <= th.days && item.daysUntilExpiry >= 0;
+      });
+
+      matched.forEach(item => {
+        matchedDispatches.push({
+          item,
+          threshold: th
+        });
+      });
+    });
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const timeStr = notificationSettings.autoSend?.scheduleTime || '08:00';
+    const runKey = `${todayStr}_${timeStr}`;
+
+    const newLogs = matchedDispatches.map(m => {
+      const v = vessels.find(ship => ship.id === m.item.vesselId);
+      const recipient = m.item.crewName || `Nakhoda & Admin ${v?.name || ''}`;
       return {
-        id: `notif-${Date.now()}-${item.id}`,
+        id: `notif-auto-${Date.now()}-${m.item.id}-${m.threshold.days}`,
         timestamp: new Date().toLocaleString('id-ID'),
-        channel: 'WhatsApp Auto (H-30 Bot)',
-        target: recipientName,
-        vesselName: vessel?.name || 'Fleet',
-        subject: `[H-30 Bot] Reminder: ${item.name}`,
-        message: `Pemberitahuan Otomatis Rentang 1 Bulan: Dokumen ${item.name} akan jatuh tempo pada ${item.expiryDate} (${item.daysUntilExpiry} hari lagi). Harap proses perpanjangan segera.`,
+        channel: `WhatsApp Auto (${m.threshold.label})`,
+        target: recipient,
+        vesselName: v?.name || 'Fleet',
+        subject: `[Auto Bot ${m.threshold.label}] ${m.item.name}`,
+        message: `Pemberitahuan Otomatis ${m.threshold.label}: Dokumen ${m.item.name} akan jatuh tempo pada ${m.item.expiryDate} (${m.item.daysUntilExpiry} hari lagi).`,
         status: 'Delivered',
-        thresholdTriggered: 'H-30 Auto'
+        thresholdTriggered: m.threshold.label
       };
     });
 
-    setNotificationLogs(prev => [...newLogs, ...prev]);
+    if (newLogs.length > 0) {
+      setNotificationLogs(prev => [...newLogs, ...prev]);
+    }
 
-    // Open first one in WhatsApp
-    const first = expiringItems[0];
-    sendWhatsAppReminder(first, first.crewName ? 'crew_cert' : 'ship_doc');
-    showToast(`Otomatisasi H-30 berhasil! ${expiringItems.length} notifikasi WA dicatat di audit log.`, 'success');
+    // Mark as executed for this schedule slot
+    setNotificationSettings(prev => {
+      const updated = {
+        ...prev,
+        autoSend: {
+          ...prev.autoSend,
+          lastRunDate: runKey
+        }
+      };
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+      return updated;
+    });
+
+    // Native Browser Notification API if enabled
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('PMS PT. Pelayaran Baharimas Kalimantan', {
+          body: `🤖 Auto-Send Selesai (${timeStr} WIB): ${matchedDispatches.length} dokumen jatuh tempo telah diproses.`,
+          icon: '/favicon.ico'
+        });
+      } catch (e) {
+        console.log('Browser notification skipped:', e);
+      }
+    }
+
+    try {
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    } catch {}
+
+    const breakdownText = activeThresholds.map(t => {
+      const count = matchedDispatches.filter(m => m.threshold.id === t.id).length;
+      return `${t.label}: ${count}`;
+    }).join(' • ');
+
+    showToast(
+      isManual
+        ? `🤖 Eksekusi Manual Selesai! ${matchedDispatches.length} item diproses (${breakdownText}). Log riwayat telah diperbarui.`
+        : `🤖 Eksekusi Otomatis Berhasil (${timeStr} WIB)! ${matchedDispatches.length} item diproses (${breakdownText}).`,
+      'success'
+    );
+
+    return matchedDispatches;
   };
+
+  // Backward compatibility wrapper for autoDispatchH30WhatsApp
+  const autoDispatchH30WhatsApp = () => runAutoDispatchNotifications(true);
+
+  // Background Cron Scheduler: checks current time against autoSend.scheduleTime
+  useEffect(() => {
+    if (!notificationSettings?.autoSend?.enabled) return;
+
+    const checkSchedulerTick = () => {
+      const now = new Date();
+      const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const todayDate = now.toISOString().split('T')[0];
+      const targetTime = notificationSettings.autoSend.scheduleTime || '08:00';
+      const runKey = `${todayDate}_${targetTime}`;
+
+      if (currentHHMM === targetTime && notificationSettings.autoSend.lastRunDate !== runKey) {
+        console.log(`[PMS Scheduler] Auto-send matched ${targetTime} WIB. Executing automated dispatch...`);
+        runAutoDispatchNotifications(false);
+      }
+    };
+
+    const intervalId = setInterval(checkSchedulerTick, 5000);
+    return () => clearInterval(intervalId);
+  }, [notificationSettings, shipDocuments, crewCertificates]);
 
   const escalateNotification = (logId) => {
     setNotificationLogs(prev => prev.map(log => {
@@ -880,6 +1262,31 @@ export const PMSProvider = ({ children }) => {
   ];
   const h30ExpiringCount = h30ExpiringItems.length;
 
+  // Multi-interval items & counters
+  const h1ExpiringItems = [
+    ...filteredCrewCerts.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 1),
+    ...filteredShipDocs.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 1)
+  ];
+  const h1ExpiringCount = h1ExpiringItems.length;
+
+  const h7ExpiringItems = [
+    ...filteredCrewCerts.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 7),
+    ...filteredShipDocs.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 7)
+  ];
+  const h7ExpiringCount = h7ExpiringItems.length;
+
+  const h365ExpiringItems = [
+    ...filteredCrewCerts.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 365),
+    ...filteredShipDocs.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 365)
+  ];
+  const h365ExpiringCount = h365ExpiringItems.length;
+
+  const allExpiringItems = [
+    ...filteredCrewCerts.filter(c => c.daysUntilExpiry !== undefined && c.daysUntilExpiry <= 365),
+    ...filteredShipDocs.filter(d => d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 365)
+  ];
+  const allExpiringCount = allExpiringItems.length;
+
   const ownerVessels = vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator');
   const operatorVessels = vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator');
 
@@ -938,6 +1345,14 @@ export const PMSProvider = ({ children }) => {
         lowStockCount,
         h30ExpiringCount,
         h30ExpiringItems,
+        h1ExpiringCount,
+        h1ExpiringItems,
+        h7ExpiringCount,
+        h7ExpiringItems,
+        h365ExpiringCount,
+        h365ExpiringItems,
+        allExpiringCount,
+        allExpiringItems,
 
         // Actions
         updateRunningHours,
@@ -958,7 +1373,16 @@ export const PMSProvider = ({ children }) => {
         openGoogleCalendar,
         getGoogleCalendarUrl,
         exportH30CalendarICS,
+        exportMultiIntervalICS,
         autoDispatchH30WhatsApp,
+        runAutoDispatchNotifications,
+        updateNotificationSettings,
+        addCustomThreshold,
+        removeCustomThreshold,
+        toggleThresholdActive,
+        toggleThresholdChannel,
+        updateAutoSendConfig,
+        setTestScheduleTimeNowPlusOneMinute,
         resetToSeedData,
         showToast
       }}

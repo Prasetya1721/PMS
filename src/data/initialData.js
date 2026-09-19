@@ -11857,60 +11857,79 @@ export const INITIAL_SHIP_DOCUMENTS = [
 export const INITIAL_NOTIFICATION_SETTINGS = {
   "thresholds": [
     {
-      "days": 90,
-      "label": "H-90 (Peringatan Dini / Early Warning)",
-      "enabled": true,
-      "notifyChannels": [
-        "Email"
-      ]
-    },
-    {
-      "days": 60,
-      "label": "H-60 (Persiapan Dokumen / Requisition)",
-      "enabled": true,
-      "notifyChannels": [
-        "Email",
-        "WhatsApp"
-      ]
-    },
-    {
-      "days": 30,
-      "label": "H-30 (Urgensi 1 Bulan)",
-      "enabled": true,
-      "notifyChannels": [
-        "WhatsApp",
-        "Push Notification"
-      ]
-    },
-    {
-      "days": 14,
-      "label": "H-14 (Urgensi Tinggi / Booking Inspector BKI)",
-      "enabled": true,
-      "notifyChannels": [
-        "WhatsApp",
-        "Push Notification"
-      ]
-    },
-    {
-      "days": 7,
-      "label": "H-7 (Kritis / Eskalasi ke Fleet Manager)",
-      "enabled": true,
-      "notifyChannels": [
-        "WhatsApp",
-        "Push Notification",
-        "Email"
-      ]
-    },
-    {
+      "id": "th-1d",
       "days": 1,
-      "label": "H-1 (Hari Terakhir Sebelum Expired)",
+      "unit": "day",
+      "label": "1 Hari Sebelum (H-1)",
+      "description": "Peringatan darurat batas akhir sebelum dokumen kadaluarsa",
       "enabled": true,
-      "notifyChannels": [
-        "WhatsApp",
-        "Push Notification"
-      ]
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
+    },
+    {
+      "id": "th-1w",
+      "days": 7,
+      "unit": "week",
+      "label": "1 Minggu Sebelum (H-7)",
+      "description": "Peringatan kritis 7 hari untuk inspeksi teknis & finalisasi survey",
+      "enabled": true,
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
+    },
+    {
+      "id": "th-1m",
+      "days": 30,
+      "unit": "month",
+      "label": "1 Bulan Sebelum (H-30)",
+      "description": "Urgensi 30 hari untuk pendaftaran survey BKI & Syahbandar",
+      "enabled": true,
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
+    },
+    {
+      "id": "th-1y",
+      "days": 365,
+      "unit": "year",
+      "label": "1 Tahun Sebelum (H-365)",
+      "description": "Perencanaan dini anggaran tahunan survey besar (Special Survey / Docking)",
+      "enabled": true,
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
     }
   ],
+  "customThresholds": [
+    {
+      "id": "th-custom-14",
+      "days": 14,
+      "unit": "custom",
+      "label": "H-14 Hari (Kustom)",
+      "description": "Pemberitahuan dua minggu sebelum jatuh tempo",
+      "enabled": true,
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
+    },
+    {
+      "id": "th-custom-90",
+      "days": 90,
+      "unit": "custom",
+      "label": "H-90 Hari (Kustom)",
+      "description": "Peringatan dini 3 bulan kuartalan",
+      "enabled": true,
+      "notifyChannels": ["WhatsApp", "Google Calendar"]
+    }
+  ],
+  "autoSend": {
+    "enabled": true,
+    "scheduleTime": "08:00",
+    "frequency": "daily",
+    "channels": {
+      "whatsapp": true,
+      "googleCalendar": true,
+      "browserNotification": true
+    },
+    "whatsappGateway": {
+      "provider": "Wablas API",
+      "apiUrl": "https://kalsel.wablas.com/api/send-message",
+      "apiKey": "",
+      "senderPhone": "081250000000"
+    },
+    "lastRunDate": ""
+  },
   "whatsappApiProvider": "Wablas / Twilio WhatsApp Business API",
   "escalationRules": {
     "unacknowledgedDaysThreshold": 3,

@@ -27,13 +27,26 @@ export const DocumentTracker = () => {
     sendWhatsAppReminder,
     openGoogleCalendar,
     exportH30CalendarICS,
-    h30ExpiringCount
+    exportMultiIntervalICS,
+    h30ExpiringCount,
+    h1ExpiringCount,
+    h7ExpiringCount,
+    h365ExpiringCount
   } = usePMS();
 
   const [docTypeTab, setDocTypeTab] = useState('all'); // 'all' | 'crew' | 'ship'
-  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'H-30' | 'Expired' | 'Due Soon' | 'Active'
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'H-1' | 'H-7' | 'H-30' | 'H-365' | 'Expired' | 'Due Soon' | 'Active'
   const [search, setSearch] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
+
+  // Modals for G-Cal and WA interval pickers
+  const [calModalDoc, setCalModalDoc] = useState(null);
+  const [calOffset, setCalOffset] = useState(30);
+  const [calCustomDays, setCalCustomDays] = useState(14);
+  const [calTime, setCalTime] = useState('08:00');
+
+  const [waModalDoc, setWaModalDoc] = useState(null);
+  const [waModalOffset, setWaModalOffset] = useState(30);
 
   // Combine items for unified table
   const allItems = [
@@ -47,8 +60,14 @@ export const DocumentTracker = () => {
       (docTypeTab === 'ship' && item.itemCategory === 'Surat Legal Kapal');
 
     let matchStatus = true;
-    if (statusFilter === 'H-30') {
-      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 30;
+    if (statusFilter === 'H-1') {
+      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 1 && item.daysUntilExpiry >= 0;
+    } else if (statusFilter === 'H-7') {
+      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 7 && item.daysUntilExpiry >= 0;
+    } else if (statusFilter === 'H-30') {
+      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 30 && item.daysUntilExpiry >= 0;
+    } else if (statusFilter === 'H-365') {
+      matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 365 && item.daysUntilExpiry >= 0;
     } else if (statusFilter !== 'ALL') {
       matchStatus = item.status === statusFilter;
     }
@@ -79,15 +98,27 @@ export const DocumentTracker = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button onClick={exportH30CalendarICS} className="btn btn-secondary btn-sm">
+          <button onClick={() => exportMultiIntervalICS()} className="btn btn-secondary btn-sm" title="Ekspor .ics multi-alarm untuk Google Calendar">
             <CalendarPlus size={14} />
-            <span>Ekspor Semua H-30 (.ics)</span>
+            <span>Ekspor Kalender Multi-Alarm (.ics)</span>
           </button>
-          <span className="badge badge-warning" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+          {h1ExpiringCount > 0 && (
+            <span className="badge badge-danger-pulse" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+              <Clock size={14} />
+              <span>{h1ExpiringCount} H-1 Hari</span>
+            </span>
+          )}
+          {h7ExpiringCount > 0 && (
+            <span className="badge badge-warning" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+              <Clock size={14} />
+              <span>{h7ExpiringCount} H-1 Minggu</span>
+            </span>
+          )}
+          <span className="badge badge-info" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
             <Calendar size={14} />
-            <span>{h30ExpiringCount} Item Rentang 1 Bulan</span>
+            <span>{h30ExpiringCount} H-1 Bulan</span>
           </span>
-          <span className="badge badge-danger-pulse" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
+          <span className="badge badge-danger" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
             <ShieldAlert size={14} />
             <span>{expiredCount} Expired</span>
           </span>
@@ -123,7 +154,10 @@ export const DocumentTracker = () => {
           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
             {[
               { id: 'ALL', label: 'Semua Status' },
-              { id: 'H-30', label: `Rentang 1 Bulan (H-30)`, badge: h30ExpiringCount },
+              { id: 'H-1', label: '1 Hari (H-1)', badge: h1ExpiringCount },
+              { id: 'H-7', label: '1 Minggu (H-7)', badge: h7ExpiringCount },
+              { id: 'H-30', label: '1 Bulan (H-30)', badge: h30ExpiringCount },
+              { id: 'H-365', label: '1 Tahun (H-365)', badge: h365ExpiringCount },
               { id: 'Expired', label: 'Expired', badge: expiredCount },
               { id: 'Due Soon', label: 'Due Soon', badge: dueSoonCount },
               { id: 'Active', label: 'Active' }
@@ -135,7 +169,7 @@ export const DocumentTracker = () => {
                 style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >
                 <span>{st.label}</span>
-                {st.badge !== undefined && (
+                {st.badge !== undefined && st.badge > 0 && (
                   <span className="badge badge-neutral" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem' }}>
                     {st.badge}
                   </span>
@@ -236,16 +270,22 @@ export const DocumentTracker = () => {
                           <span>Scan</span>
                         </button>
                         <button
-                          onClick={() => openGoogleCalendar(item)}
+                          onClick={() => {
+                            setCalModalDoc(item);
+                            setCalOffset(item.daysUntilExpiry <= 1 ? 1 : item.daysUntilExpiry <= 7 ? 7 : item.daysUntilExpiry <= 30 ? 30 : 365);
+                          }}
                           className="btn btn-secondary btn-sm"
-                          title="Tambah Pengingat H-30 ke Google Calendar"
+                          title="Pilih Jadwal Google Calendar (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom)"
                           style={{ padding: '0.35rem 0.55rem', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}
                         >
                           <CalendarPlus size={13} />
                           <span>G-Cal</span>
                         </button>
                         <button
-                          onClick={() => sendWhatsAppReminder(item, item.crewName ? 'crew_cert' : 'ship_doc')}
+                          onClick={() => {
+                            setWaModalDoc(item);
+                            setWaModalOffset(item.daysUntilExpiry <= 1 ? 1 : item.daysUntilExpiry <= 7 ? 7 : item.daysUntilExpiry <= 30 ? 30 : 365);
+                          }}
                           className="btn btn-whatsapp btn-sm"
                           title="Kirim Reminder WhatsApp Resmi"
                           style={{ padding: '0.35rem 0.55rem' }}
@@ -364,7 +404,7 @@ export const DocumentTracker = () => {
               </button>
               <button
                 onClick={() => {
-                  openGoogleCalendar(previewDoc);
+                  setCalModalDoc(previewDoc);
                   setPreviewDoc(null);
                 }}
                 className="btn btn-secondary"
@@ -375,13 +415,261 @@ export const DocumentTracker = () => {
               </button>
               <button
                 onClick={() => {
-                  sendWhatsAppReminder(previewDoc, previewDoc.crewName ? 'crew_cert' : 'ship_doc');
+                  setWaModalDoc(previewDoc);
                   setPreviewDoc(null);
                 }}
                 className="btn btn-whatsapp"
               >
                 <Send size={14} />
                 <span>Kirim Notifikasi WA</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1: Google Calendar Customizer Dialog in DocumentTracker */}
+      {calModalDoc && (
+        <div className="modal-overlay" onClick={() => setCalModalDoc(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <CalendarPlus size={20} color="#38bdf8" />
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Jadwalkan ke Google Calendar</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Pilih waktu & interval pengingat untuk: {calModalDoc.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCalModalDoc(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{calModalDoc.name}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Jatuh Tempo: <strong className="mono" style={{ color: '#38bdf8' }}>{calModalDoc.expiryDate}</strong> ({calModalDoc.daysUntilExpiry} hari lagi)
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                  Pilih Jadwal Pengingat:
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset(1)}
+                    className={`btn btn-sm ${calOffset === 1 ? 'btn-danger' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 1 Hari Sebelum (H-1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset(7)}
+                    className={`btn btn-sm ${calOffset === 7 ? 'btn-warning' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 1 Minggu Sebelum (H-7)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset(30)}
+                    className={`btn btn-sm ${calOffset === 30 ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 1 Bulan Sebelum (H-30)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset(365)}
+                    className={`btn btn-sm ${calOffset === 365 ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 1 Tahun Sebelum (H-365)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset(0)}
+                    className={`btn btn-sm ${calOffset === 0 ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 Hari-H Jatuh Tempo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalOffset('custom')}
+                    className={`btn btn-sm ${calOffset === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ textAlign: 'left', justifyContent: 'flex-start' }}
+                  >
+                    📅 Kustom Hari
+                  </button>
+                </div>
+
+                {calOffset === 'custom' && (
+                  <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ingatkan:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="1825"
+                      value={calCustomDays}
+                      onChange={(e) => setCalCustomDays(Number(e.target.value))}
+                      className="input-control mono"
+                      style={{ width: '90px' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>hari sebelum jatuh tempo</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Waktu / Jam Pengingat (WIB):
+                </label>
+                <input
+                  type="time"
+                  value={calTime}
+                  onChange={(e) => setCalTime(e.target.value)}
+                  className="input-control mono"
+                  style={{ width: '130px' }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => exportMultiIntervalICS()}
+                className="btn btn-secondary btn-sm"
+              >
+                <Download size={14} />
+                <span>Unduh .ics Semua Alarm</span>
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => setCalModalDoc(null)} className="btn btn-secondary btn-sm">
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    const days = calOffset === 'custom' ? calCustomDays : calOffset;
+                    openGoogleCalendar(calModalDoc, {
+                      offsetDays: days,
+                      eventTime: calTime
+                    });
+                    setCalModalDoc(null);
+                  }}
+                  className="btn btn-primary btn-sm"
+                >
+                  <CalendarPlus size={14} />
+                  <span>Buka Google Calendar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: WhatsApp Dialog in DocumentTracker */}
+      {waModalDoc && (
+        <div className="modal-overlay" onClick={() => setWaModalDoc(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Send size={20} color="#22c55e" />
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Kirim Peringatan WhatsApp Resmi</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Pilih konteks peringatan untuk {waModalDoc.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setWaModalDoc(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Kategori Template Sesuai Interval:
+                </label>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setWaModalOffset(1)}
+                    className={`btn btn-sm ${waModalOffset === 1 ? 'btn-danger' : 'btn-secondary'}`}
+                  >
+                    🚨 1 Hari (Darurat H-1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWaModalOffset(7)}
+                    className={`btn btn-sm ${waModalOffset === 7 ? 'btn-warning' : 'btn-secondary'}`}
+                  >
+                    ⚠️ 1 Minggu (Kritis H-7)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWaModalOffset(30)}
+                    className={`btn btn-sm ${waModalOffset === 30 ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    🔔 1 Bulan (H-30)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWaModalOffset(365)}
+                    className={`btn btn-sm ${waModalOffset === 365 ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    📋 1 Tahun (H-365)
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ padding: '0.85rem', background: '#0b141a', borderRadius: '8px', border: '1px solid #1f2c34', color: '#e9edef', fontSize: '0.8rem', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                {`*${
+                  waModalOffset === 1
+                    ? '🚨 PERINGATAN DARURAT H-1 (HARI TERAKHIR)'
+                    : waModalOffset === 7
+                    ? '⚠️ PERINGATAN KRITIS H-1 MINGGU (H-7)'
+                    : waModalOffset === 30
+                    ? '🔔 PEMBERITAHUAN JATUH TEMPO H-1 BULAN (H-30)'
+                    : '📋 PERSIAPAN ANGGARAN DINI H-1 TAHUN (H-365)'
+                } - SISTEM PMS BAHARIMAS*\n\n` +
+                `Dokumen: ${waModalDoc.name}\n` +
+                `Nomor: ${waModalDoc.certificateNo || waModalDoc.documentNo}\n` +
+                `Jatuh Tempo: ${waModalDoc.expiryDate} (${waModalDoc.daysUntilExpiry} hari lagi).\n\n` +
+                `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`}
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button onClick={() => setWaModalDoc(null)} className="btn btn-secondary btn-sm">
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  sendWhatsAppReminder(
+                    waModalDoc,
+                    waModalDoc.crewName ? 'crew_cert' : 'ship_doc',
+                    { offsetDays: waModalOffset }
+                  );
+                  setWaModalDoc(null);
+                }}
+                className="btn btn-whatsapp btn-sm"
+              >
+                <Send size={14} />
+                <span>Buka WhatsApp Web / App</span>
               </button>
             </div>
           </div>

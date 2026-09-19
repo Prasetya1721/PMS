@@ -54,7 +54,8 @@ export const VesselDashboard = () => {
     updateWorkOrderStatus,
     toggleChecklist,
     addCrew,
-    addShipDocument
+    addShipDocument,
+    theme
   } = usePMS();
 
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | crew | documents | equipment | workorders | spareparts
@@ -179,7 +180,9 @@ export const VesselDashboard = () => {
             <div style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(to right, transparent 60%, rgba(15, 28, 53, 0.95) 100%)'
+              background: theme === 'light'
+                ? 'linear-gradient(to right, transparent 60%, rgba(255, 255, 255, 0.95) 100%)'
+                : 'linear-gradient(to right, transparent 60%, rgba(15, 28, 53, 0.95) 100%)'
             }} />
             <div style={{ position: 'absolute', top: '1rem', left: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <span className={`badge ${currentShip.status?.includes('Operasional') ? 'badge-success' : 'badge-warning'}`}>

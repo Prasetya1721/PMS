@@ -89,22 +89,34 @@ export const Sidebar = () => {
           width: '42px',
           height: '42px',
           borderRadius: '10px',
-          background: 'rgba(255, 255, 255, 0.08)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          background: theme === 'light' ? '#f0f9ff' : 'rgba(255, 255, 255, 0.08)',
+          border: theme === 'light' ? '1px solid #bae6fd' : '1px solid rgba(255, 255, 255, 0.15)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          boxShadow: theme === 'light' ? '0 2px 8px rgba(2, 132, 199, 0.15)' : '0 4px 12px rgba(0, 0, 0, 0.3)',
           padding: '4px',
           flexShrink: 0
         }}>
           <BaharimasEmblem size={28} />
         </div>
         <div>
-          <h1 style={{ fontSize: '0.98rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.2 }}>
+          <h1 style={{
+            fontSize: '0.98rem',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            color: theme === 'light' ? '#0f172a' : '#ffffff',
+            lineHeight: 1.2
+          }}>
             PT. BAHARIMAS
           </h1>
-          <p style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          <p style={{
+            fontSize: '0.68rem',
+            color: theme === 'light' ? '#0284c7' : '#38bdf8',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase'
+          }}>
             Pelayaran Baharimas Kalimantan
           </p>
         </div>
@@ -131,19 +143,23 @@ export const Sidebar = () => {
                 borderRadius: '8px',
                 border: 'none',
                 background: isActive
-                  ? 'linear-gradient(90deg, rgba(2, 132, 199, 0.25) 0%, rgba(2, 132, 199, 0.08) 100%)'
+                  ? (theme === 'light'
+                      ? 'linear-gradient(90deg, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0.04) 100%)'
+                      : 'linear-gradient(90deg, rgba(2, 132, 199, 0.25) 0%, rgba(2, 132, 199, 0.08) 100%)')
                   : 'transparent',
-                color: isActive ? '#38bdf8' : 'var(--text-muted)',
-                fontWeight: isActive ? 600 : 500,
+                color: isActive ? (theme === 'light' ? '#0284c7' : '#38bdf8') : 'var(--text-muted)',
+                fontWeight: isActive ? 700 : 500,
                 fontSize: '0.86rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textAlign: 'left',
-                borderLeft: isActive ? '3px solid #38bdf8' : '3px solid transparent'
+                borderLeft: isActive
+                  ? `3px solid ${theme === 'light' ? '#0284c7' : '#38bdf8'}`
+                  : '3px solid transparent'
               }}
               onMouseEnter={(e) => {
                 if (!isActive) {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.background = theme === 'light' ? '#f1f5f9' : 'rgba(255, 255, 255, 0.04)';
                   e.currentTarget.style.color = 'var(--text-main)';
                 }
               }}
@@ -155,7 +171,7 @@ export const Sidebar = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Icon size={19} color={isActive ? '#38bdf8' : 'currentColor'} />
+                <Icon size={19} color={isActive ? (theme === 'light' ? '#0284c7' : '#38bdf8') : 'currentColor'} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
@@ -176,7 +192,7 @@ export const Sidebar = () => {
       <div style={{
         padding: '0.85rem 1rem 1rem',
         borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(0, 0, 0, 0.2)',
+        background: theme === 'light' ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.65rem'
@@ -192,7 +208,7 @@ export const Sidebar = () => {
             padding: '0.5rem 0.75rem',
             borderRadius: '8px',
             border: '1px solid var(--border-subtle)',
-            background: 'rgba(255, 255, 255, 0.04)',
+            background: theme === 'light' ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)',
             color: 'var(--text-main)',
             cursor: 'pointer',
             fontSize: '0.78rem',
@@ -201,7 +217,7 @@ export const Sidebar = () => {
           title="Ganti Mode Terang / Gelap"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-            {theme === 'dark' ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="#38bdf8" />}
+            {theme === 'dark' ? <Sun size={15} color="#f59e0b" /> : <Moon size={15} color="#0284c7" />}
             <span style={{ fontWeight: 500, color: 'var(--text-muted)' }}>Tema Tampilan</span>
           </div>
           <span style={{
@@ -209,10 +225,10 @@ export const Sidebar = () => {
             fontWeight: 700,
             padding: '0.15rem 0.45rem',
             borderRadius: '4px',
-            background: theme === 'light' ? '#f59e0b' : 'rgba(56, 189, 248, 0.2)',
-            color: theme === 'light' ? '#fff' : '#38bdf8'
+            background: theme === 'light' ? '#0284c7' : 'rgba(56, 189, 248, 0.2)',
+            color: '#ffffff'
           }}>
-            {theme === 'dark' ? 'Dark' : 'Light'}
+            {theme === 'dark' ? 'Dark' : 'Light (Putih)'}
           </span>
         </button>
 
@@ -222,7 +238,7 @@ export const Sidebar = () => {
           justifyContent: 'space-between',
           padding: '0.6rem 0.75rem',
           borderRadius: '8px',
-          background: 'var(--bg-surface-elevated)',
+          background: theme === 'light' ? '#f8fafc' : 'var(--bg-surface-elevated)',
           border: '1px solid var(--border-subtle)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
@@ -230,7 +246,7 @@ export const Sidebar = () => {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'var(--primary-dark)',
+              background: 'var(--primary)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -245,7 +261,7 @@ export const Sidebar = () => {
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                 {currentUser ? currentUser.name.split(',')[0] : currentRole}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#38bdf8', fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.7rem', color: theme === 'light' ? '#0284c7' : '#38bdf8', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                 {currentUser ? currentUser.role : 'Akses Maritim'}
               </div>
             </div>
@@ -256,7 +272,7 @@ export const Sidebar = () => {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#f87171',
+              color: '#ef4444',
               cursor: 'pointer',
               padding: '0.35rem',
               borderRadius: '6px',
