@@ -38,6 +38,13 @@ export const Sidebar = () => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
     { id: 'fleet', label: 'Armada Kapal', icon: Ship },
+    {
+      id: 'audit',
+      label: 'Audit & Kepatuhan ISM',
+      icon: ShieldCheck,
+      badge: openNCCount > 0 ? `${openNCCount} NC` : null,
+      badgeType: 'warning'
+    },
     { id: 'equipment', label: 'Equipment & Running Hours', icon: Wrench },
     {
       id: 'maintenance',
@@ -61,13 +68,6 @@ export const Sidebar = () => {
       icon: FileCheck,
       badge: expiredDocsCount > 0 ? expiredDocsCount : null,
       badgeType: 'danger-pulse'
-    },
-    {
-      id: 'audit',
-      label: 'Audit & Kepatuhan ISM',
-      icon: ShieldCheck,
-      badge: openNCCount > 0 ? `${openNCCount} NC` : null,
-      badgeType: 'warning'
     },
     { id: 'notifications', label: 'Reminder & WA Bot', icon: BellRing },
     { id: 'reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet },
