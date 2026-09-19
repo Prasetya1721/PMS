@@ -33,7 +33,6 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
 
   const evidence = finding?.evidence || {};
 
-  // Form states for auditee submission
   const [rootCause, setRootCause] = useState(
     evidence.rootCause ||
     'Prosedur operasional belum terkoordinasi secara efektif antara departemen logistik dan personil kapal saat pergantian jadwal.'
@@ -50,18 +49,15 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     evidence.submittedBy || currentUser?.name || finding?.assignedTo || 'Auditee PT. Pelayaran Baharimas Kalimantan'
   );
 
-  // File state
   const [fileName, setFileName] = useState(evidence.fileName || '');
   const [fileUrl, setFileUrl] = useState(evidence.fileUrl || '');
   const [fileSize, setFileSize] = useState(evidence.fileSize || '');
 
-  // Auditor Review Notes state
   const [auditorNotes, setAuditorNotes] = useState(
     evidence.auditorReviewNotes ||
     'Tindakan koreksi dan dokumen bukti perbaikan telah diverifikasi oleh Lead Auditor. Implementasi dinyatakan efektif dan sesuai standar ISM Code.'
   );
 
-  // File upload handler
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -75,7 +71,6 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     }
   };
 
-  // Generate mock marine evidence document (SVG data URI)
   const generateMockEvidence = () => {
     const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
       <rect width="100%" height="100%" fill="#0f172a"/>
@@ -95,7 +90,6 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     setFileUrl(dataUrl);
   };
 
-  // Submit Evidence
   const handleSubmitEvidence = (e) => {
     e.preventDefault();
     submitAuditEvidence(finding.id, {
@@ -110,7 +104,6 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     onClose();
   };
 
-  // Close NC
   const handleCloseNC = () => {
     closeAuditFinding(finding.id, {
       closedBy: currentUser?.name || 'Lead Auditor DPA',
@@ -119,7 +112,6 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     onClose();
   };
 
-  // Reopen NC
   const handleReopenNC = () => {
     reopenAuditFinding(finding.id, {
       auditorNotes
@@ -127,131 +119,90 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     onClose();
   };
 
-  // Linked Document Details
   const linkedDoc = finding.linkedCertificateId
     ? shipDocuments.find(d => d.id === finding.linkedCertificateId)
     : null;
 
-  // Linked Requisition Details
   const linkedReq = finding.linkedRequisitionId
     ? requisitions.find(r => r.id === finding.linkedRequisitionId)
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl text-slate-100 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
+      <div className="modal-dialog modal-dialog-large" style={{ maxWidth: '800px' }}>
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-emerald-950/30 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${
-              finding.status === 'NC Close'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : finding.status === 'Eviden Submitted'
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-            }`}>
-              {finding.status === 'NC Close' ? (
-                <CheckCircle2 className="w-6 h-6" />
-              ) : (
-                <ShieldCheck className="w-6 h-6" />
-              )}
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              padding: '0.5rem',
+              borderRadius: '10px',
+              background: finding.status === 'NC Close' ? 'rgba(16, 185, 129, 0.15)' : finding.status === 'Eviden Submitted' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: finding.status === 'NC Close' ? '#10b981' : finding.status === 'Eviden Submitted' ? '#f59e0b' : '#ef4444'
+            }}>
+              {finding.status === 'NC Close' ? <CheckCircle2 size={24} /> : <ShieldCheck size={24} />}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-lg text-white">
-                  {finding.findingNo}
-                </h3>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  finding.status === 'NC Close'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : finding.status === 'Eviden Submitted'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <h3 className="mono" style={{ fontSize: '1.15rem', fontWeight: 800 }}>{finding.findingNo}</h3>
+                <span className={`badge ${
+                  finding.status === 'NC Close' ? 'badge-success' : finding.status === 'Eviden Submitted' ? 'badge-warning' : 'badge-danger-pulse'
                 }`}>
                   {finding.status}
                 </span>
-                <span className="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-300">
-                  {finding.category}
-                </span>
+                <span className="badge badge-neutral">{finding.category}</span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Klausul: <span className="text-cyan-300 font-mono font-bold">{finding.clauseCode}</span> - {finding.clauseName}
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Klausul: <strong className="mono" style={{ color: '#0284c7' }}>{finding.clauseCode}</strong> - {finding.clauseName}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Finding Summary Box */}
-          <div className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 pb-2 border-b border-slate-800/80">
-              <div className="flex items-center gap-1.5">
-                {finding.standard === 'DOC' ? (
-                  <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Ship className="w-3.5 h-3.5 text-blue-400" />
-                )}
-                <span>Target: <strong className="text-slate-200">{finding.targetName}</strong></span>
+        {/* Modal Body */}
+        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Finding Context Card */}
+          <div style={{ padding: '1rem 1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {finding.standard === 'DOC' ? <Building2 size={13} color="#10b981" /> : <Ship size={13} color="#38bdf8" />}
+                <span>Target: <strong style={{ color: 'var(--text-main)' }}>{finding.targetName}</strong></span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                <span>Batas Waktu: <strong className="text-amber-300">{finding.dueDate}</strong></span>
+              <div>
+                <span>Batas Waktu: <strong className="mono" style={{ color: '#f59e0b' }}>{finding.dueDate}</strong></span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>PIC: <strong className="text-slate-200">{finding.assignedTo}</strong></span>
+              <div>
+                <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{finding.assignedTo}</strong></span>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-slate-400">Deskripsi Ketidaksesuaian:</p>
-              <p className="text-sm text-slate-200 mt-0.5 leading-relaxed">{finding.description}</p>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 700, display: 'block' }}>Deskripsi Ketidaksesuaian:</span>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '0.15rem', lineHeight: '1.4' }}>{finding.description}</p>
             </div>
 
-            <div>
-              <p className="text-xs font-semibold text-slate-400">Bukti Objektif Auditor:</p>
-              <p className="text-sm text-slate-300 mt-0.5 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50 font-mono text-xs">
-                {finding.objectiveEvidence || 'Tidak ada catatan bukti objektif khusus.'}
-              </p>
-            </div>
+            {finding.objectiveEvidence && (
+              <div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 700, display: 'block' }}>Bukti Objektif Auditor:</span>
+                <p className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{finding.objectiveEvidence}</p>
+              </div>
+            )}
 
-            {/* Linked Certificate & Linked Requisition Display */}
+            {/* Linked Certificate & Requisition Badges */}
             {(linkedDoc || linkedReq || finding.linkedCertificateTitle || finding.linkedRequisitionTitle) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', borderTop: '1px solid var(--border-glass)', paddingTop: '0.65rem' }}>
                 {(linkedDoc || finding.linkedCertificateTitle) && (
-                  <div className="p-2.5 bg-emerald-950/20 border border-emerald-800/30 rounded-lg">
-                    <div className="flex items-center gap-1.5 text-emerald-400 font-semibold mb-1">
-                      <FileCheck className="w-3.5 h-3.5" />
-                      Data Sertifikat Terkait:
-                    </div>
-                    <p className="text-slate-200 font-medium truncate">
-                      {linkedDoc?.name || linkedDoc?.type || finding.linkedCertificateTitle}
-                    </p>
-                    <p className="text-slate-400 text-[11px] mt-0.5">
-                      No: {linkedDoc?.documentNumber || 'BKI-REG'} • Status: {linkedDoc?.status || 'Valid'}
-                    </p>
+                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.75rem' }}>
+                    <span style={{ color: '#10b981', fontWeight: 700, display: 'block' }}>Data Sertifikat Terkait:</span>
+                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{linkedDoc?.name || linkedDoc?.type || finding.linkedCertificateTitle}</span>
                   </div>
                 )}
-
                 {(linkedReq || finding.linkedRequisitionTitle) && (
-                  <div className="p-2.5 bg-amber-950/20 border border-amber-800/30 rounded-lg">
-                    <div className="flex items-center gap-1.5 text-amber-400 font-semibold mb-1">
-                      <Package className="w-3.5 h-3.5" />
-                      Surat Permintaan Gudang Terkait:
-                    </div>
-                    <p className="text-slate-200 font-medium truncate">
-                      {linkedReq?.requisitionNumber || linkedReq?.id || finding.linkedRequisitionTitle}
-                    </p>
-                    <p className="text-slate-400 text-[11px] mt-0.5">
-                      {linkedReq?.title || 'Material & Spareparts Requisition'} ({linkedReq?.status || 'In Warehouse'})
-                    </p>
+                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.75rem' }}>
+                    <span style={{ color: '#f59e0b', fontWeight: 700, display: 'block' }}>Permintaan Gudang Terkait:</span>
+                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{linkedReq?.requisitionNumber || linkedReq?.id || finding.linkedRequisitionTitle}</span>
                   </div>
                 )}
               </div>
@@ -259,111 +210,118 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
           </div>
 
           {/* Form: Submisi Bukti Eviden Perbaikan */}
-          <form onSubmit={handleSubmitEvidence} className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-cyan-400" />
-                Formulir Tindakan Korektif & Bukti Eviden (Auditee)
+          <form onSubmit={handleSubmitEvidence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <FileText size={16} color="#0284c7" />
+                <span>Formulir Tindakan Korektif & Bukti Eviden (Auditee)</span>
               </h4>
-              <span className="text-xs text-slate-400">
-                Langkah 1: Submit Tindakan Perbaikan
-              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Langkah 1: Submit Perbaikan</span>
             </div>
 
-            {/* Root Cause Analysis (RCA) */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                1. Analisa Penyebab Utama (Root Cause Analysis - RCA) <span className="text-rose-400">*</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                1. Analisa Penyebab Utama (Root Cause Analysis - RCA) *
               </label>
               <textarea
                 required
                 rows={2}
                 value={rootCause}
                 onChange={(e) => setRootCause(e.target.value)}
-                placeholder="Mengapa ketidaksesuaian ini bisa terjadi? (Faktor personil, sistem, peralatan)..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                placeholder="Mengapa ketidaksesuaian ini bisa terjadi?..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
-            {/* Corrective Action */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                2. Tindakan Perbaikan Segera (Immediate Corrective Action) <span className="text-rose-400">*</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                2. Tindakan Perbaikan Segera (Immediate Corrective Action) *
               </label>
               <textarea
                 required
                 rows={2}
                 value={correctiveAction}
                 onChange={(e) => setCorrectiveAction(e.target.value)}
-                placeholder="Tindakan koreksi fisik/administrasi yang telah diselesaikan untuk mengatasi temuan..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                placeholder="Tindakan fisik atau administratif yang telah diselesaikan..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
-            {/* Preventive Action */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                3. Tindakan Pencegahan Terulang (Preventive Action) <span className="text-rose-400">*</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                3. Tindakan Pencegahan Terulang (Preventive Action) *
               </label>
               <textarea
                 required
                 rows={2}
                 value={preventiveAction}
                 onChange={(e) => setPreventiveAction(e.target.value)}
-                placeholder="Langkah sistemik atau SOP baru agar masalah serupa tidak berulang di masa mendatang..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                placeholder="Langkah atau SOP pencegahan agar tidak terulang..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
             {/* Evidence File Upload / Mock Generator */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  4. Dokumen Bukti Eviden (Foto Fisik / Berita Acara / Laporan PDF)
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  4. Dokumen Bukti Eviden (Foto / Berita Acara / Laporan PDF)
                 </label>
                 <button
                   type="button"
                   onClick={generateMockEvidence}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium transition"
+                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Buat Dokumen Bukti Cepat
+                  <Sparkles size={12} />
+                  <span>Buat Dokumen Bukti Cepat</span>
                 </button>
               </div>
 
-              <div className="p-4 bg-slate-950 border border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-500/60 transition group">
-                <Upload className="w-8 h-8 text-slate-500 group-hover:text-blue-400 transition" />
-                <div className="text-center">
-                  <p className="text-xs text-slate-300 font-medium">
-                    Upload Foto / Dokumen Eviden Perbaikan
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Mendukung format JPG, PNG, PDF, atau klik tombol "Buat Dokumen Bukti Cepat" di atas
-                  </p>
+              <div style={{
+                padding: '1.25rem',
+                borderRadius: '10px',
+                border: '2px dashed var(--border-subtle)',
+                background: 'var(--bg-input)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.65rem',
+                textAlign: 'center'
+              }}>
+                <Upload size={28} color="var(--text-subtle)" />
+                <div>
+                  <p style={{ fontSize: '0.8rem', fontWeight: 600 }}>Pilih File Bukti Eviden atau Gunakan Tombol Cepat</p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Format JPG, PNG, PDF</p>
                 </div>
                 <input
                   type="file"
                   accept="image/*,application/pdf"
                   onChange={handleFileUpload}
-                  className="text-xs text-slate-400 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
+                  style={{ fontSize: '0.75rem' }}
                 />
 
                 {fileName && (
-                  <div className="w-full mt-2 p-2.5 bg-blue-950/40 border border-blue-800/40 rounded-lg flex items-center justify-between text-xs text-blue-200">
-                    <div className="flex items-center gap-2 truncate">
-                      <FileText className="w-4 h-4 text-blue-400 shrink-0" />
-                      <span className="truncate font-medium">{fileName}</span>
-                      <span className="text-[10px] text-slate-400">({fileSize})</span>
-                    </div>
+                  <div style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    background: 'rgba(2, 132, 199, 0.1)',
+                    border: '1px solid rgba(2, 132, 199, 0.3)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '0.78rem',
+                    color: '#0284c7',
+                    marginTop: '0.4rem'
+                  }}>
+                    <span style={{ fontWeight: 700 }}>{fileName} ({fileSize})</span>
                     {fileUrl && (
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1 text-[11px] shrink-0 font-semibold"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Preview
+                      <a href={fileUrl} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Eye size={13} />
+                        <span>Lihat Berkas</span>
                       </a>
                     )}
                   </div>
@@ -371,10 +329,10 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
               </div>
             </div>
 
-            {/* Submitted By */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Submitted By & Submit Button */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem', alignItems: 'flex-end' }}>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
                   Nama Pengaju Eviden (PIC / Auditee)
                 </label>
                 <input
@@ -382,79 +340,85 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                   required
                   value={submittedBy}
                   onChange={(e) => setSubmittedBy(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                  className="input-control"
                 />
               </div>
 
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-lg text-xs font-bold bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-4 h-4" />
-                  Kirim Bukti Eviden (Submit Eviden)
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <Upload size={15} />
+                <span>Kirim Bukti Eviden (Submit Eviden)</span>
+              </button>
             </div>
           </form>
 
-          {/* Section 2: Auditor Verification & Close / Reopen */}
-          <div className="p-5 bg-gradient-to-b from-slate-950/90 to-slate-900 border border-slate-800 rounded-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                <h4 className="text-sm font-bold text-white">
-                  Verifikasi Auditor ISM & Penutupan Temuan (Close NC)
-                </h4>
+          {/* Section 2: Auditor Verification & Close */}
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: '10px',
+            background: 'var(--bg-surface-elevated)',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShieldCheck size={18} color="#10b981" />
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Verifikasi Auditor ISM & Penutupan Temuan (Close NC)</h4>
               </div>
-              <span className="text-xs text-slate-400">
-                Langkah 2: Verifikasi Resmi DPA / Auditor
-              </span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Langkah 2: Verifikasi Resmi</span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Catatan Evaluasi / Verifikasi Auditor (Auditor Review Notes)
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Catatan Evaluasi / Telaah Auditor
               </label>
               <textarea
                 rows={2}
                 value={auditorNotes}
                 onChange={(e) => setAuditorNotes(e.target.value)}
-                placeholder="Tuliskan evaluasi keefektifan eviden perbaikan..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                placeholder="Evaluasi kecukupan bukti perbaikan..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="text-xs text-slate-400">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.4rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 {finding.status === 'NC Close' ? (
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Temuan telah ditutup pada: {evidence.closedDate || new Date().toISOString().split('T')[0]}
+                  <span style={{ color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <CheckCircle2 size={15} />
+                    <span>Temuan telah ditutup resmi</span>
                   </span>
                 ) : (
-                  <span>Status saat ini: <strong className="text-amber-300">{finding.status}</strong></span>
+                  <span>Status saat ini: <strong style={{ color: '#f59e0b' }}>{finding.status}</strong></span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {finding.status === 'NC Close' ? (
                   <button
                     type="button"
                     onClick={handleReopenNC}
-                    className="px-4 py-2 rounded-lg text-xs font-bold bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 transition flex items-center gap-1.5"
+                    className="btn btn-danger btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Buka Kembali Temuan (Reopen NC)
+                    <RotateCcw size={13} />
+                    <span>Buka Kembali Temuan (Reopen NC)</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleCloseNC}
-                    className="px-5 py-2.5 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5"
+                    className="btn btn-success"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Verifikasi & Tutup Temuan (CLOSE NC)
+                    <CheckCircle2 size={15} />
+                    <span>Verifikasi & Tutup Temuan (CLOSE NC)</span>
                   </button>
                 )}
               </div>
@@ -463,12 +427,8 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 transition"
-          >
+        <div className="modal-footer">
+          <button type="button" onClick={onClose} className="btn btn-secondary">
             Tutup Jendela
           </button>
         </div>

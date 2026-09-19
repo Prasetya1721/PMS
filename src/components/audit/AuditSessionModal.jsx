@@ -81,7 +81,6 @@ export const AuditSessionModal = ({ session, onClose }) => {
     }
   }, [auditType, standard, isEdit]);
 
-  // Update auditee and scope if vessel changes when standard is SMC
   const handleVesselChange = (newVId) => {
     setVesselId(newVId);
     if (standard === 'SMC' && !isEdit) {
@@ -127,286 +126,283 @@ export const AuditSessionModal = ({ session, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl text-slate-100 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
+      <div className="modal-dialog" style={{ maxWidth: '680px' }}>
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-blue-950/40 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${auditType === 'Internal' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'}`}>
-              <ShieldCheck className="w-6 h-6" />
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              padding: '0.5rem',
+              borderRadius: '10px',
+              background: auditType === 'Internal' ? 'rgba(6, 182, 212, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+              color: auditType === 'Internal' ? '#06b6d4' : '#a855f7'
+            }}>
+              <ShieldCheck size={22} />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-white">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
                 {isEdit ? 'Edit Sesi Audit ISM Code' : 'Buat Sesi Audit Baru'}
               </h3>
-              <p className="text-xs text-slate-400">
-                {auditType === 'Internal' ? 'Audit Internal (DPA / Auditor PBK)' : 'Audit Eksternal (BKI / Ditjen Hubla)'} • Standar {standard}
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                {auditType === 'Internal' ? 'Audit Internal (DPA PBK)' : 'Audit Eksternal (BKI / Ditjen Hubla)'} • Standar {standard}
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
+            <X size={16} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Row 1: Audit Type & Standard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Jenis Audit (Internal / Eksternal) <span className="text-rose-400">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAuditType('Internal')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                    auditType === 'Internal'
-                      ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  Internal PBK
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAuditType('External')}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                    auditType === 'External'
-                      ? 'bg-purple-500/20 border-purple-500 text-purple-300'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Eksternal (BKI/Gov)
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Standar Audit (DOC / SMC) <span className="text-rose-400">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStandard('DOC');
-                    setTargetType('Office');
-                  }}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                    standard === 'DOC'
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" />
-                  DOC (Kantor)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStandard('SMC');
-                    setTargetType('Vessel');
-                  }}
-                  className={`py-2 px-3 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1.5 ${
-                    standard === 'SMC'
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-300'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <Ship className="w-3.5 h-3.5" />
-                  SMC (Kapal)
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Target & Audit No */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Nomor Register Audit <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={auditNo}
-                onChange={(e) => setAuditNo(e.target.value)}
-                placeholder="contoh: AUD-INT-DOC-2026/101"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
-              />
-            </div>
-
-            {targetType === 'Vessel' ? (
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+            {/* Row 1: Audit Type & Standard */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Target Kapal Armada <span className="text-rose-400">*</span>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Jenis Audit (Internal / Eksternal) *
                 </label>
-                <select
-                  value={vesselId}
-                  onChange={(e) => handleVesselChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                >
-                  {vessels.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.type || 'Tugboat'})
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAuditType('Internal')}
+                    className={`btn btn-sm ${auditType === 'Internal' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <UserCheck size={13} />
+                    <span>Internal PBK</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuditType('External')}
+                    className={`btn btn-sm ${auditType === 'External' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <ShieldCheck size={13} />
+                    <span>Eksternal BKI</span>
+                  </button>
+                </div>
               </div>
-            ) : (
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Target Audit (Entitas Darat)
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Standar Audit (DOC / SMC) *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStandard('DOC');
+                      setTargetType('Office');
+                    }}
+                    className={`btn btn-sm ${standard === 'DOC' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <Building2 size={13} />
+                    <span>DOC (Kantor)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStandard('SMC');
+                      setTargetType('Vessel');
+                    }}
+                    className={`btn btn-sm ${standard === 'SMC' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <Ship size={13} />
+                    <span>SMC (Kapal)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 2: Target & Audit No */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Nomor Register Audit *
                 </label>
                 <input
                   type="text"
-                  disabled
-                  value="Kantor Pusat PT. Pelayaran Baharimas Kalimantan"
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-400 cursor-not-allowed"
+                  required
+                  value={auditNo}
+                  onChange={(e) => setAuditNo(e.target.value)}
+                  placeholder="contoh: AUD-INT-DOC-2026/101"
+                  className="input-control mono"
+                  style={{ fontWeight: 700 }}
                 />
               </div>
-            )}
-          </div>
 
-          {/* Row 3: Lead Auditor & Audit Team */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {targetType === 'Vessel' ? (
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    Target Kapal Armada *
+                  </label>
+                  <select
+                    value={vesselId}
+                    onChange={(e) => handleVesselChange(e.target.value)}
+                    className="select-control"
+                  >
+                    {vessels.map(v => (
+                      <option key={v.id} value={v.id}>
+                        {v.name} ({v.type || 'Tugboat'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    Target Audit
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Kantor Pusat PT. Pelayaran Baharimas Kalimantan"
+                    className="input-control"
+                    style={{ opacity: 0.75, cursor: 'not-allowed' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Row 3: Lead Auditor & Team */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Lead Auditor *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={leadAuditor}
+                  onChange={(e) => setLeadAuditor(e.target.value)}
+                  placeholder="Nama Lead Auditor / Instansi"
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Tim Auditor (Pisahkan dengan koma)
+                </label>
+                <input
+                  type="text"
+                  value={auditTeam}
+                  onChange={(e) => setAuditTeam(e.target.value)}
+                  placeholder="contoh: Ir. Syamsul, Capt. Ahmad"
+                  className="input-control"
+                />
+              </div>
+            </div>
+
+            {/* Row 4: Auditee & Status */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Pihak Auditee (Yang Di-audit) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={auditee}
+                  onChange={(e) => setAuditee(e.target.value)}
+                  placeholder="contoh: Nakhoda, KKM, DPA"
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Status Sesi Audit
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="select-control"
+                >
+                  <option value="Scheduled">Terjadwal (Scheduled)</option>
+                  <option value="In Progress">Sedang Berlangsung (In Progress)</option>
+                  <option value="Completed">Selesai (Completed)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 5: Dates */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Tanggal Pelaksanaan Audit *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={auditDate}
+                  onChange={(e) => setAuditDate(e.target.value)}
+                  className="input-control mono"
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Target Penutupan NC (Batas Waktu Close) *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={targetCloseDate}
+                  onChange={(e) => setTargetCloseDate(e.target.value)}
+                  className="input-control mono"
+                />
+              </div>
+            </div>
+
+            {/* Scope */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Lead Auditor <span className="text-rose-400">*</span>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Ruang Lingkup & Sasaran Audit (Scope) *
               </label>
-              <input
-                type="text"
+              <textarea
                 required
-                value={leadAuditor}
-                onChange={(e) => setLeadAuditor(e.target.value)}
-                placeholder="Nama Lead Auditor / Instansi"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                rows={3}
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                placeholder="Jelaskan sasaran dan klausul ISM Code yang diperiksa..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Tim Auditor (Pisahkan dengan koma)
-              </label>
-              <input
-                type="text"
-                value={auditTeam}
-                onChange={(e) => setAuditTeam(e.target.value)}
-                placeholder="contoh: Ir. Syamsul, Capt. Ahmad"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              />
+            {/* Notice Info Box */}
+            <div style={{
+              padding: '0.85rem 1rem',
+              borderRadius: '8px',
+              background: 'rgba(2, 132, 199, 0.08)',
+              border: '1px solid rgba(2, 132, 199, 0.25)',
+              display: 'flex',
+              gap: '0.65rem',
+              alignItems: 'flex-start',
+              fontSize: '0.78rem'
+            }}>
+              <AlertCircle size={16} color="#0284c7" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+              <div>
+                <strong style={{ color: 'var(--text-main)', display: 'block', marginBottom: '0.15rem' }}>Ketentuan Standar ISM Code PT. PBK:</strong>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  Sesi audit {auditType} {standard} akan mendokumentasikan temuan Non-Conformity (Major NC, Minor NC, Observasi). Temuan terbuka (NC Open) wajib diselesaikan melalui pengajuan eviden perbaikan sebelum ditutup resmi (NC Close).
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Row 4: Auditee & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Pihak Auditee (Yang Di-audit) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={auditee}
-                onChange={(e) => setAuditee(e.target.value)}
-                placeholder="contoh: Nakhoda, KKM, DPA"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Status Sesi Audit
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              >
-                <option value="Scheduled">Terjadwal (Scheduled)</option>
-                <option value="In Progress">Sedang Berlangsung (In Progress)</option>
-                <option value="Completed">Selesai (Completed)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Row 5: Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Tanggal Pelaksanaan Audit <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={auditDate}
-                onChange={(e) => setAuditDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Target Penutupan NC (Batas Waktu Close) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={targetCloseDate}
-                onChange={(e) => setTargetCloseDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Scope / Description */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Ruang Lingkup & Sasaran Audit (Scope) <span className="text-rose-400">*</span>
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              placeholder="Jelaskan sasaran, ruang lingkup klausul ISM Code yang diperiksa..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          {/* Notice Banner */}
-          <div className="p-3 bg-blue-950/40 border border-blue-800/40 rounded-xl flex items-start gap-2.5 text-xs text-blue-300">
-            <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-blue-200">Ketentuan Standar ISM Code PT. Pelayaran Baharimas Kalimantan:</p>
-              <p className="text-slate-400 mt-0.5">
-                Sesi audit {auditType} {standard} akan mendokumentasikan temuan Non-Conformity (Major NC, Minor NC, Observasi). Temuan terbuka (NC Open) wajib diselesaikan melalui pengajuan bukti eviden perbaikan sebelum diverifikasi & ditutup (NC Close).
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 transition"
-            >
+          {/* Footer */}
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-secondary">
               Batal
             </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-blue-500/20 transition flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isEdit ? 'Simpan Perubahan Sesi' : 'Buat Sesi Audit'}
+            <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Save size={15} />
+              <span>{isEdit ? 'Simpan Perubahan Sesi' : 'Buat Sesi Audit'}</span>
             </button>
           </div>
         </form>

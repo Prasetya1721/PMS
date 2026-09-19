@@ -164,14 +164,12 @@ export const AuditManager = () => {
     };
   }, [rawFindings, rawAudits]);
 
-  // Handler for opening add finding with specific audit session
   const handleOpenAddFindingForAudit = (auditId) => {
     setFindingDefaultAuditId(auditId);
     setEditingFinding(null);
     setFindingModalOpen(true);
   };
 
-  // Handler for checklist quick finding creation
   const handleQuickFindingFromChecklist = (standardType, elem) => {
     setEditingFinding({
       standard: standardType,
@@ -185,195 +183,200 @@ export const AuditManager = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 border border-slate-800 p-6 shadow-xl">
-        <div className="absolute -right-8 -top-8 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-32 -bottom-8 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl text-white shadow-lg shadow-blue-500/20">
-              <ShieldCheck className="w-8 h-8" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold text-white tracking-tight">
-                  Audit & Kepatuhan ISM Code
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  DOC & SMC Baharimas
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                Manajemen Audit Keselamatan Maritim (Internal & Eksternal) sesuai Standar IMO ISM Code Resolusi A.741(18).
-                Mencakup <strong>DOC Kantor Pusat</strong> dan <strong>SMC 28 Kapal Armada</strong>, pelacakan status <strong>NC Open & NC Close</strong>, integrasi sertifikat kapal & permintaan barang ke gudang.
-              </p>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+      {/* Hero Header Banner */}
+      <div className="audit-hero-banner glass-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{
+            padding: '0.85rem',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+          }}>
+            <ShieldCheck size={32} />
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => {
-                setEditingSession(null);
-                setSessionModalOpen(true);
-              }}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 transition flex items-center gap-2 shadow-sm"
-            >
-              <Plus className="w-4 h-4 text-cyan-400" />
-              Sesi Audit Baru
-            </button>
-            <button
-              onClick={() => {
-                setEditingFinding(null);
-                setFindingDefaultAuditId(null);
-                setFindingModalOpen(true);
-              }}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-lg shadow-amber-500/20 transition flex items-center gap-2"
-            >
-              <AlertTriangle className="w-4 h-4" />
-              Catat Temuan NC Manual
-            </button>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Audit & Kepatuhan ISM Code</h2>
+              <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
+                DOC Kantor & SMC 28 Kapal
+              </span>
+            </div>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '750px', lineHeight: '1.5' }}>
+              Manajemen Audit Keselamatan Maritim (Internal DPA PT. PBK & Eksternal BKI / Ditjen Hubla) sesuai Standar IMO ISM Code Resolusi A.741(18).
+              Pantau status <strong>NC Open</strong>, <strong>Eviden Perbaikan</strong>, dan <strong>NC Close</strong> secara terintegrasi dengan sertifikat kapal & logistik gudang.
+            </p>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              setEditingSession(null);
+              setSessionModalOpen(true);
+            }}
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+          >
+            <Plus size={15} color="#38bdf8" />
+            <span>Sesi Audit Baru</span>
+          </button>
+          <button
+            onClick={() => {
+              setEditingFinding(null);
+              setFindingDefaultAuditId(null);
+              setFindingModalOpen(true);
+            }}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+          >
+            <AlertTriangle size={15} />
+            <span>Catat Temuan NC Manual</span>
+          </button>
         </div>
       </div>
 
       {/* KPI Metrics Scorecard */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        {/* Card 1: Total Sesi Audit */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span className="font-semibold">Sesi Audit ISM</span>
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
+      <div className="audit-kpi-grid">
+        {/* Card 1: Sesi Audit */}
+        <div className="audit-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sesi Audit ISM</span>
+            <ShieldCheck size={18} color="#38bdf8" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight">{stats.totalSessions}</div>
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-            <span className="text-cyan-400 font-semibold">{stats.intSessions} Internal</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem' }}>
+            {stats.totalSessions}
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
+            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{stats.intSessions} Internal</span>
             <span>•</span>
-            <span className="text-purple-400 font-semibold">{stats.extSessions} Eksternal</span>
+            <span style={{ color: '#a78bfa', fontWeight: 700 }}>{stats.extSessions} Eksternal</span>
           </div>
         </div>
 
         {/* Card 2: Total Temuan */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-            <span className="font-semibold">Total Temuan ISM</span>
-            <FileText className="w-4 h-4 text-amber-400" />
+        <div className="audit-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Temuan</span>
+            <FileText size={18} color="#f59e0b" />
           </div>
-          <div className="text-2xl font-bold text-white tracking-tight">{stats.totalFindings}</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-            <span className="text-rose-400 font-semibold">{stats.majorCount} Major</span>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem' }}>
+            {stats.totalFindings}
+          </div>
+          <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
+            <span style={{ color: '#f87171', fontWeight: 700 }}>{stats.majorCount} Major</span>
             <span>•</span>
-            <span className="text-amber-400 font-semibold">{stats.minorCount} Minor</span>
+            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{stats.minorCount} Minor</span>
             <span>•</span>
-            <span className="text-blue-400 font-semibold">{stats.obsCount} Obs</span>
+            <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.obsCount} Obs</span>
           </div>
         </div>
 
-        {/* Card 3: NC OPEN (Perlu Perbaikan) */}
-        <div className="p-4 rounded-xl bg-gradient-to-br from-rose-950/40 via-slate-900 to-slate-900 border border-rose-800/50 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-rose-300 mb-1.5">
-            <span className="font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+        {/* Card 3: NC OPEN */}
+        <div className="audit-card audit-card-danger">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
               NC OPEN
             </span>
-            <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <AlertTriangle size={18} color="#ef4444" />
           </div>
-          <div className="text-2xl font-bold text-rose-400 tracking-tight">{stats.openCount}</div>
-          <p className="text-[11px] text-rose-300/80 mt-1.5 pt-1.5 border-t border-rose-800/30">
-            Perlu tindakan perbaikan & bukti eviden segera
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#ef4444', marginTop: '0.35rem' }}>
+            {stats.openCount}
+          </div>
+          <p style={{ fontSize: '0.72rem', color: '#fca5a5', marginTop: '0.4rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '0.4rem' }}>
+            Perlu tindakan perbaikan & bukti eviden
           </p>
         </div>
 
         {/* Card 4: EVIDEN SUBMITTED */}
-        <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900 border border-amber-800/50 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-amber-300 mb-1.5">
-            <span className="font-bold">EVIDEN DIAJUKAN</span>
-            <Upload className="w-4 h-4 text-amber-400" />
+        <div className="audit-card audit-card-warning">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 800 }}>EVIDEN DIAJUKAN</span>
+            <Upload size={18} color="#f59e0b" />
           </div>
-          <div className="text-2xl font-bold text-amber-400 tracking-tight">{stats.submittedCount}</div>
-          <p className="text-[11px] text-amber-300/80 mt-1.5 pt-1.5 border-t border-amber-800/30">
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.35rem' }}>
+            {stats.submittedCount}
+          </div>
+          <p style={{ fontSize: '0.72rem', color: '#fde68a', marginTop: '0.4rem', borderTop: '1px solid rgba(245, 158, 11, 0.2)', paddingTop: '0.4rem' }}>
             Menunggu verifikasi Lead Auditor / DPA
           </p>
         </div>
 
         {/* Card 5: NC CLOSE */}
-        <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-800/50 text-slate-100 shadow-sm">
-          <div className="flex items-center justify-between text-xs text-emerald-300 mb-1.5">
-            <span className="font-bold">NC CLOSE</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="audit-card audit-card-success">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 800 }}>NC CLOSE</span>
+            <CheckCircle2 size={18} color="#10b981" />
           </div>
-          <div className="text-2xl font-bold text-emerald-400 tracking-tight">{stats.closedCount}</div>
-          <p className="text-[11px] text-emerald-300/80 mt-1.5 pt-1.5 border-t border-emerald-800/30">
-            Selesai diverifikasi & ditutup resmi
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#10b981', marginTop: '0.35rem' }}>
+            {stats.closedCount}
+          </div>
+          <p style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '0.4rem', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '0.4rem' }}>
+            Selesai diverifikasi & resmi ditutup
           </p>
         </div>
       </div>
 
       {/* Main View Mode Selector & Filters Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 shadow-sm">
-        {/* Row 1: View Mode Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+      <div className="glass-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Row 1: View Navigation Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => setActiveView('findings')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                activeView === 'findings'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`btn btn-sm ${activeView === 'findings' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
-              Daftar Temuan NC & Eviden ({filteredFindings.length})
+              <AlertTriangle size={14} />
+              <span>Daftar Temuan NC & Eviden ({filteredFindings.length})</span>
             </button>
             <button
               onClick={() => setActiveView('sessions')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                activeView === 'sessions'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`btn btn-sm ${activeView === 'sessions' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Sesi Audit ISM ({filteredSessions.length})
+              <ShieldCheck size={14} />
+              <span>Sesi Audit ISM ({filteredSessions.length})</span>
             </button>
             <button
               onClick={() => setActiveView('checklist')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
-                activeView === 'checklist'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`btn btn-sm ${activeView === 'checklist' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
             >
-              <BookOpen className="w-3.5 h-3.5" />
-              Checklist Standar DOC & SMC
+              <BookOpen size={14} />
+              <span>Checklist Standar DOC & SMC</span>
             </button>
           </div>
 
-          {/* Quick Vessel Scope Indicator */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400">Filter Kapal:</span>
+          {/* Quick Vessel Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Filter Kapal:</span>
             <select
               value={selectedVesselId}
               onChange={(e) => setSelectedVesselId(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+              className="select-control"
+              style={{ width: '230px', fontSize: '0.8rem', padding: '0.4rem 2rem 0.4rem 0.75rem' }}
             >
-              <option value="all">Semua Armada & Kantor (Fleet-wide)</option>
+              <option value="all">🌐 Semua Armada & Kantor (Fleet-wide)</option>
               {vessels.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
+                <option key={v.id} value={v.id}>🚢 {v.name}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Row 2: Secondary Filters & Search Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-slate-400 mr-1 flex items-center gap-1">
-              <Filter className="w-3 h-3" />
-              Filter:
+        {/* Row 2: Secondary Filter Pills & Search */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.25rem' }}>
+              <Filter size={13} />
+              <span>Standar:</span>
             </span>
             {[
               { id: 'ALL', label: 'Semua Standar' },
@@ -385,23 +388,20 @@ export const AuditManager = () => {
               <button
                 key={tab.id}
                 onClick={() => setTypeFilter(tab.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${
-                  typeFilter === tab.id
-                    ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
+                className={`btn btn-sm ${typeFilter === tab.id ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
               >
                 {tab.label}
               </button>
             ))}
 
-            {/* Status Filter (Active on Findings view) */}
             {activeView === 'findings' && (
-              <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-slate-800">
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: '0.5rem', paddingLeft: '0.5rem', borderLeft: '1px solid var(--border-subtle)' }}>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="select-control"
+                  style={{ width: '175px', fontSize: '0.75rem', padding: '0.35rem 1.8rem 0.35rem 0.65rem' }}
                 >
                   <option value="ALL">Semua Status NC</option>
                   <option value="NC Open">🔴 NC Open</option>
@@ -412,7 +412,8 @@ export const AuditManager = () => {
                 <select
                   value={severityFilter}
                   onChange={(e) => setSeverityFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+                  className="select-control"
+                  style={{ width: '165px', fontSize: '0.75rem', padding: '0.35rem 1.8rem 0.35rem 0.65rem' }}
                 >
                   <option value="ALL">Semua Tingkat Keparahan</option>
                   <option value="Major NC">Major NC</option>
@@ -424,31 +425,30 @@ export const AuditManager = () => {
           </div>
 
           {/* Search Box */}
-          <div className="relative min-w-[240px] max-w-xs w-full">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+          <div style={{ position: 'relative', minWidth: '240px' }}>
+            <Search size={14} color="var(--text-subtle)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari klausul, no temuan, auditor..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="input-control"
+              style={{ paddingLeft: '2.2rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem 0.45rem 2.2rem' }}
             />
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* VIEW 1: DAFTAR TEMUAN & EVIDEN (FINDINGS VIEW) */}
+      {/* VIEW 1: DAFTAR TEMUAN & EVIDEN */}
       {/* ========================================================================= */}
       {activeView === 'findings' && (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {filteredFindings.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
-              <ShieldCheck className="w-12 h-12 mx-auto text-slate-600 mb-3" />
-              <h3 className="text-base font-bold text-white mb-1">
-                Tidak Ada Temuan Ketidaksesuaian Ditemukan
-              </h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+            <div className="glass-card" style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
+              <ShieldCheck size={48} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Tidak Ada Temuan Ketidaksesuaian Ditemukan</h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '440px', margin: '0.3rem auto 1.25rem' }}>
                 Semua item audit sesuai kriteria filter atau belum ada temuan yang dicatat. Anda dapat mencatat temuan manual kapan saja.
               </p>
               <button
@@ -456,259 +456,217 @@ export const AuditManager = () => {
                   setEditingFinding(null);
                   setFindingModalOpen(true);
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold text-xs rounded-xl hover:opacity-95 transition"
+                className="btn btn-primary btn-sm"
               >
                 + Catat Temuan Baru Sekarang
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {filteredFindings.map(finding => {
-                const isClosed = finding.status === 'NC Close';
-                const isSubmitted = finding.status === 'Eviden Submitted';
-                const isOpen = finding.status === 'NC Open';
+            filteredFindings.map(finding => {
+              const isClosed = finding.status === 'NC Close';
+              const isSubmitted = finding.status === 'Eviden Submitted';
+              const isOpen = finding.status === 'NC Open';
 
-                const linkedDoc = finding.linkedCertificateId
-                  ? shipDocuments.find(d => d.id === finding.linkedCertificateId)
-                  : null;
+              const linkedDoc = finding.linkedCertificateId
+                ? shipDocuments.find(d => d.id === finding.linkedCertificateId)
+                : null;
 
-                const linkedReq = finding.linkedRequisitionId
-                  ? requisitions.find(r => r.id === finding.linkedRequisitionId)
-                  : null;
+              const linkedReq = finding.linkedRequisitionId
+                ? requisitions.find(r => r.id === finding.linkedRequisitionId)
+                : null;
 
-                return (
-                  <div
-                    key={finding.id}
-                    className={`bg-slate-900 rounded-2xl border transition hover:border-slate-700 overflow-hidden shadow-sm ${
-                      isOpen
-                        ? 'border-rose-900/40 bg-gradient-to-r from-rose-950/10 via-slate-900 to-slate-900'
-                        : isSubmitted
-                        ? 'border-amber-900/40 bg-gradient-to-r from-amber-950/10 via-slate-900 to-slate-900'
-                        : 'border-slate-800'
-                    }`}
-                  >
-                    <div className="p-5 space-y-4">
-                      {/* Top Bar: Finding No, Status, Category, Standard */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-sm font-bold text-white tracking-wide">
-                            {finding.findingNo}
-                          </span>
+              const statusClass = isClosed ? 'status-closed' : isSubmitted ? 'status-submitted' : 'status-open';
 
-                          {/* Status Badge */}
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
-                            isClosed
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                              : isSubmitted
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
-                              isClosed ? 'bg-emerald-400' : isSubmitted ? 'bg-amber-400' : 'bg-rose-400 animate-pulse'
-                            }`} />
-                            {finding.status}
-                          </span>
+              return (
+                <div key={finding.id} className={`audit-finding-item ${statusClass}`}>
+                  {/* Top Bar: Finding No, Status, Category, Standard */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                      <span className="mono" style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                        {finding.findingNo}
+                      </span>
 
-                          {/* Severity Category */}
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            finding.category === 'Major NC'
-                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                              : finding.category === 'Minor NC'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                          }`}>
-                            {finding.category}
-                          </span>
+                      {/* Status Badge */}
+                      <span className={`badge ${
+                        isClosed ? 'badge-success' : isSubmitted ? 'badge-warning' : 'badge-danger-pulse'
+                      }`}>
+                        {finding.status}
+                      </span>
 
-                          {/* Standard & Type */}
-                          <span className="px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-300 font-medium">
-                            {finding.auditType} {finding.standard}
-                          </span>
-                        </div>
+                      {/* Category Badge */}
+                      <span className={`badge ${
+                        finding.category === 'Major NC' ? 'badge-danger' :
+                        finding.category === 'Minor NC' ? 'badge-warning' : 'badge-info'
+                      }`}>
+                        {finding.category}
+                      </span>
 
-                        {/* Due date & Action buttons */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-400 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                            Due: <strong className="text-slate-200">{finding.dueDate}</strong>
-                          </span>
+                      {/* Standard & Type Badge */}
+                      <span className="badge badge-neutral">
+                        {finding.auditType} {finding.standard}
+                      </span>
+                    </div>
 
-                          <button
-                            onClick={() => {
-                              setEditingFinding(finding);
-                              setFindingModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                            title="Edit Temuan"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                    {/* Right side: Due Date & Action Icons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Calendar size={13} color="var(--text-subtle)" />
+                        <span>Batas Waktu: <strong className="mono" style={{ color: '#f59e0b' }}>{finding.dueDate}</strong></span>
+                      </span>
 
-                          <button
-                            onClick={() => {
-                              if (confirm(`Hapus temuan ${finding.findingNo}?`)) {
-                                deleteAuditFinding(finding.id);
-                              }
-                            }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
-                            title="Hapus Temuan"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <button
+                        onClick={() => {
+                          setEditingFinding(finding);
+                          setFindingModalOpen(true);
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.3rem 0.55rem' }}
+                        title="Edit Temuan"
+                      >
+                        <Edit size={13} />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (confirm(`Hapus temuan ${finding.findingNo}?`)) {
+                            deleteAuditFinding(finding.id);
+                          }
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.3rem 0.55rem', color: '#ef4444' }}
+                        title="Hapus Temuan"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Middle Content: Clause, Target, Description */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', fontSize: '0.825rem' }}>
+                      <span className="mono" style={{ fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
+                        {finding.clauseCode}
+                      </span>
+                      <strong style={{ color: 'var(--text-main)' }}>{finding.clauseName}</strong>
+                      <span style={{ color: 'var(--text-subtle)' }}>•</span>
+                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        {finding.standard === 'DOC' ? <Building2 size={14} color="#10b981" /> : <Ship size={14} color="#38bdf8" />}
+                        <span>Target: <strong style={{ color: 'var(--text-main)' }}>{finding.targetName}</strong></span>
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
+                      {finding.description}
+                    </p>
+
+                    {finding.objectiveEvidence && (
+                      <div style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.78rem' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>
+                          Bukti Objektif Auditor:
+                        </span>
+                        <span className="mono" style={{ color: 'var(--text-main)' }}>{finding.objectiveEvidence}</span>
                       </div>
+                    )}
+                  </div>
 
-                      {/* Middle: Target, Clause, Description */}
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="px-2 py-0.5 rounded bg-blue-500/10 text-cyan-300 font-mono font-bold">
-                            {finding.clauseCode}
-                          </span>
-                          <span className="font-semibold text-slate-200">
-                            {finding.clauseName}
-                          </span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400 flex items-center gap-1">
-                            {finding.standard === 'DOC' ? (
-                              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Ship className="w-3.5 h-3.5 text-blue-400" />
-                            )}
-                            Target: <strong className="text-slate-300">{finding.targetName}</strong>
-                          </span>
-                        </div>
-
-                        <p className="text-sm text-slate-200 leading-relaxed">
-                          {finding.description}
-                        </p>
-
-                        {finding.objectiveEvidence && (
-                          <div className="p-2.5 bg-slate-950/70 rounded-lg border border-slate-800 text-xs text-slate-300 font-mono">
-                            <span className="text-slate-500 block mb-0.5 font-sans font-semibold">Bukti Objektif:</span>
-                            {finding.objectiveEvidence}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Linked Data Badges (Ship Certificate & Warehouse Requisition) */}
-                      {(linkedDoc || linkedReq || finding.linkedCertificateTitle || finding.linkedRequisitionTitle) && (
-                        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-                          {(linkedDoc || finding.linkedCertificateTitle) && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-xs">
-                              <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Sertifikat: <strong>{linkedDoc?.name || linkedDoc?.type || finding.linkedCertificateTitle}</strong></span>
-                            </div>
-                          )}
-
-                          {(linkedReq || finding.linkedRequisitionTitle) && (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-950/30 border border-amber-800/40 text-amber-300 text-xs">
-                              <Package className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Permintaan Gudang: <strong>{linkedReq?.requisitionNumber || linkedReq?.id || finding.linkedRequisitionTitle}</strong></span>
-                            </div>
-                          )}
+                  {/* Linked Data Badges (Ship Certificate & Warehouse Requisition) */}
+                  {(linkedDoc || linkedReq || finding.linkedCertificateTitle || finding.linkedRequisitionTitle) && (
+                    <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
+                      {(linkedDoc || finding.linkedCertificateTitle) && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.75rem', color: '#10b981' }}>
+                          <FileCheck size={14} />
+                          <span>Sertifikat Terkait: <strong style={{ color: 'var(--text-main)' }}>{linkedDoc?.name || linkedDoc?.type || finding.linkedCertificateTitle}</strong></span>
                         </div>
                       )}
 
-                      {/* Bottom Bar: Action Buttons for Evidence Submission & Closing */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800 bg-slate-950/30 -mx-5 -mb-5 p-4 rounded-b-2xl">
-                        <div className="text-xs text-slate-400 flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Auditor: <strong className="text-slate-300">{finding.auditor}</strong></span>
-                          <span>•</span>
-                          <span>PIC: <strong className="text-slate-300">{finding.assignedTo}</strong></span>
+                      {(linkedReq || finding.linkedRequisitionTitle) && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.75rem', color: '#f59e0b' }}>
+                          <Package size={14} />
+                          <span>Permintaan Gudang: <strong style={{ color: 'var(--text-main)' }}>{linkedReq?.requisitionNumber || linkedReq?.id || finding.linkedRequisitionTitle}</strong></span>
                         </div>
+                      )}
+                    </div>
+                  )}
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEvidenceTargetFinding(finding);
-                              setEvidenceModalOpen(true);
-                            }}
-                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                              isClosed
-                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-sm'
-                            }`}
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            {isClosed ? 'Lihat Bukti Eviden' : isSubmitted ? 'Verifikasi / Update Eviden' : 'Submit Bukti Eviden'}
-                          </button>
+                  {/* Bottom Bar: Action Buttons for Evidence Submission & Close */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <User size={13} color="var(--text-subtle)" />
+                      <span>Auditor: <strong style={{ color: 'var(--text-main)' }}>{finding.auditor}</strong></span>
+                      <span>•</span>
+                      <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{finding.assignedTo}</strong></span>
+                    </div>
 
-                          {!isClosed && (
-                            <button
-                              onClick={() => {
-                                closeAuditFinding(finding.id);
-                              }}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/60 transition flex items-center gap-1"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              Close NC
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        onClick={() => {
+                          setEvidenceTargetFinding(finding);
+                          setEvidenceModalOpen(true);
+                        }}
+                        className={`btn btn-sm ${isClosed ? 'btn-secondary' : 'btn-primary'}`}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                      >
+                        <Upload size={14} />
+                        <span>{isClosed ? 'Lihat Bukti Eviden' : isSubmitted ? 'Verifikasi / Update Eviden' : 'Submit Bukti Eviden'}</span>
+                      </button>
+
+                      {!isClosed && (
+                        <button
+                          onClick={() => closeAuditFinding(finding.id)}
+                          className="btn btn-success btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                        >
+                          <CheckCircle2 size={14} />
+                          <span>Close NC</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 2: SESI AUDIT ISM (SESSIONS VIEW) */}
+      {/* VIEW 2: SESI AUDIT ISM */}
       {/* ========================================================================= */}
       {activeView === 'sessions' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
           {filteredSessions.map(session => {
             const isInt = session.auditType === 'Internal';
             const isDoc = session.standard === 'DOC';
 
-            // Related findings for this session
             const sessionFindings = (allAuditFindings || []).filter(f => f.auditId === session.id);
             const openCount = sessionFindings.filter(f => f.status !== 'NC Close').length;
             const closedCount = sessionFindings.filter(f => f.status === 'NC Close').length;
 
             return (
-              <div
-                key={session.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition shadow-sm flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  {/* Top: Audit No & Badges */}
-                  <div className="flex items-start justify-between gap-2">
+              <div key={session.id} className="glass-card" style={{ padding: '1.35rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {/* Top Bar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-sm text-white">
-                          {session.auditNo}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          isInt ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        }`}>
-                          {session.auditType}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          isDoc ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                        }`}>
-                          {session.standard}
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span className="mono" style={{ fontWeight: 800, fontSize: '0.95rem' }}>{session.auditNo}</span>
+                        <span className={`badge ${isInt ? 'badge-info' : 'badge-neutral'}`}>{session.auditType}</span>
+                        <span className={`badge ${isDoc ? 'badge-success' : 'badge-warning'}`}>{session.standard}</span>
                       </div>
-                      <h4 className="font-semibold text-slate-200 text-sm mt-1">
-                        {session.targetName}
-                      </h4>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '0.35rem' }}>{session.targetName}</h4>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
                       <button
                         onClick={() => {
                           setEditingSession(session);
                           setSessionModalOpen(true);
                         }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                        title="Edit Sesi Audit"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.3rem 0.5rem' }}
+                        title="Edit Sesi"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit size={13} />
                       </button>
                       <button
                         onClick={() => {
@@ -716,69 +674,62 @@ export const AuditManager = () => {
                             deleteAuditSession(session.id);
                           }
                         }}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
                         title="Hapus Sesi"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Scope */}
-                  <p className="text-xs text-slate-400 line-clamp-2">
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
                     {session.scope}
                   </p>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.75rem' }}>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">Lead Auditor:</span>
-                      <span className="font-semibold text-slate-200 truncate block">{session.leadAuditor}</span>
+                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Lead Auditor:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{session.leadAuditor}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">Auditee:</span>
-                      <span className="font-semibold text-slate-200 truncate block">{session.auditee}</span>
+                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Auditee:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{session.auditee}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">Tanggal Pelaksanaan:</span>
-                      <span className="font-semibold text-slate-300 block">{session.auditDate}</span>
+                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Tanggal Audit:</span>
+                      <span className="mono" style={{ color: 'var(--text-muted)' }}>{session.auditDate}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px]">Target Close:</span>
-                      <span className="font-semibold text-amber-300 block">{session.targetCloseDate}</span>
+                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Target Close:</span>
+                      <span className="mono" style={{ color: '#f59e0b', fontWeight: 700 }}>{session.targetCloseDate}</span>
                     </div>
                   </div>
 
-                  {/* Finding Summary Counters */}
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-slate-400">Status Temuan Sesi Ini:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-300">
-                        {openCount} Open
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300">
-                        {closedCount} Close
-                      </span>
+                  {/* Summary Counters */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Status Temuan Sesi Ini:</span>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}>{openCount} Open</span>
+                      <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>{closedCount} Close</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Card Footer Actions */}
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    session.status === 'Completed'
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-blue-500/20 text-blue-300'
-                  }`}>
+                {/* Footer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+                  <span className={`badge ${session.status === 'Completed' ? 'badge-success' : 'badge-info'}`}>
                     {session.status}
                   </span>
 
                   <button
                     onClick={() => handleOpenAddFindingForAudit(session.id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white transition flex items-center gap-1.5"
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                   >
-                    <Plus className="w-3.5 h-3.5 text-cyan-400" />
-                    Tambah Temuan
+                    <Plus size={13} color="#38bdf8" />
+                    <span>Tambah Temuan</span>
                   </button>
                 </div>
               </div>
@@ -788,64 +739,56 @@ export const AuditManager = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 3: CHECKLIST STANDAR ISM (DOC & SMC REFERENCE) */}
+      {/* VIEW 3: CHECKLIST STANDAR ISM */}
       {/* ========================================================================= */}
       {activeView === 'checklist' && (
-        <div className="space-y-6">
-          {/* DOC Elements (Office) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <Building2 className="w-5 h-5" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* DOC Elements */}
+          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ padding: '0.65rem', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+                  <Building2 size={24} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white">
-                    Checklist Standar DOC (Document of Compliance - Kantor Pusat)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Klausul 1 s/d 12 ISM Code IMO Resolution A.741(18) untuk Sistem Manajemen Keselamatan di Darat
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Checklist Standar DOC (Document of Compliance - Kantor Pusat)</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Klausul 1 s/d 12 ISM Code IMO Res. A.741(18) untuk Sistem Manajemen Keselamatan Operasional Darat
                   </p>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300">
-                12 Elemen Standar
-              </span>
+              <span className="badge badge-success">12 Elemen Standar</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1rem' }}>
               {ISM_DOC_ELEMENTS.map(elem => (
-                <div
-                  key={elem.code}
-                  className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5 hover:border-slate-700 transition"
-                >
-                  <div className="flex items-start justify-between gap-2">
+                <div key={elem.code} style={{ padding: '1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <div>
-                      <span className="font-mono text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                      <span className="mono" style={{ fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem' }}>
                         {elem.code}
                       </span>
-                      <h4 className="font-bold text-slate-200 text-sm mt-1">
-                        {elem.name}
-                      </h4>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.35rem' }}>{elem.name}</h4>
                     </div>
                     <button
                       onClick={() => handleQuickFindingFromChecklist('DOC', elem)}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition shrink-0 flex items-center gap-1"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                     >
-                      <Plus className="w-3 h-3" />
-                      Temuan
+                      <Plus size={12} color="#38bdf8" />
+                      <span>Temuan</span>
                     </button>
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
                     {elem.description}
                   </p>
 
-                  <div className="space-y-1 pt-1.5 border-t border-slate-800/60">
-                    <span className="text-[10px] text-slate-500 font-semibold block">Poin Verifikasi Auditor:</span>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', fontWeight: 700 }}>Poin Verifikasi Auditor:</span>
                     {elem.checkPoints?.map((cp, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5 text-xs text-slate-300">
-                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-main)' }}>
+                        <Check size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
                         <span>{cp}</span>
                       </div>
                     ))}
@@ -855,60 +798,52 @@ export const AuditManager = () => {
             </div>
           </div>
 
-          {/* SMC Elements (Vessels) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  <Ship className="w-5 h-5" />
+          {/* SMC Elements */}
+          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ padding: '0.65rem', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
+                  <Ship size={24} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white">
-                    Checklist Standar SMC (Safety Management Certificate - Operasional Kapal)
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Pemeriksaan implementasi ISM Code di atas kapal armada Baharimas (Sertifikat, PMS Mesin, Logistik, Drill, Navigasi)
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Checklist Standar SMC (Safety Management Certificate - Armada Kapal)</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Pemeriksaan kepatuhan implementasi ISM Code di atas kapal (Sertifikat, PMS Mesin, Gudang, Drill, Navigasi)
                   </p>
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300">
-                6 Area Verifikasi Kapal
-              </span>
+              <span className="badge badge-info">6 Area Verifikasi Kapal</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1rem' }}>
               {ISM_SMC_ELEMENTS.map(elem => (
-                <div
-                  key={elem.code}
-                  className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5 hover:border-slate-700 transition"
-                >
-                  <div className="flex items-start justify-between gap-2">
+                <div key={elem.code} style={{ padding: '1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                     <div>
-                      <span className="font-mono text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                      <span className="mono" style={{ fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem' }}>
                         {elem.code}
                       </span>
-                      <h4 className="font-bold text-slate-200 text-sm mt-1">
-                        {elem.name}
-                      </h4>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.35rem' }}>{elem.name}</h4>
                     </div>
                     <button
                       onClick={() => handleQuickFindingFromChecklist('SMC', elem)}
-                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition shrink-0 flex items-center gap-1"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
                     >
-                      <Plus className="w-3 h-3" />
-                      Temuan
+                      <Plus size={12} color="#38bdf8" />
+                      <span>Temuan</span>
                     </button>
                   </div>
 
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
                     {elem.description}
                   </p>
 
-                  <div className="space-y-1 pt-1.5 border-t border-slate-800/60">
-                    <span className="text-[10px] text-slate-500 font-semibold block">Poin Verifikasi Auditor:</span>
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', fontWeight: 700 }}>Poin Verifikasi Auditor:</span>
                     {elem.checkPoints?.map((cp, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5 text-xs text-slate-300">
-                        <Check className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-main)' }}>
+                        <Check size={13} color="#38bdf8" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
                         <span>{cp}</span>
                       </div>
                     ))}

@@ -13,9 +13,7 @@ import {
   Tag,
   Code,
   FileText,
-  HelpCircle,
-  Link,
-  ChevronDown
+  Link
 } from 'lucide-react';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
@@ -34,26 +32,21 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
 
   const isEdit = Boolean(finding);
 
-  // Available audit sessions
   const availableAudits = audits.length > 0 ? audits : allAudits;
 
-  // Selected audit session
   const [auditId, setAuditId] = useState(
     finding?.auditId || defaultAuditId || availableAudits[0]?.id || ''
   );
 
   const currentAudit = availableAudits.find(a => a.id === auditId) || availableAudits[0];
 
-  // Standard & Type inherited from currentAudit, or overridable
   const standard = currentAudit?.standard || 'DOC';
   const auditType = currentAudit?.auditType || 'Internal';
 
-  // Manual vs Standard Clause Selection mode
   const [isManualClause, setIsManualClause] = useState(false);
   const [clauseCode, setClauseCode] = useState(finding?.clauseCode || 'ISM-10');
   const [clauseName, setClauseName] = useState(finding?.clauseName || 'Pemeliharaan Kapal & Perlengkapan');
 
-  // Finding Details
   const [findingNo, setFindingNo] = useState(finding?.findingNo || '');
   const [category, setCategory] = useState(finding?.category || 'Minor NC');
   const [description, setDescription] = useState(finding?.description || '');
@@ -68,13 +61,9 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
     finding?.dateIdentified || new Date().toISOString().split('T')[0]
   );
 
-  // Linked Certificate (Data Sertifikat)
   const [linkedCertificateId, setLinkedCertificateId] = useState(finding?.linkedCertificateId || '');
-
-  // Linked Material Requisition (Permintaan Barang ke Gudang)
   const [linkedRequisitionId, setLinkedRequisitionId] = useState(finding?.linkedRequisitionId || '');
 
-  // Auto-generate findingNo if creating new
   useEffect(() => {
     if (!isEdit && !findingNo) {
       const rand = Math.floor(Math.random() * 9000 + 1000);
@@ -82,7 +71,6 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
     }
   }, [isEdit, standard, findingNo]);
 
-  // Update default auditor & assignedTo when audit changes
   useEffect(() => {
     if (currentAudit && !isEdit) {
       if (currentAudit.leadAuditor) setAuditor(currentAudit.leadAuditor);
@@ -95,7 +83,6 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
     }
   }, [currentAudit, isEdit, vessels]);
 
-  // Handle standard clause selection
   const handleStandardClauseChange = (code) => {
     setClauseCode(code);
     const elementsList = standard === 'DOC' ? ISM_DOC_ELEMENTS : ISM_SMC_ELEMENTS;
@@ -105,7 +92,6 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
     }
   };
 
-  // Filter certificates relevant to this finding / vessel
   const relevantCertificates = (shipDocuments || []).filter(doc => {
     if (currentAudit?.standard === 'DOC') {
       return doc.type?.toLowerCase().includes('doc') || doc.type?.toLowerCase().includes('compliance') || doc.vesselId === 'all';
@@ -116,7 +102,6 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
     return true;
   });
 
-  // Filter requisitions relevant to this finding / vessel
   const relevantRequisitions = (requisitions || []).filter(req => {
     if (currentAudit?.vesselId) {
       return req.vesselId === currentAudit.vesselId;
@@ -163,310 +148,293 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl text-slate-100 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="modal-overlay" style={{ zIndex: 1100 }}>
+      <div className="modal-dialog" style={{ maxWidth: '680px' }}>
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${
-              category === 'Major NC'
-                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                : category === 'Minor NC'
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-            }`}>
-              <AlertTriangle className="w-6 h-6" />
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              padding: '0.5rem',
+              borderRadius: '10px',
+              background: category === 'Major NC' ? 'rgba(239, 68, 68, 0.15)' : category === 'Minor NC' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(2, 132, 199, 0.15)',
+              color: category === 'Major NC' ? '#ef4444' : category === 'Minor NC' ? '#f59e0b' : '#0284c7'
+            }}>
+              <AlertTriangle size={22} />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-white">
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>
                 {isEdit ? `Edit Temuan Audit (${finding?.findingNo})` : 'Catat Temuan Ketidaksesuaian (NC Open)'}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 Audit {currentAudit?.auditType} • Standar {currentAudit?.standard} ({currentAudit?.targetName})
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
+            <X size={16} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Row 1: Sesi Audit & Finding No */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Pilih Sesi Audit ISM <span className="text-rose-400">*</span>
-              </label>
-              <select
-                value={auditId}
-                disabled={isEdit}
-                onChange={(e) => setAuditId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 disabled:opacity-60"
-              >
-                {availableAudits.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.auditNo} - {a.auditType} {a.standard} ({a.targetName?.slice(0, 22)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Nomor Temuan (NC Code) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={findingNo}
-                onChange={(e) => setFindingNo(e.target.value)}
-                placeholder="contoh: NC-DOC-102"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Category & Clause Mode Toggle */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Kategori Temuan (Severity) <span className="text-rose-400">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCategory('Major NC')}
-                  className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
-                    category === 'Major NC'
-                      ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-1 ring-rose-500'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  Major NC
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategory('Minor NC')}
-                  className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
-                    category === 'Minor NC'
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  Minor NC
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategory('Observation')}
-                  className={`py-2 px-2 text-xs font-bold rounded-lg border transition text-center ${
-                    category === 'Observation'
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-300 ring-1 ring-blue-500'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  Observasi
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Mode Klausul ISM Code
+        {/* Form Body */}
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+            {/* Row 1: Audit Session & Finding No */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Pilih Sesi Audit ISM *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsManualClause(!isManualClause)}
-                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+                <select
+                  value={auditId}
+                  disabled={isEdit}
+                  onChange={(e) => setAuditId(e.target.value)}
+                  className="select-control"
+                  style={{ opacity: isEdit ? 0.7 : 1 }}
                 >
-                  <Code className="w-3.5 h-3.5" />
-                  {isManualClause ? 'Gunakan Checklist Standar' : '✍️ Input Manual Klausul'}
-                </button>
+                  {availableAudits.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.auditNo} - {a.auditType} {a.standard} ({a.targetName?.slice(0, 24)})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {isManualClause ? (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    required
-                    value={clauseCode}
-                    onChange={(e) => setClauseCode(e.target.value)}
-                    placeholder="Kode Klausul Manual (cth: ISM-10.3 / SOLAS-II)"
-                    className="w-full bg-slate-950 border border-blue-600/50 rounded-lg px-3 py-2 text-sm text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
-                  />
-                  <input
-                    type="text"
-                    required
-                    value={clauseName}
-                    onChange={(e) => setClauseName(e.target.value)}
-                    placeholder="Judul / Deskripsi Klausul"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
-                  />
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Nomor Temuan (NC Code) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={findingNo}
+                  onChange={(e) => setFindingNo(e.target.value)}
+                  placeholder="contoh: NC-DOC-102"
+                  className="input-control mono"
+                  style={{ fontWeight: 700 }}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Category & Clause Mode Toggle */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Kategori Temuan (Severity) *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCategory('Major NC')}
+                    className={`btn btn-sm ${category === 'Major NC' ? 'btn-danger' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.72rem', padding: '0.35rem 0.2rem' }}
+                  >
+                    Major NC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategory('Minor NC')}
+                    className={`btn btn-sm ${category === 'Minor NC' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.72rem', padding: '0.35rem 0.2rem' }}
+                  >
+                    Minor NC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCategory('Observation')}
+                    className={`btn btn-sm ${category === 'Observation' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.72rem', padding: '0.35rem 0.2rem' }}
+                  >
+                    Observasi
+                  </button>
                 </div>
-              ) : (
-                <select
-                  value={clauseCode}
-                  onChange={(e) => handleStandardClauseChange(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-                >
-                  {(standard === 'DOC' ? ISM_DOC_ELEMENTS : ISM_SMC_ELEMENTS).map(elem => (
-                    <option key={elem.code} value={elem.code}>
-                      {elem.code} - {elem.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-
-          {/* Row 3: Description of Non-Conformity */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Uraian Ketidaksesuaian (Description of Non-Conformity) <span className="text-rose-400">*</span>
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Jelaskan kondisi ketidaksesuaian yang ditemukan terhadap prosedur ISM Code..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          {/* Row 4: Objective Evidence */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Bukti Objektif Auditor (Objective Evidence) <span className="text-rose-400">*</span>
-            </label>
-            <textarea
-              required
-              rows={2}
-              value={objectiveEvidence}
-              onChange={(e) => setObjectiveEvidence(e.target.value)}
-              placeholder="Fakta fisik, catatan dokumen, atau hasil wawancara yang menjadi dasar temuan..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          {/* Row 5: Linked Certificate & Linked Requisition */}
-          <div className="p-4 bg-slate-950/60 border border-slate-800/80 rounded-xl space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-              <Link className="w-3.5 h-3.5 text-blue-400" />
-              Integrasi Data Kapal & Logistik Gudang:
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Linked Ship Certificate */}
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
-                  <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  Tautan Data Sertifikat Kapal
-                </label>
-                <select
-                  value={linkedCertificateId}
-                  onChange={(e) => setLinkedCertificateId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Tidak Terkait Sertifikat Spesifik --</option>
-                  {relevantCertificates.slice(0, 30).map(cert => (
-                    <option key={cert.id} value={cert.id}>
-                      {cert.name || cert.type} ({cert.documentNumber || 'No. Dok'})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Pilih sertifikat kapal yang terkait temuan (DOC BKI, SMC, SAFCON, dll.)
-                </p>
               </div>
 
-              {/* Linked Warehouse Requisition */}
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-amber-400" />
-                  Tautan Permintaan Barang ke Gudang
-                </label>
-                <select
-                  value={linkedRequisitionId}
-                  onChange={(e) => setLinkedRequisitionId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">-- Belum Ada / Input Nanti --</option>
-                  {relevantRequisitions.map(req => (
-                    <option key={req.id} value={req.id}>
-                      {req.requisitionNumber || req.id} - {req.title || req.department || 'Material Requisition'}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Hubungkan dengan nomor surat permintaan barang jika butuh sparepart untuk closing NC
-                </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    Mode Klausul ISM
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsManualClause(!isManualClause)}
+                    style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <Code size={12} />
+                    <span>{isManualClause ? 'Daftar Standar' : '✍️ Input Manual'}</span>
+                  </button>
+                </div>
+
+                {isManualClause ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <input
+                      type="text"
+                      required
+                      value={clauseCode}
+                      onChange={(e) => setClauseCode(e.target.value)}
+                      placeholder="Kode Klausul Manual (cth: ISM-10.3)"
+                      className="input-control mono"
+                      style={{ fontWeight: 700, color: '#0284c7' }}
+                    />
+                    <input
+                      type="text"
+                      required
+                      value={clauseName}
+                      onChange={(e) => setClauseName(e.target.value)}
+                      placeholder="Judul / Deskripsi Klausul"
+                      className="input-control"
+                      style={{ fontSize: '0.8rem' }}
+                    />
+                  </div>
+                ) : (
+                  <select
+                    value={clauseCode}
+                    onChange={(e) => handleStandardClauseChange(e.target.value)}
+                    className="select-control"
+                  >
+                    {(standard === 'DOC' ? ISM_DOC_ELEMENTS : ISM_SMC_ELEMENTS).map(elem => (
+                      <option key={elem.code} value={elem.code}>
+                        {elem.code} - {elem.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Row 6: PIC, Auditor, Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Row 3: Description */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                PIC Penanggung Jawab
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Uraian Ketidaksesuaian (Description of Non-Conformity) *
               </label>
-              <input
-                type="text"
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                placeholder="cth: KKM / Safety Supt"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Auditor ISM
-              </label>
-              <input
-                type="text"
-                value={auditor}
-                onChange={(e) => setAuditor(e.target.value)}
-                placeholder="Nama Auditor"
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Batas Waktu Close (Due Date) <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="date"
+              <textarea
                 required
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Jelaskan kondisi ketidaksesuaian yang ditemukan terhadap prosedur ISM Code..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
               />
+            </div>
+
+            {/* Row 4: Objective Evidence */}
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Bukti Objektif Auditor (Objective Evidence) *
+              </label>
+              <textarea
+                required
+                rows={2}
+                value={objectiveEvidence}
+                onChange={(e) => setObjectiveEvidence(e.target.value)}
+                placeholder="Fakta fisik, catatan dokumen, atau hasil observasi yang menjadi dasar temuan..."
+                className="input-control"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            {/* Row 5: Linked Certificate & Linked Requisition */}
+            <div style={{ padding: '1rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <Link size={14} color="#0284c7" />
+                <span>Integrasi Data Sertifikat Kapal & Permintaan Barang Gudang:</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>
+                    Tautan Data Sertifikat Kapal
+                  </label>
+                  <select
+                    value={linkedCertificateId}
+                    onChange={(e) => setLinkedCertificateId(e.target.value)}
+                    className="select-control"
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <option value="">-- Tidak Terkait Sertifikat Spesifik --</option>
+                    {relevantCertificates.slice(0, 30).map(cert => (
+                      <option key={cert.id} value={cert.id}>
+                        {cert.name || cert.type} ({cert.documentNumber || 'No. Dok'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>
+                    Tautan Permintaan Barang ke Gudang
+                  </label>
+                  <select
+                    value={linkedRequisitionId}
+                    onChange={(e) => setLinkedRequisitionId(e.target.value)}
+                    className="select-control"
+                    style={{ fontSize: '0.78rem' }}
+                  >
+                    <option value="">-- Belum Ada / Input Nanti --</option>
+                    {relevantRequisitions.map(req => (
+                      <option key={req.id} value={req.id}>
+                        {req.requisitionNumber || req.id} - {req.title || req.department || 'Material Requisition'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 6: PIC, Auditor, Dates */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  PIC Penanggung Jawab
+                </label>
+                <input
+                  type="text"
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  placeholder="cth: KKM / Masinis"
+                  className="input-control"
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Auditor ISM
+                </label>
+                <input
+                  type="text"
+                  value={auditor}
+                  onChange={(e) => setAuditor(e.target.value)}
+                  placeholder="Nama Auditor"
+                  className="input-control"
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Batas Waktu Close *
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="input-control mono"
+                  style={{ fontSize: '0.8rem' }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 transition"
-            >
+          {/* Footer */}
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-secondary">
               Batal
             </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white shadow-lg shadow-amber-500/20 transition flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              {isEdit ? 'Simpan Perubahan Temuan' : 'Catat Temuan (NC Open)'}
+            <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Save size={15} />
+              <span>{isEdit ? 'Simpan Perubahan Temuan' : 'Catat Temuan (NC Open)'}</span>
             </button>
           </div>
         </form>
