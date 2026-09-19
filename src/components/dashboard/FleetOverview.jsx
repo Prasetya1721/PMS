@@ -66,7 +66,7 @@ export const FleetOverview = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
             <span className="badge badge-info">Fleet Control Center</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Monitoring {vessels.length} Kapal (17 As Owner & 11 As Operator)
+              Monitoring {vessels.length} Kapal ({vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} As Owner{vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') ? ` & ${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} As Operator` : ''})
             </span>
           </div>
           <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>

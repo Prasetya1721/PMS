@@ -100,8 +100,8 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
     priority: workOrder?.priority || 'Penting (Segera)',
     requestDate: workOrder?.requestDate || workOrder?.dueDate || new Date().toISOString().split('T')[0],
     neededDate: workOrder?.neededDate || workOrder?.dueDate || new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    deliveryLocation: workOrder?.deliveryLocation || 'Dermaga Pelabuhan Samarinda',
-    notes: workOrder?.notes || workOrder?.title || 'Mohon dipersiapkan sebelum kapal menyelesaikan bongkar muat di Samarinda.'
+    deliveryLocation: workOrder?.deliveryLocation || 'Dermaga Pelabuhan Dwikora Pontianak',
+    notes: workOrder?.notes || workOrder?.title || 'Mohon dipersiapkan sebelum kapal menyelesaikan bongkar muat di Pontianak.'
   });
 
   // Requisition items table state
@@ -682,7 +682,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
                   <label className="field-label">Lokasi Penyerahan Barang</label>
                   <input
                     type="text"
-                    placeholder="Dermaga Pelabuhan Samarinda / Muara Berau"
+                    placeholder="Dermaga Pelabuhan Dwikora Pontianak / Muara Jungkat"
                     value={formData.deliveryLocation}
                     onChange={(e) => setFormData(prev => ({ ...prev, deliveryLocation: e.target.value }))}
                     className="input-control"
@@ -989,7 +989,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
                       SHIP MANAGEMENT & FLEET LOGISTICS SUPPLY DIVISION
                     </p>
                     <p style={{ fontSize: '0.72rem', color: '#475569', margin: '2px 0 0 0' }}>
-                      Jl. P. Untung Suropati No. 88, Samarinda, Kalimantan Timur 75126 • Telp: (0541) 741234 • Email: logistics@baharimas.co.id
+                      Jl. Rahadi Usman No. 88, Pontianak, Kalimantan Barat 78111 • Telp: (0561) 741234 • Email: logistics@baharimas.co.id
                     </p>
                   </div>
                   <div style={{ textAlign: 'right', borderLeft: '1px solid #cbd5e1', paddingLeft: '1rem' }}>
@@ -1175,7 +1175,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
                       </div>
                     </div>
                     <strong style={{ fontSize: '0.8rem', color: '#0f172a', borderTop: '1px solid #0f172a', width: '85%', paddingTop: '3px' }}>
-                      ( Staff Gudang Samarinda )
+                      ( Staff Gudang Pontianak )
                     </strong>
                     <span style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>
                       Tgl: __ / __ / 2026

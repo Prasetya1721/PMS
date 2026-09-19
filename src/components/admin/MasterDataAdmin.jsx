@@ -99,8 +99,8 @@ export const MasterDataAdmin = () => {
     callSign: '',
     gt: 310,
     dwt: 450,
-    portOfRegistry: 'Samarinda, Kalimantan Timur',
-    builder: 'PT Dok & Perkapalan Baharimas Samarinda',
+    portOfRegistry: 'Pontianak, Kalimantan Barat',
+    builder: 'PT Dok & Perkapalan Baharimas Pontianak',
     yearBuilt: 2022,
     status: 'Operasional (Berlayar)'
   });
@@ -135,7 +135,7 @@ export const MasterDataAdmin = () => {
     category: 'KSOP',
     defaultValidityYears: 1,
     issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
-    mandatoryAuditor: 'Syahbandar KSOP Samarinda'
+    mandatoryAuditor: 'Syahbandar KSOP Pontianak'
   });
 
   // User Management state
@@ -186,7 +186,7 @@ export const MasterDataAdmin = () => {
     const operatorVessels = vessels.filter(v => v.ownershipStatus === 'As Operator' || v.id.startsWith('v-op-')).length;
     const vesselsWithParticulars = vessels.filter(v => v.particulars && v.particulars.dimensions).length;
     const vesselsMissingReg = vessels.filter(v => !v.regNo && !v.imo);
-    const vesselIntegrityPass = totalVessels >= 28 && vesselsMissingReg.length === 0;
+    const vesselIntegrityPass = totalVessels > 0 && vesselsMissingReg.length === 0;
 
     // Audit Crew
     const totalCrew = (allCrew || crew || []).length;
@@ -209,7 +209,7 @@ export const MasterDataAdmin = () => {
       else if (diff <= 30) expStatus = 'Due Soon';
       return d.status !== expStatus;
     });
-    const docIntegrityPass = totalDocs >= 200 && docsMissingCategory.length === 0 && docsMissingIssueDate.length === 0 && docsMissingExpiryDate.length === 0;
+    const docIntegrityPass = totalDocs > 0 && docsMissingCategory.length === 0 && docsMissingIssueDate.length === 0 && docsMissingExpiryDate.length === 0;
 
     // Audit Categories
     const categoriesCount = (certificateCategories || []).length;
@@ -234,7 +234,7 @@ export const MasterDataAdmin = () => {
 
     // Overall Score Calculation (out of 100)
     let score = 100;
-    if (totalVessels < 28) score -= 10;
+    if (totalVessels === 0) score -= 10;
     if (vesselsMissingReg.length > 0) score -= 5;
     if (crewUnassigned.length > 0) score -= 5;
     if (docsMissingCategory.length > 0) score -= 10;
@@ -422,7 +422,7 @@ export const MasterDataAdmin = () => {
       category: 'KSOP',
       defaultValidityYears: 1,
       issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
-      mandatoryAuditor: 'Syahbandar KSOP Samarinda'
+      mandatoryAuditor: 'Syahbandar KSOP Pontianak'
     });
   };
 
@@ -518,7 +518,7 @@ export const MasterDataAdmin = () => {
       color: '#38bdf8',
       bg: 'rgba(56, 189, 248, 0.15)',
       border: 'rgba(56, 189, 248, 0.35)',
-      desc: 'Monitoring operasional 28 armada, persetujuan biaya & perbaikan, laporan komprehensif.'
+      desc: 'Monitoring operasional armada kapal, persetujuan biaya & perbaikan, laporan komprehensif.'
     },
     'Admin Kapal / Nakhoda': {
       color: '#10b981',
@@ -707,7 +707,7 @@ export const MasterDataAdmin = () => {
                     </span>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.35rem', maxWidth: '650px' }}>
-                    Seluruh 28 armada kapal, data awak kapal, sertifikat maritim dengan tanggal penerbitan & expired, jam operasional mesin, dan inventaris sparepart telah diverifikasi.
+                    Seluruh data armada kapal, data awak kapal, sertifikat maritim dengan tanggal penerbitan & expired, jam operasional mesin, dan inventaris sparepart telah diverifikasi.
                   </p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '0.25rem' }}>
                     Waktu Audit Terakhir: <strong>{auditTimestamp} WIB</strong> • Standar Verifikasi: <strong>BKI, Ditjen Hubla (KSOP), KKP</strong>
@@ -731,7 +731,7 @@ export const MasterDataAdmin = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Ship size={18} color="#38bdf8" />
-                  <h4 style={{ fontWeight: 700, fontSize: '1rem' }}>Data 28 Armada Kapal</h4>
+                  <h4 style={{ fontWeight: 700, fontSize: '1rem' }}>Data Armada Kapal</h4>
                 </div>
                 <span className={`badge ${auditReport.vesselIntegrityPass ? 'badge-success' : 'badge-warning'}`}>
                   {auditReport.vesselIntegrityPass ? '✓ Lolos Verifikasi' : 'Perhatian'}
@@ -740,7 +740,7 @@ export const MasterDataAdmin = () => {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.825rem' }}>
                 <li style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Total Armada Kapal:</span>
-                  <strong>{auditReport.totalVessels} Kapal (17 As Owner, 11 As Operator)</strong>
+                  <strong>{auditReport.totalVessels} Kapal ({auditReport.ownerVessels} As Owner{auditReport.operatorVessels > 0 ? `, ${auditReport.operatorVessels} As Operator` : ''})</strong>
                 </li>
                 <li style={{ display: 'flex', justifyContent: 'space-between', padding: '0.35rem 0', borderBottom: '1px solid var(--border-subtle)' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Data Particular Kapal:</span>
@@ -893,9 +893,9 @@ export const MasterDataAdmin = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Master Data Armada Kapal (28 Kapal)</h3>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Master Data Armada Kapal ({vessels.length} Kapal)</h3>
               <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Daftar lengkap 17 Kapal Milik (As Owner) dan 11 Kapal Operasional (As Operator).
+                Daftar lengkap kapal milik ({auditReport.ownerVessels} As Owner){auditReport.operatorVessels > 0 ? ` dan ${auditReport.operatorVessels} kapal operasional (As Operator)` : ''}.
               </p>
             </div>
 
@@ -923,8 +923,8 @@ export const MasterDataAdmin = () => {
                     callSign: '',
                     gt: 310,
                     dwt: 450,
-                    portOfRegistry: 'Samarinda, Kalimantan Timur',
-                    builder: 'PT Dok & Perkapalan Baharimas Samarinda',
+                    portOfRegistry: 'Pontianak, Kalimantan Barat',
+                    builder: 'PT Dok & Perkapalan Baharimas Pontianak',
                     yearBuilt: 2022,
                     status: 'Operasional (Berlayar)'
                   });
@@ -960,7 +960,7 @@ export const MasterDataAdmin = () => {
                   className={`btn btn-sm ${vesselOwnershipFilter === opt ? 'btn-primary' : 'btn-secondary'}`}
                   style={{ fontSize: '0.78rem' }}
                 >
-                  {opt === 'ALL' ? 'Semua Armada' : opt === 'Owner' ? '⚓ As Owner (17)' : '⚙️ As Operator (11)'}
+                  {opt === 'ALL' ? 'Semua Armada' : opt === 'Owner' ? `⚓ As Owner (${auditReport.ownerVessels})` : `⚙️ As Operator (${auditReport.operatorVessels})`}
                 </button>
               ))}
             </div>
@@ -1039,7 +1039,7 @@ export const MasterDataAdmin = () => {
                                 callSign: v.callSign || '',
                                 gt: v.gt || 310,
                                 dwt: v.dwt || 450,
-                                portOfRegistry: v.portOfRegistry || 'Samarinda',
+                                portOfRegistry: v.portOfRegistry || 'Pontianak',
                                 builder: v.builder || '',
                                 yearBuilt: v.yearBuilt || 2022,
                                 status: v.status || 'Operasional (Berlayar)'
@@ -2170,7 +2170,7 @@ export const MasterDataAdmin = () => {
                                   border: '1px solid rgba(56, 189, 248, 0.35)'
                                 }}
                               >
-                                🚢 Semua Kapal (28 Armada)
+                                🚢 Semua Kapal ({vessels.length} Armada)
                               </span>
                             ) : (
                               <span
@@ -2782,7 +2782,7 @@ export const MasterDataAdmin = () => {
                     onChange={(e) => setUserFormData(prev => ({ ...prev, shipAccess: e.target.value }))}
                     className="select-control"
                   >
-                    <option value="All">🚢 Semua Kapal (Full Fleet Access - 28 Armada)</option>
+                    <option value="All">🚢 Semua Kapal (Full Fleet Access - {vessels.length} Armada)</option>
                     <optgroup label="Pilih Kapal Spesifik:">
                       {vessels.map(v => (
                         <option key={v.id} value={v.id}>⚓ {v.name} ({v.ownershipStatus || 'Owner'})</option>
@@ -2791,7 +2791,7 @@ export const MasterDataAdmin = () => {
                   </select>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem', display: 'block' }}>
                     {userFormData.shipAccess === 'All'
-                      ? 'Pengguna dapat mengelola seluruh 28 armada kapal Baharimas.'
+                      ? 'Pengguna dapat mengelola seluruh armada kapal Baharimas.'
                       : 'Pengguna hanya dibatasi pada data dan logbook kapal ini.'}
                   </span>
                 </div>

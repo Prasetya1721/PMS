@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
   Ship,
@@ -27,6 +27,7 @@ import {
   MessageCircle,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Edit3,
   Edit2,
   Trash2,
@@ -93,6 +94,33 @@ export const VesselDashboard = () => {
   const [shipDocCatFilter, setShipDocCatFilter] = useState('ALL');
   const [editingShipDoc, setEditingShipDoc] = useState(null);
 
+  // Sub-tabs horizontal scroll controls (agar tab yang terpotong bisa digeser rapi)
+  const subTabsRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateSubTabsArrows = () => {
+    const el = subTabsRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth - 4;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < maxScroll);
+  };
+
+  useEffect(() => {
+    updateSubTabsArrows();
+    const el = subTabsRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', updateSubTabsArrows, { passive: true });
+    window.addEventListener('resize', updateSubTabsArrows);
+    const t = setTimeout(updateSubTabsArrows, 300);
+    return () => {
+      el.removeEventListener('scroll', updateSubTabsArrows);
+      window.removeEventListener('resize', updateSubTabsArrows);
+      clearTimeout(t);
+    };
+  }, []);
+
   // New Crew Form State
   const [newCrewData, setNewCrewData] = useState({
     name: '',
@@ -114,13 +142,13 @@ export const VesselDashboard = () => {
     imo: '24587',
     regNo: '24587',
     callSign: 'YDB2458',
-    portOfRegistry: 'Samarinda, Kalimantan Timur',
-    builder: 'PT Dok & Perkapalan Baharimas Samarinda',
+    portOfRegistry: 'Pontianak, Kalimantan Barat',
+    builder: 'PT Dok & Perkapalan Baharimas Pontianak',
     yearBuilt: 2020,
     speedKnots: 7.8,
     gt: 310,
     status: 'Operasional (Berlayar)',
-    currentLocation: 'Muara Berau (Towing Tongkang)',
+    currentLocation: 'Sungai Kapuas / Muara Jungkat (Pontianak)',
     photo: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80'
   };
 
@@ -186,7 +214,7 @@ export const VesselDashboard = () => {
       `📅 Tgl Permintaan: ${wo.requestDate || wo.dueDate || '-'}`,
       `⏰ Tgl Dibutuhkan: *${wo.neededDate || wo.dueDate || 'Segera'}*`,
       `⚡ Prioritas: *${wo.priority}*`,
-      `📍 Lokasi Serah: ${wo.deliveryLocation || 'Dermaga Pelabuhan Samarinda'}`,
+      `📍 Lokasi Serah: ${wo.deliveryLocation || 'Dermaga Pelabuhan Dwikora Pontianak'}`,
       ``,
       `*DAFTAR BARANG YANG DIMINTA:*`,
       ...items.map((it, idx) => `${idx + 1}. *${it.name}* - ${it.qty} ${it.unit} (${it.notes || '-'})`),
@@ -409,15 +437,51 @@ export const VesselDashboard = () => {
           </div>
         </div>
 
-        {/* Dedicated Navigation Sub-Tabs */}
+        {/* Dedicated Navigation Sub-Tabs — scrollable rapi + tombol geser */}
         <div style={{
           display: 'flex',
-          gap: '0.25rem',
-          padding: '0.5rem 1.5rem',
-          background: 'rgba(2, 6, 23, 0.6)',
+          alignItems: 'stretch',
+          gap: '0.4rem',
+          padding: '0.55rem 0.75rem',
+          background: theme === 'light' ? '#f1f5f9' : 'rgba(2, 6, 23, 0.75)',
           borderTop: '1px solid var(--border-glass)',
-          overflowX: 'auto'
+          position: 'relative'
         }}>
+          {canScrollLeft && (
+            <button
+              type="button"
+              aria-label="Geser tab ke kiri"
+              onClick={() => subTabsRef.current?.scrollBy({ left: -280, behavior: 'smooth' })}
+              style={{
+                flexShrink: 0,
+                width: '30px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-surface-elevated)',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+          )}
+          <div
+            ref={subTabsRef}
+            className="vessel-subtabs-scroll"
+            style={{
+              flex: 1,
+              display: 'flex',
+              gap: '0.35rem',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              padding: '0.1rem',
+              scrollbarWidth: 'thin',
+              scrollBehavior: 'smooth'
+            }}
+          >
           {[
             { id: 'overview', label: 'Ringkasan & Vital Status', icon: Compass, badge: null },
             { id: 'particulars', label: 'Data Particular Kapal', icon: FileText, badge: 'BKI' },
@@ -440,26 +504,72 @@ export const VesselDashboard = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id)}
+                title={tab.label}
                 className={`tab-btn ${isActive ? 'active' : ''}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  padding: '0.55rem 1rem',
-                  fontSize: '0.825rem',
-                  fontWeight: isActive ? 700 : 500
+                  padding: '0.6rem 0.95rem',
+                  fontSize: '0.82rem',
+                  fontWeight: isActive ? 700 : 600,
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  borderRadius: '10px',
+                  border: isActive
+                    ? '1px solid rgba(56, 189, 248, 0.55)'
+                    : theme === 'light'
+                      ? '1px solid #e2e8f0'
+                      : '1px solid rgba(148, 163, 184, 0.18)',
+                  background: isActive
+                    ? undefined
+                    : theme === 'light'
+                      ? '#ffffff'
+                      : 'rgba(148, 163, 184, 0.08)',
+                  color: isActive
+                    ? undefined
+                    : theme === 'light'
+                      ? '#334155'
+                      : '#cbd5e1',
+                  boxShadow: isActive ? undefined : 'none'
                 }}
               >
-                <Icon size={15} color={isActive ? '#38bdf8' : 'var(--text-subtle)'} />
-                <span>{tab.label}</span>
-                {tab.badge !== null && (
-                  <span className={`badge ${tab.alert ? 'badge-danger-pulse' : isActive ? 'badge-info' : 'badge-neutral'}`} style={{ fontSize: '0.68rem', padding: '0.05rem 0.4rem' }}>
+                <Icon
+                  size={15}
+                  color={isActive ? '#fff' : theme === 'light' ? '#0284c7' : '#7dd3fc'}
+                  style={{ flexShrink: 0 }}
+                />
+                <span style={{ whiteSpace: 'nowrap' }}>{tab.label}</span>
+                {tab.badge !== null && tab.badge !== undefined && (
+                  <span className={`badge ${tab.alert ? 'badge-danger-pulse' : isActive ? 'badge-info' : 'badge-neutral'}`} style={{ fontSize: '0.68rem', padding: '0.05rem 0.4rem', flexShrink: 0 }}>
                     {tab.badge}
                   </span>
                 )}
               </button>
             );
           })}
+          </div>
+          {canScrollRight && (
+            <button
+              type="button"
+              aria-label="Geser tab ke kanan"
+              onClick={() => subTabsRef.current?.scrollBy({ left: 280, behavior: 'smooth' })}
+              style={{
+                flexShrink: 0,
+                width: '30px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-surface-elevated)',
+                color: 'var(--text-main)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -725,6 +725,34 @@ h1, h2, h3, h4, h5 {
   box-shadow: 0 2px 8px var(--primary-glow);
 }
 
+/* Vessel Dashboard sub-tabs: rapi, terlihat, bisa digeser */
+.vessel-subtabs-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(56, 189, 248, 0.55) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.vessel-subtabs-scroll::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+.vessel-subtabs-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vessel-subtabs-scroll::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.55);
+  border-radius: 9999px;
+}
+.vessel-subtabs-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+.vessel-subtabs-scroll .tab-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+[data-theme='light'] .vessel-subtabs-scroll::-webkit-scrollbar-thumb {
+  background: rgba(2, 132, 199, 0.45);
+}
+
 /* Urgency Header Marquee Alert */
 .urgency-banner {
   background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(245, 158, 11, 0.15) 50%, rgba(239, 68, 68, 0.2) 100%);

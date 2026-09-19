@@ -185,7 +185,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                   PT. PELAYARAN BAHARIMAS KALIMANTAN
                 </h2>
                 <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', letterSpacing: '0.02em', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Technical Marine & Fleet Maintenance Department • Pontianak - Samarinda - Banjarmasin
+                  Technical Marine & Fleet Maintenance Department • Pontianak, Kalimantan Barat
                 </p>
               </div>
             </div>

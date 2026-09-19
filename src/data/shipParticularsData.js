@@ -13,8 +13,8 @@ export const createDefaultShipParticulars = (vessel = {}) => {
   const regNo = vessel.regNo || vessel.imo || '24587';
   const name = vessel.name || 'RP 2020';
   const yearBuilt = vessel.yearBuilt || 2020;
-  const builder = vessel.builder || 'PT Dok & Perkapalan Baharimas';
-  const port = vessel.portOfRegistry || 'Samarinda, Kalimantan Timur';
+  const builder = vessel.builder || 'PT Dok & Perkapalan Baharimas Pontianak';
+  const port = vessel.portOfRegistry || 'Pontianak, Kalimantan Barat';
   const flag = vessel.flag || 'Indonesia (IDN)';
   const callSign = vessel.callSign || (isBarge ? '-' : `YDB${regNo.slice(0, 4)}`);
 

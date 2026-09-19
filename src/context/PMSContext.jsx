@@ -29,7 +29,7 @@ import { calculateNCRange } from '../utils/auditTimeUtils';
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v8-fleet-28-categories-dates';
+const PMS_STORAGE_VERSION = 'v10-kalbar-pontianak-base';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -60,9 +60,9 @@ export const PMSProvider = ({ children }) => {
       const saved = localStorage.getItem(`pms_${key}`);
       if (!saved) return fallback;
       const parsed = JSON.parse(saved);
-      // Extra safeguard: if stored vessels array doesn't have 28 items or lacks v-op-, force reload fallback
+      // Extra safeguard: if stored vessels array doesn't match fallback or lacks v-001, force reload fallback
       if (key === 'vessels') {
-        if (!Array.isArray(parsed) || parsed.length !== fallback.length || !parsed.some(v => v.id?.startsWith('v-op-'))) {
+        if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.some(v => v.id === 'v-001')) {
           return fallback;
         }
         return parsed.map(v => {
@@ -219,11 +219,11 @@ export const PMSProvider = ({ children }) => {
   useEffect(() => {
     const isStale =
       vessels.length === 0 ||
-      !vessels.some(v => v.id?.startsWith('v-op-')) ||
-      vessels.some(v => v.ownershipStatus === 'As Owner & Operator');
+      !vessels.some(v => v.id === 'v-001') ||
+      vessels.some(v => v.id !== 'v-001');
 
     if (isStale) {
-      console.log('Synchronizing fleet database to 28 vessels and standard documents...');
+      console.log('Synchronizing fleet database to RP 2020 Owner (v-001)...');
       setVessels(INITIAL_VESSELS);
       setEquipment(INITIAL_EQUIPMENT);
       setSchedules(INITIAL_MAINTENANCE_SCHEDULES);
@@ -581,7 +581,7 @@ export const PMSProvider = ({ children }) => {
       yearBuilt: Number(vesselData.yearBuilt) || new Date().getFullYear(),
       speedKnots: Number(vesselData.speedKnots) || (isBarge ? 0 : 8.0),
       flag: vesselData.flag || "Indonesia (IDN)",
-      portOfRegistry: vesselData.portOfRegistry || "Samarinda, Kalimantan Timur",
+      portOfRegistry: vesselData.portOfRegistry || "Pontianak, Kalimantan Barat",
       status: vesselData.status || "Operasional (Berlayar)",
       ownershipStatus: vesselData.ownershipStatus || "As Owner & Operator",
       photo: vesselData.photo || (
@@ -775,7 +775,7 @@ export const PMSProvider = ({ children }) => {
         expiryDate: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: "Active",
         daysUntilExpiry: 1825,
-        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Samarinda'}`,
+        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Pontianak'}`,
         scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_ss.pdf`
       },
       {
@@ -789,7 +789,7 @@ export const PMSProvider = ({ children }) => {
         expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         status: "Active",
         daysUntilExpiry: 365,
-        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Samarinda'}`,
+        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Pontianak'}`,
         scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_as.pdf`
       },
       ...prev
@@ -1039,7 +1039,7 @@ export const PMSProvider = ({ children }) => {
       auditType: auditData.auditType || 'Internal',
       standard: std,
       targetType: auditData.targetType || (std === 'DOC' ? 'Office' : 'Vessel'),
-      targetName: auditData.targetName || (auditData.vesselId ? (vessels.find(v => v.id === auditData.vesselId)?.name || 'Kapal Armada') : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Samarinda)'),
+      targetName: auditData.targetName || (auditData.vesselId ? (vessels.find(v => v.id === auditData.vesselId)?.name || 'Kapal Armada') : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)'),
       vesselId: auditData.vesselId || null,
       leadAuditor: auditData.leadAuditor || (isInt ? 'DPA / Lead Auditor Internal PT. PBK' : 'Surveyor BKI / Ditjen Hubla'),
       auditTeam: Array.isArray(auditData.auditTeam) ? auditData.auditTeam : (auditData.auditTeam ? [auditData.auditTeam] : ['Tim Inspektor Keselamatan']),
@@ -1645,7 +1645,7 @@ export const PMSProvider = ({ children }) => {
         ? `📋 TAHUNAN: Rencanakan anggaran docking & survey pembaharuan (Renewal Survey) tahun depan.`
         : `Segera tindak lanjuti sebelum batas toleransi survey habis.`);
 
-    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Samarinda / Banjarmasin'}`;
+    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Pontianak, Kalimantan Barat'}`;
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startIso}/${endIso}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
   };
@@ -1941,7 +1941,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_audits', JSON.stringify(INITIAL_AUDITS));
     localStorage.setItem('pms_auditFindings', JSON.stringify(INITIAL_AUDIT_FINDINGS));
 
-    showToast('Seluruh data armada (28 kapal, 215 dokumen, sesi audit ISM DOC/SMC) berhasil di-sinkronisasi ulang!', 'info');
+    showToast('Data armada kapal RP 2020 Owner (29 dokumen, jadwal PMS, audit ISM) berhasil di-sinkronisasi ulang!', 'info');
   };
 
   // Filtered views by selected vessel

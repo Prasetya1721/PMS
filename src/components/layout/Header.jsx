@@ -57,21 +57,25 @@ export const Header = () => {
             className="select-control"
             style={{ width: '275px', fontWeight: 600, background: 'var(--bg-surface)' }}
           >
-            <option value="all">🌐 Seluruh Armada (28 Entitas Kapal)</option>
-            <optgroup label="⚓ AS OWNER (17 Kapal Milik)">
-              {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
-                <option key={v.id} value={v.id}>
-                  🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="⚙️ AS OPERATOR (11 Kapal Operasional)">
-              {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
-                <option key={v.id} value={v.id}>
-                  ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
-                </option>
-              ))}
-            </optgroup>
+            <option value="all">🌐 Seluruh Armada ({vessels.length} Kapal)</option>
+            {vessels.some(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator') && (
+              <optgroup label={`⚓ AS OWNER (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal Milik)`}>
+                {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
+                  <option key={v.id} value={v.id}>
+                    🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') && (
+              <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal Operasional)`}>
+                {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
+                  <option key={v.id} value={v.id}>
+                    ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
 

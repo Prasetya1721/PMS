@@ -45,7 +45,7 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
     },
     {
       id: 'dpa',
-      label: 'DPA & Marine Superintendent (Samarinda)',
+      label: 'DPA & Marine Superintendent (Pontianak)',
       role: 'Designated Person Ashore (DPA)',
       phone: '6281288991122'
     },

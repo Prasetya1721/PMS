@@ -10,7 +10,7 @@ const MARITIME_PRESET_PHOTOS = [
   },
   {
     id: 'tug-port',
-    label: 'Tugboat Dermaga / Pelabuhan Samarinda',
+    label: 'Tugboat Dermaga / Pelabuhan Pontianak',
     desc: 'Kapal tunda sandar & asistensi alur',
     url: 'https://images.unsplash.com/photo-1505705694340-019e1e335916?auto=format&fit=crop&w=800&q=80'
   },
@@ -22,7 +22,7 @@ const MARITIME_PRESET_PHOTOS = [
   },
   {
     id: 'tug-river',
-    label: 'Tugboat Alur Sungai Mahakam',
+    label: 'Tugboat Alur Sungai Kapuas (Pontianak)',
     desc: 'Kapal tunda penarik tongkang sungai',
     url: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80'
   },

@@ -168,7 +168,7 @@ export const DocumentFormModal = ({
     issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
     issueDate: new Date().toISOString().split('T')[0],
     expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    mandatoryAuditor: 'Syahbandar KSOP Samarinda',
+    mandatoryAuditor: 'Syahbandar KSOP Pontianak',
     status: 'Active',
     notificationReminders: DEFAULT_REMINDERS,
     fileUrl: null,
@@ -225,7 +225,7 @@ export const DocumentFormModal = ({
         issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
         issueDate: new Date().toISOString().split('T')[0],
         expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        mandatoryAuditor: 'Syahbandar KSOP Samarinda',
+        mandatoryAuditor: 'Syahbandar KSOP Pontianak',
         status: 'Active',
         notificationReminders: DEFAULT_REMINDERS,
         fileUrl: null,
@@ -260,7 +260,7 @@ export const DocumentFormModal = ({
   const handleTemplateSelect = (tmpl) => {
     if (!tmpl) return;
     const selectedVessel = vessels.find(v => v.id === formData.vesselId);
-    const port = selectedVessel?.portOfRegistry?.split(',')[0] || 'Samarinda';
+    const port = selectedVessel?.portOfRegistry?.split(',')[0] || 'Pontianak';
     const reg = selectedVessel?.regNo || 'REG';
     const now = new Date();
     const issueStr = now.toISOString().split('T')[0];
@@ -314,11 +314,11 @@ export const DocumentFormModal = ({
 
   const handleCategoryChange = (newCat) => {
     let defaultIssuer = 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)';
-    let defaultAuditor = 'Syahbandar KSOP Samarinda';
+    let defaultAuditor = 'Syahbandar KSOP Pontianak';
 
     if (newCat === 'BKI') {
       defaultIssuer = 'Biro Klasifikasi Indonesia (BKI)';
-      defaultAuditor = 'Surveyor BKI Cabang Samarinda';
+      defaultAuditor = 'Surveyor BKI Cabang Pontianak';
     } else if (newCat === 'Statutory') {
       defaultIssuer = 'Direktorat Jenderal Perhubungan Laut / BKI Statutory';
       defaultAuditor = 'Marine Inspector Ditjen Hubla';
@@ -922,7 +922,7 @@ export const DocumentFormModal = ({
               <input
                 type="text"
                 required
-                placeholder="Contoh: KSOP Kelas II Samarinda / BKI"
+                placeholder="Contoh: KSOP Kelas II Pontianak / BKI"
                 value={formData.issuer}
                 onChange={(e) => setFormData(prev => ({ ...prev, issuer: e.target.value }))}
                 className="input-control"

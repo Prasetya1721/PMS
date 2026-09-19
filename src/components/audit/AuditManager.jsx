@@ -118,14 +118,14 @@ export const AuditManager = () => {
     const officeTarget = {
       id: 'office',
       type: 'office',
-      name: 'Kantor Pusat PT. PBK Samarinda',
+      name: 'Kantor Pusat PT. PBK Pontianak',
       subtitle: 'Audit Kepatuhan Perusahaan (DOC Standar Kantor)',
       standard: 'DOC',
       ownership: 'Head Office',
       callSign: 'DOC-PBK',
       imo: 'DOC-BKI-2026',
       gt: '-',
-      portOfRegistry: 'Samarinda, Kalimantan Timur',
+      portOfRegistry: 'Pontianak, Kalimantan Barat',
       nakhoda: 'Direktur Utama PT. PBK',
       kkm: 'DPA & Marine Superintendent',
       photo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
@@ -165,7 +165,7 @@ export const AuditManager = () => {
         callSign: v.callSign || 'YDB-PBK',
         imo: v.imo || v.regNo || '-',
         gt: v.gt || 250,
-        portOfRegistry: v.portOfRegistry || 'Samarinda',
+        portOfRegistry: v.portOfRegistry || 'Pontianak',
         nakhoda: v.masterCaptain || 'Capt. Nakhoda PBK',
         kkm: v.chiefEngineer || 'KKM Masinis PBK',
         photo: v.photo || 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80',
@@ -1900,7 +1900,7 @@ export const AuditManager = () => {
                       <div>
                         <strong style={{ color: 'var(--text-main)' }}>{doc.name || doc.type}</strong>
                         <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.1rem' }}>
-                          No: {doc.documentNumber || 'BKI/REG-PBK'} • Surveyor: {doc.mandatoryAuditor || 'BKI Samarinda'}
+                          No: {doc.documentNumber || 'BKI/REG-PBK'} • Surveyor: {doc.mandatoryAuditor || 'BKI Pontianak'}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>

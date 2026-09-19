@@ -69,7 +69,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   );
   const [auditee, setAuditee] = useState(session?.auditee || '');
   const [auditLocation, setAuditLocation] = useState(
-    session?.auditLocation || 'Kantor Pusat PT. PBK Samarinda'
+    session?.auditLocation || 'Kantor Pusat PT. PBK Pontianak'
   );
   const [auditDate, setAuditDate] = useState(session?.auditDate || new Date().toISOString().split('T')[0]);
   const [targetCloseDate, setTargetCloseDate] = useState(
@@ -146,26 +146,26 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
       if (standard === 'DOC') {
         setTargetType('Office');
-        setAuditLocation('Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Samarinda)');
+        setAuditLocation('Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)');
         setAuditee('Direktur Operasional, DPA & Manager Logistik');
         setScope('Evaluasi menyeluruh implementasi ISM Code klausul 1 s/d 16 pada operasional kantor pusat PT. Pelayaran Baharimas Kalimantan');
         if (auditType === 'Internal') {
           setLeadAuditor('Capt. Bambang Suryono, M.Mar (Lead Auditor DPA)');
           setAuditTeam('Ir. H. Syamsul Bahri (QHSE), Dimas Wicaksono (Fleet Supt)');
         } else {
-          setLeadAuditor('Surveyor BKI Cabang Utama Samarinda / Auditor Ditjen Hubla');
+          setLeadAuditor('Surveyor BKI Cabang Utama Pontianak / Auditor Ditjen Hubla');
           setAuditTeam('Tim Surveyor Statutory Flag State');
         }
       } else {
         setTargetType('Vessel');
-        setAuditLocation(`Onboard ${currentSelectedVessel?.name || 'Kapal Armada'} (Pelabuhan Samarinda / Muara Berau)`);
+        setAuditLocation(`Onboard ${currentSelectedVessel?.name || 'Kapal Armada'} (Pelabuhan Dwikora Pontianak / Sungai Kapuas)`);
         setAuditee(`Nakhoda & KKM ${currentSelectedVessel?.name || 'Kapal Armada'}`);
         setScope(`Verifikasi kepatuhan Safety Management System (SMS) ISM Code dan pemeliharaan alat keselamatan di atas kapal ${currentSelectedVessel?.name || 'Armada'}`);
         if (auditType === 'Internal') {
           setLeadAuditor('Capt. Ahmad Fauzi (Marine Safety Inspector / DPA)');
           setAuditTeam('Tim Safety Officer PT. PBK');
         } else {
-          setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Samarinda)');
+          setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Pontianak)');
           setAuditTeam('Surveyor Marine BKI');
         }
       }
@@ -299,7 +299,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     const selectedVessel = targetType === 'Vessel' ? vessels.find(v => v.id === vesselId) : null;
     const targetName = targetType === 'Vessel'
       ? (selectedVessel?.name || 'Kapal Armada PBK')
-      : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Samarinda)';
+      : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)';
 
     const teamArray = auditTeam.split(',').map(s => s.trim()).filter(Boolean);
 
@@ -593,7 +593,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                       <input
                         type="text"
                         disabled
-                        value="Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Samarinda)"
+                        value="Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)"
                         className="input-control"
                         style={{ opacity: 0.8, cursor: 'not-allowed' }}
                       />
@@ -618,7 +618,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-subtle)', display: 'block' }}>Pelabuhan Pendaftaran:</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{currentSelectedVessel.portOfRegistry || 'Samarinda'}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{currentSelectedVessel.portOfRegistry || 'Pontianak'}</strong>
                     </div>
                   </div>
                 )}

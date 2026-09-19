@@ -112,7 +112,7 @@ export const VesselList = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Daftar resmi 28 armada kapal niaga terpisah (17 As Owner & 11 As Operator), manajemen sertifikasi survei BKI, perwira penanggung jawab, dan penambahan kapal manual
+            Daftar armada kapal niaga ({vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} As Owner{vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') ? ` & ${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} As Operator` : ''}), manajemen sertifikasi survei BKI, perwira penanggung jawab, dan penambahan kapal manual
           </p>
         </div>
 
@@ -134,8 +134,8 @@ export const VesselList = () => {
         <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
           {[
             { id: 'ALL', label: 'Semua Armada', count: vessels.length },
-            { id: 'OWNER', label: '⚓ As Owner (17 Milik)', count: vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length },
-            { id: 'OPERATOR', label: '⚙️ As Operator (11 Operasi)', count: vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length },
+            { id: 'OWNER', label: '⚓ As Owner', count: vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length },
+            ...(vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') ? [{ id: 'OPERATOR', label: '⚙️ As Operator', count: vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length }] : []),
             { id: 'TUGBOAT', label: 'Tugboat', count: vessels.filter(v => v.type?.toLowerCase().includes('tugboat') || v.type?.toLowerCase().includes('tunda') || v.type?.toLowerCase().includes('penarik')).length },
             { id: 'BARGE', label: 'Tongkang / Barge', count: vessels.filter(v => v.type?.toLowerCase().includes('tongkang') || v.type?.toLowerCase().includes('barge')).length }
           ].map(f => (
@@ -183,13 +183,15 @@ export const VesselList = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <ShieldCheck size={18} color="#38bdf8" />
           <span>
-            <strong>Pemisahan Master Kapal Sesuai Dokumen:</strong> Terdaftar total <strong>28 entitas kapal</strong> yang dipisahkan menjadi <strong>17 Kapal As Owner</strong> (Milik Sendiri) dan <strong>11 Kapal As Operator</strong> (Pengoperasian), dengan total <strong>215 Dokumen Survei BKI</strong>.
+            <strong>Master Armada Kapal:</strong> Terdaftar total <strong>{vessels.length} entitas kapal</strong> ({vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal As Owner{vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') ? `, ${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal As Operator` : ''}), dengan total <strong>{allShipDocuments.length} Dokumen & Sertifikat BKI</strong>.
           </span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>17 Kapal As Owner</span>
-          <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>11 Kapal As Operator</span>
-          <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>215 Sertifikat BKI</span>
+          <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>{vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal As Owner</span>
+          {vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') && (
+            <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>{vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal As Operator</span>
+          )}
+          <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{allShipDocuments.length} Sertifikat BKI</span>
         </div>
       </div>
 
@@ -507,9 +509,9 @@ export const VesselList = () => {
                     onChange={handleInputChange}
                     className="select-control"
                   >
-                    <option value="Samarinda, Kalimantan Timur">Samarinda, Kalimantan Timur</option>
-                    <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
                     <option value="Pontianak, Kalimantan Barat">Pontianak, Kalimantan Barat</option>
+                    <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
+                    <option value="Samarinda, Kalimantan Timur">Samarinda, Kalimantan Timur</option>
                     <option value="Balikpapan, Kalimantan Timur">Balikpapan, Kalimantan Timur</option>
                     <option value="Kumai, Kalimantan Tengah">Kumai, Kalimantan Tengah</option>
                     <option value="Surabaya, Jawa Timur">Surabaya, Jawa Timur</option>

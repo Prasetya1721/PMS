@@ -292,7 +292,7 @@ export const buildComprehensiveFleetDocuments = (existingBkiSurveys, vessels) =>
       if (isAlreadyPresent) return;
 
       const reg = vessel.regNo || vessel.imo || '24587';
-      const portName = vessel.portOfRegistry?.split(',')[0] || 'Samarinda';
+      const portName = vessel.portOfRegistry?.split(',')[0] || 'Pontianak';
 
       let issueYear = 2024;
       let expiryYear = issueYear + tmpl.defaultValidityYears;
