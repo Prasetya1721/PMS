@@ -7,6 +7,7 @@ import {
   INITIAL_WORK_ORDERS,
   INITIAL_SPAREPARTS,
   INITIAL_REQUISITIONS,
+  INITIAL_VESSEL_BUDGETS,
   INITIAL_COSTS,
   INITIAL_CREW,
   INITIAL_LEAVES,
@@ -45,7 +46,7 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v10-kalbar-pontianak-base';
+const PMS_STORAGE_VERSION = 'v11-kalbar-pontianak-clean-report';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -75,7 +76,8 @@ export const PMSProvider = ({ children }) => {
       }
       const saved = localStorage.getItem(`pms_${key}`);
       if (!saved) return fallback;
-      const parsed = JSON.parse(saved);
+      const sanitized = saved.replace(/Samarinda/gi, 'Pontianak');
+      const parsed = JSON.parse(sanitized);
       // Extra safeguard: if stored vessels array doesn't match fallback or lacks v-001, force reload fallback
       if (key === 'vessels') {
         if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.some(v => v.id === 'v-001')) {
@@ -138,6 +140,7 @@ export const PMSProvider = ({ children }) => {
   const [spareparts, setSpareparts] = useState(() => loadStored('spareparts', INITIAL_SPAREPARTS));
   const [requisitions, setRequisitions] = useState(() => loadStored('requisitions', INITIAL_REQUISITIONS));
   const [costs, setCosts] = useState(() => loadStored('costs', INITIAL_COSTS));
+  const [vesselBudgets, setVesselBudgets] = useState(() => loadStored('vesselBudgets', INITIAL_VESSEL_BUDGETS));
   const [crew, setCrew] = useState(() => loadStored('crew', INITIAL_CREW));
   const [leaves, setLeaves] = useState(() => loadStored('leaves', INITIAL_LEAVES));
   const [drills, setDrills] = useState(() => loadStored('drills', INITIAL_DRILLS));
@@ -259,6 +262,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_spareparts', JSON.stringify(spareparts));
     localStorage.setItem('pms_requisitions', JSON.stringify(requisitions));
     localStorage.setItem('pms_costs', JSON.stringify(costs));
+    localStorage.setItem('pms_vessel_budgets', JSON.stringify(vesselBudgets));
     localStorage.setItem('pms_crew', JSON.stringify(crew));
     localStorage.setItem('pms_leaves', JSON.stringify(leaves));
     localStorage.setItem('pms_drills', JSON.stringify(drills));
@@ -273,7 +277,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings));
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
-    costs, crew, leaves, drills, crewCertificates, shipDocuments,
+    costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
     certificateCategories, documentTemplates, notificationSettings, notificationLogs, users,
     audits, auditFindings
   ]);
@@ -294,6 +298,7 @@ export const PMSProvider = ({ children }) => {
       setSpareparts(INITIAL_SPAREPARTS);
       setRequisitions(INITIAL_REQUISITIONS);
       setCosts(INITIAL_COSTS);
+      setVesselBudgets(INITIAL_VESSEL_BUDGETS);
       setCrew(INITIAL_CREW);
       setLeaves(INITIAL_LEAVES);
       setDrills(INITIAL_DRILLS);
@@ -310,6 +315,7 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
       localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
       localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
+      localStorage.setItem('pms_vessel_budgets', JSON.stringify(INITIAL_VESSEL_BUDGETS));
       localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
       localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
       localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
@@ -476,7 +482,7 @@ export const PMSProvider = ({ children }) => {
     showToast(`Permintaan barang baru berhasil dibuat: ${generated.id}`, 'success');
   };
 
-  // 3. Sparepart & Inventory Actions
+  // 3. Sparepart, Logistics & Inventory Actions
   const updateSparepartStock = (partId, delta) => {
     setSpareparts(prev => prev.map(sp => {
       if (sp.id !== partId) return sp;
@@ -486,18 +492,246 @@ export const PMSProvider = ({ children }) => {
       else if (newStock < sp.minStockQty) status = 'Low Stock';
       return { ...sp, stockQty: newStock, status };
     }));
-    showToast(`Stok sparepart telah disesuaikan`, 'info');
+    showToast(`Stok onboard telah disesuaikan`, 'info');
   };
 
+  const transferStockToVessel = (itemId, qty) => {
+    const transferQty = Math.max(1, Number(qty) || 1);
+    let success = false;
+    setSpareparts(prev => prev.map(item => {
+      if (item.id !== itemId) return item;
+      const currentWarehouse = item.stockWarehouse || 0;
+      if (currentWarehouse < transferQty) {
+        showToast(`Stok gudang darat (${currentWarehouse}) tidak mencukupi untuk transfer ${transferQty} unit!`, 'warning');
+        return item;
+      }
+      success = true;
+      const newWarehouse = currentWarehouse - transferQty;
+      const newVessel = (item.stockQty || 0) + transferQty;
+      let status = 'Normal';
+      if (newVessel === 0) status = 'Critical';
+      else if (newVessel < item.minStockQty) status = 'Low Stock';
+
+      showToast(`Berhasil mutasi ${transferQty} ${item.unit} ${item.name} dari Gudang Darat ke Onboard KM. RP 2020!`, 'success');
+      return {
+        ...item,
+        stockWarehouse: newWarehouse,
+        stockQty: newVessel,
+        status
+      };
+    }));
+    return success;
+  };
+
+  const consumeStockOnboard = (itemId, qty, reason = '') => {
+    const consumeQty = Math.max(1, Number(qty) || 1);
+    setSpareparts(prev => prev.map(item => {
+      if (item.id !== itemId) return item;
+      const currentVessel = item.stockQty || 0;
+      const newVessel = Math.max(0, currentVessel - consumeQty);
+      let status = 'Normal';
+      if (newVessel === 0) status = 'Critical';
+      else if (newVessel < item.minStockQty) status = 'Low Stock';
+
+      showToast(`Pemakaian ${consumeQty} ${item.unit} ${item.name} dicatat (${reason || 'Onboard KM. RP 2020'}).`, 'info');
+      return {
+        ...item,
+        stockQty: newVessel,
+        status
+      };
+    }));
+  };
+
+  const addLogisticItem = (itemData) => {
+    const targetType = itemData.target || (itemData.category?.toLowerCase().includes('crew') || itemData.category?.toLowerCase().includes('bama') || itemData.category?.toLowerCase().includes('apd') ? 'Crew' : 'Kapal');
+    const newItem = {
+      ...itemData,
+      id: `log-${Date.now()}`,
+      code: itemData.code?.trim() || `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
+      vesselId: itemData.vesselId || 'v-001',
+      target: targetType,
+      stockQty: Number(itemData.stockQty) || 0,
+      stockWarehouse: Number(itemData.stockWarehouse) || 0,
+      minStockQty: Number(itemData.minStockQty) || 1,
+      unitCost: Number(itemData.unitCost) || 0,
+      status: Number(itemData.stockQty) === 0 ? 'Critical' : (Number(itemData.stockQty) < Number(itemData.minStockQty) ? 'Low Stock' : 'Normal')
+    };
+    setSpareparts(prev => [newItem, ...prev]);
+    showToast(`Item logistik baru (${newItem.name}) berhasil didaftarkan ke sistem!`, 'success');
+    return newItem;
+  };
+
+  const updateLogisticItem = (itemId, updatedData) => {
+    setSpareparts(prev => prev.map(item => {
+      if (item.id !== itemId) return item;
+      const stockQty = updatedData.stockQty !== undefined ? Number(updatedData.stockQty) : item.stockQty;
+      const minStockQty = updatedData.minStockQty !== undefined ? Number(updatedData.minStockQty) : item.minStockQty;
+      let status = updatedData.status || item.status;
+      if (stockQty === 0) status = 'Critical';
+      else if (stockQty < minStockQty) status = 'Low Stock';
+      else status = 'Normal';
+
+      return {
+        ...item,
+        ...updatedData,
+        stockQty,
+        minStockQty,
+        status
+      };
+    }));
+    showToast(`Data barang logistik berhasil diperbarui!`, 'success');
+  };
+
+  const deleteLogisticItem = (itemId) => {
+    setSpareparts(prev => {
+      const it = prev.find(i => i.id === itemId);
+      const next = prev.filter(i => i.id !== itemId);
+      showToast(`Barang ${it?.name || itemId} berhasil dihapus dari inventaris.`, 'info');
+      return next;
+    });
+  };
+
+  // Requisitions & SPBK
   const addRequisition = (req) => {
     const newReq = {
       ...req,
-      id: `PR-2026-${String(requisitions.length + 1).padStart(3, '0')}`,
+      id: `SPBK-2026-${String(requisitions.length + 1).padStart(3, '0')}`,
       dateSubmitted: new Date().toISOString().split('T')[0],
-      status: 'Submitted'
+      status: req.status || 'Diajukan',
+      items: req.items || []
     };
     setRequisitions(prev => [newReq, ...prev]);
-    showToast(`Pengajuan sparepart ${newReq.id} berhasil dikirim ke armada`, 'success');
+    showToast(`Surat Permintaan Barang Kapal (${newReq.id}) berhasil diajukan!`, 'success');
+    return newReq;
+  };
+
+  const addLogisticRequisition = addRequisition;
+
+  const updateRequisitionStatus = (reqId, newStatus, meta = {}) => {
+    setRequisitions(prev => prev.map(req => {
+      if (req.id !== reqId) return req;
+      return {
+        ...req,
+        status: newStatus,
+        lastStatusUpdate: new Date().toISOString().split('T')[0],
+        ...meta
+      };
+    }));
+    showToast(`Status SPBK ${reqId} diperbarui: ${newStatus}`, 'info');
+  };
+
+  const receiveRequisitionItems = (reqId) => {
+    const targetReq = requisitions.find(r => r.id === reqId);
+    if (!targetReq) return;
+
+    // Update status to received
+    setRequisitions(prev => prev.map(r => {
+      if (r.id !== reqId) return r;
+      return {
+        ...r,
+        status: 'Selesai Diterima di Kapal',
+        receivedDate: new Date().toISOString().split('T')[0],
+        items: (r.items || []).map(it => ({ ...it, received: true }))
+      };
+    }));
+
+    // Increment onboard stock for matched items in catalog
+    if (targetReq.items && targetReq.items.length > 0) {
+      setSpareparts(prev => prev.map(sp => {
+        const matchedItem = targetReq.items.find(it => it.partId === sp.id || it.name.toLowerCase() === sp.name.toLowerCase());
+        if (!matchedItem) return sp;
+        const addQty = Number(matchedItem.qty) || 0;
+        const newVesselStock = sp.stockQty + addQty;
+        let status = 'Normal';
+        if (newVesselStock === 0) status = 'Critical';
+        else if (newVesselStock < sp.minStockQty) status = 'Low Stock';
+        return {
+          ...sp,
+          stockQty: newVesselStock,
+          status
+        };
+      }));
+    }
+
+    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+    showToast(`Barang SPBK ${reqId} telah resmi diterima di atas kapal KM. RP 2020! Stok onboard bertambah.`, 'success');
+  };
+
+  // 3B. Finance & Vessel Budget Management Actions
+  const updateVesselBudget = (budgetId, updatedBudgetData) => {
+    setVesselBudgets(prev => prev.map(b => {
+      if (b.id !== budgetId) return b;
+      return {
+        ...b,
+        ...updatedBudgetData,
+        lastUpdated: new Date().toISOString().split('T')[0]
+      };
+    }));
+    showToast(`Pagu anggaran kapal KM. RP 2020 berhasil diperbarui oleh Finance!`, 'success');
+  };
+
+  const addExpenseTransaction = (expenseData) => {
+    const newCost = {
+      ...expenseData,
+      id: expenseData.id || `cost-${Date.now().toString().slice(-4)}`,
+      date: expenseData.date || new Date().toISOString().split('T')[0],
+      amount: Number(expenseData.amount) || 0,
+      vesselId: expenseData.vesselId || 'v-001'
+    };
+
+    // Add to costs
+    setCosts(prev => [newCost, ...prev]);
+
+    // Automatically update the matching budget category in vesselBudgets
+    setVesselBudgets(prev => prev.map(b => {
+      if (b.vesselId !== newCost.vesselId) return b;
+      const updatedCategories = (b.categories || []).map(cat => {
+        const matchCode = newCost.budgetCategoryCode && cat.code === newCost.budgetCategoryCode;
+        const matchName = cat.name.toLowerCase().includes(newCost.category?.toLowerCase() || '') ||
+                          newCost.category?.toLowerCase().includes(cat.name.toLowerCase());
+        if (matchCode || matchName) {
+          return {
+            ...cat,
+            spent: (cat.spent || 0) + newCost.amount
+          };
+        }
+        return cat;
+      });
+      return {
+        ...b,
+        categories: updatedCategories,
+        lastUpdated: new Date().toISOString().split('T')[0]
+      };
+    }));
+
+    showToast(`Pengeluaran riil Rp ${new Intl.NumberFormat('id-ID').format(newCost.amount)} berhasil dicatat & memotong pagu anggaran kapal!`, 'success');
+    return newCost;
+  };
+
+  const deleteExpenseTransaction = (costId) => {
+    const targetCost = costs.find(c => c.id === costId);
+    if (!targetCost) return;
+
+    // Deduct spent from budget
+    setVesselBudgets(prev => prev.map(b => {
+      if (b.vesselId !== targetCost.vesselId) return b;
+      const updatedCategories = (b.categories || []).map(cat => {
+        const matchCode = targetCost.budgetCategoryCode && cat.code === targetCost.budgetCategoryCode;
+        const matchName = cat.name.toLowerCase().includes(targetCost.category?.toLowerCase() || '') ||
+                          targetCost.category?.toLowerCase().includes(cat.name.toLowerCase());
+        if (matchCode || matchName) {
+          return {
+            ...cat,
+            spent: Math.max(0, (cat.spent || 0) - targetCost.amount)
+          };
+        }
+        return cat;
+      });
+      return { ...b, categories: updatedCategories };
+    }));
+
+    setCosts(prev => prev.filter(c => c.id !== costId));
+    showToast(`Transaksi pengeluaran ${costId} berhasil dibatalkan.`, 'info');
   };
 
   // 4. Crew & Leaves Actions
@@ -2113,6 +2347,7 @@ export const PMSProvider = ({ children }) => {
     setSpareparts(INITIAL_SPAREPARTS);
     setRequisitions(INITIAL_REQUISITIONS);
     setCosts(INITIAL_COSTS);
+    setVesselBudgets(INITIAL_VESSEL_BUDGETS);
     setCrew(INITIAL_CREW);
     setLeaves(INITIAL_LEAVES);
     setDrills(INITIAL_DRILLS);
@@ -2137,6 +2372,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
     localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
     localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
+    localStorage.setItem('pms_vessel_budgets', JSON.stringify(INITIAL_VESSEL_BUDGETS));
     localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
     localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
     localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
@@ -2177,6 +2413,10 @@ export const PMSProvider = ({ children }) => {
   const filteredCosts = selectedVesselId === 'all'
     ? costs
     : costs.filter(c => c.vesselId === selectedVesselId);
+
+  const filteredVesselBudgets = selectedVesselId === 'all'
+    ? vesselBudgets
+    : vesselBudgets.filter(b => b.vesselId === selectedVesselId);
 
   const filteredDrills = selectedVesselId === 'all'
     ? drills
@@ -2258,6 +2498,8 @@ export const PMSProvider = ({ children }) => {
         requisitions,
         costs: filteredCosts,
         allCosts: costs,
+        vesselBudgets: filteredVesselBudgets,
+        allVesselBudgets: vesselBudgets,
         crew: filteredCrew,
         allCrew: crew,
         leaves,
@@ -2331,7 +2573,18 @@ export const PMSProvider = ({ children }) => {
         addWorkOrder,
         updateWorkOrder,
         updateSparepartStock,
+        transferStockToVessel,
+        consumeStockOnboard,
+        addLogisticItem,
+        updateLogisticItem,
+        deleteLogisticItem,
         addRequisition,
+        addLogisticRequisition,
+        updateRequisitionStatus,
+        receiveRequisitionItems,
+        updateVesselBudget,
+        addExpenseTransaction,
+        deleteExpenseTransaction,
         addVessel,
         updateVessel,
         deleteVessel,

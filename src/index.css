@@ -725,33 +725,6 @@ h1, h2, h3, h4, h5 {
   box-shadow: 0 2px 8px var(--primary-glow);
 }
 
-/* Vessel Dashboard sub-tabs: rapi, terlihat, bisa digeser */
-.vessel-subtabs-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(56, 189, 248, 0.55) transparent;
-  -webkit-overflow-scrolling: touch;
-}
-.vessel-subtabs-scroll::-webkit-scrollbar {
-  height: 6px;
-  display: block;
-}
-.vessel-subtabs-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.vessel-subtabs-scroll::-webkit-scrollbar-thumb {
-  background: rgba(56, 189, 248, 0.55);
-  border-radius: 9999px;
-}
-.vessel-subtabs-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
-}
-.vessel-subtabs-scroll .tab-btn {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-[data-theme='light'] .vessel-subtabs-scroll::-webkit-scrollbar-thumb {
-  background: rgba(2, 132, 199, 0.45);
-}
 
 /* Urgency Header Marquee Alert */
 .urgency-banner {
@@ -767,29 +740,215 @@ h1, h2, h3, h4, h5 {
   backdrop-filter: blur(8px);
 }
 
-/* Print Media Styles for Official Maritime Particulars Sheet */
+/* ========================================================================= */
+/* PRINT MEDIA STYLES - STANDAR DOKUMEN MARITIM A4 RESMI                      */
+/* (Audit Report ISM Code & Particulars Sheet PT. Pelayaran Baharimas K.)   */
+/* ========================================================================= */
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #000000 !important;
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
   }
 
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* 1. KETIKA MODAL AUDIT REPORT AKTIF: SEMBUNYIKAN 100% ELEMEN APLIKASI DI BACKGROUND */
+  body.audit-report-printing-active #root,
+  body.audit-report-printing-active .app-container,
+  body.audit-report-printing-active .main-content,
+  body.audit-report-printing-active .page-body,
+  body:has(.audit-report-portal) #root,
+  body:has(.audit-report-portal) .app-container,
+  body:has(.audit-report-sheet) #root,
+  body:has(.audit-report-sheet) .app-container {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 2. SEMBUNYIKAN ELEMEN KONTROL SCREEN LAINNYA */
   .no-print,
   aside,
   header,
+  nav,
   .sidebar,
   .urgency-banner,
+  .navbar,
   button,
-  .tab-btn {
+  .tab-btn,
+  input,
+  select,
+  textarea {
     display: none !important;
   }
 
+  /* Sembunyikan modal overlay lain yang bukan audit report */
+  .modal-overlay:not(.audit-report-portal):not(:has(.particulars-sheet)) {
+    display: none !important;
+  }
+
+  /* 3. FLATTEN PORTAL & MODAL OVERLAY UNTUK PRINT BERSIH */
+  .audit-report-portal,
+  .audit-report-portal.modal-overlay {
+    position: static !important;
+    display: block !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    inset: auto !important;
+    backdrop-filter: none !important;
+    z-index: auto !important;
+  }
+
+  .audit-report-portal .modal-dialog {
+    position: static !important;
+    display: block !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .audit-print-container {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* 4. A4 PAPER SHEET ISOLATION */
+  .audit-report-sheet {
+    box-shadow: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+
+  /* 5. PAGE BREAK PROTECTION (PENCEGAH HALAMAN TERPOTONG) */
+  .audit-report-kop {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    margin-bottom: 14px !important;
+  }
+
+  .audit-report-title {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    margin-bottom: 14px !important;
+  }
+
+  .audit-section-header {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .audit-signature-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 20px !important;
+  }
+
+  .audit-footer-note {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 24px !important;
+  }
+
+  .audit-watermark {
+    opacity: 0.1 !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+    color: rgba(16, 185, 129, 0.25) !important;
+  }
+
+  /* 6. TABEL DAN KOTAK METRIK */
+  table {
+    page-break-inside: auto;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: auto;
+  }
+
+  th, td {
+    border-color: #cbd5e1 !important;
+  }
+
+  /* 7. DUKUNGAN UNTUK DOKUMEN LAIN (PARTICULARS & SURAT PERMINTAAN BARANG GUDANG) */
   .particulars-sheet {
     box-shadow: none !important;
     border: 1px solid #cbd5e1 !important;
     background: #ffffff !important;
     color: #000000 !important;
-    padding: 1cm !important;
+    padding: 5mm !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  body:has(.particulars-sheet) aside,
+  body:has(.particulars-sheet) header,
+  body:has(.particulars-sheet) .sidebar,
+  body:has(.particulars-sheet) .urgency-banner {
+    display: none !important;
   }
 
   .glass-card {

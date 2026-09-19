@@ -27,7 +27,6 @@ import {
   MessageCircle,
   ExternalLink,
   ChevronRight,
-  ChevronLeft,
   Edit3,
   Edit2,
   Trash2,
@@ -46,6 +45,7 @@ import { ParticularsModal } from '../vessels/ParticularsModal';
 import { EditVesselPhotoModal } from '../vessels/EditVesselPhotoModal';
 import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { DocumentFormModal } from '../documents/DocumentFormModal';
+import { AuditReportModal } from '../audit/AuditReportModal';
 
 export const VesselDashboard = () => {
   const {
@@ -93,33 +93,9 @@ export const VesselDashboard = () => {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [shipDocCatFilter, setShipDocCatFilter] = useState('ALL');
   const [editingShipDoc, setEditingShipDoc] = useState(null);
+  const [vesselReportFinding, setVesselReportFinding] = useState(null);
+  const [vesselReportSession, setVesselReportSession] = useState(null);
 
-  // Sub-tabs horizontal scroll controls (agar tab yang terpotong bisa digeser rapi)
-  const subTabsRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateSubTabsArrows = () => {
-    const el = subTabsRef.current;
-    if (!el) return;
-    const maxScroll = el.scrollWidth - el.clientWidth - 4;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < maxScroll);
-  };
-
-  useEffect(() => {
-    updateSubTabsArrows();
-    const el = subTabsRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', updateSubTabsArrows, { passive: true });
-    window.addEventListener('resize', updateSubTabsArrows);
-    const t = setTimeout(updateSubTabsArrows, 300);
-    return () => {
-      el.removeEventListener('scroll', updateSubTabsArrows);
-      window.removeEventListener('resize', updateSubTabsArrows);
-      clearTimeout(t);
-    };
-  }, []);
 
   // New Crew Form State
   const [newCrewData, setNewCrewData] = useState({
@@ -437,62 +413,28 @@ export const VesselDashboard = () => {
           </div>
         </div>
 
-        {/* Dedicated Navigation Sub-Tabs — scrollable rapi + tombol geser */}
+        {/* Dedicated Navigation Sub-Tabs — Terlihat Semua (No clipping, No horizontal scroll) */}
         <div style={{
           display: 'flex',
-          alignItems: 'stretch',
-          gap: '0.4rem',
-          padding: '0.55rem 0.75rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '0.45rem',
+          padding: '0.65rem 0.85rem',
           background: theme === 'light' ? '#f1f5f9' : 'rgba(2, 6, 23, 0.75)',
           borderTop: '1px solid var(--border-glass)',
-          position: 'relative'
+          borderBottom: '1px solid var(--border-glass)'
         }}>
-          {canScrollLeft && (
-            <button
-              type="button"
-              aria-label="Geser tab ke kiri"
-              onClick={() => subTabsRef.current?.scrollBy({ left: -280, behavior: 'smooth' })}
-              style={{
-                flexShrink: 0,
-                width: '30px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-surface-elevated)',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
-          <div
-            ref={subTabsRef}
-            className="vessel-subtabs-scroll"
-            style={{
-              flex: 1,
-              display: 'flex',
-              gap: '0.35rem',
-              overflowX: 'auto',
-              overflowY: 'hidden',
-              padding: '0.1rem',
-              scrollbarWidth: 'thin',
-              scrollBehavior: 'smooth'
-            }}
-          >
           {[
-            { id: 'overview', label: 'Ringkasan & Vital Status', icon: Compass, badge: null },
-            { id: 'particulars', label: 'Data Particular Kapal', icon: FileText, badge: 'BKI' },
-            { id: 'crew', label: 'Awak Kapal (Crew Roster)', icon: Users, badge: shipCrew.length },
-            { id: 'documents', label: 'Sertifikat & Dokumen Kapal', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
-            { id: 'equipment', label: 'Equipment & Jam Mesin', icon: Wrench, badge: shipEquipment.length },
-            { id: 'workorders', label: 'Permintaan Barang ke Gudang', icon: ShoppingBag, badge: shipWOs.length, alert: overdueWO.length > 0 },
-            { id: 'spareparts', label: 'Inventaris Sparepart', icon: Package, badge: shipParts.length },
+            { id: 'overview', label: 'Ringkasan Status', icon: Compass, badge: null },
+            { id: 'particulars', label: 'Data Particulars', icon: FileText, badge: 'BKI' },
+            { id: 'crew', label: 'Awak Kapal (Crew)', icon: Users, badge: shipCrew.length },
+            { id: 'documents', label: 'Sertifikat & Dokumen', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
+            { id: 'equipment', label: 'Equipment Mesin', icon: Wrench, badge: shipEquipment.length },
+            { id: 'workorders', label: 'Permintaan Gudang', icon: ShoppingBag, badge: shipWOs.length, alert: overdueWO.length > 0 },
+            { id: 'spareparts', label: 'Suku Cadang', icon: Package, badge: shipParts.length },
             {
               id: 'audit',
-              label: 'Audit SMC Kapal',
+              label: 'Audit SMC',
               icon: ShieldCheck,
               badge: shipAuditFindings.length > 0 ? `${shipOpenNC} NC` : null,
               alert: shipOpenNC > 0
@@ -507,13 +449,15 @@ export const VesselDashboard = () => {
                 title={tab.label}
                 className={`tab-btn ${isActive ? 'active' : ''}`}
                 style={{
+                  flex: '1 1 auto',
+                  minWidth: 'fit-content',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.6rem 0.95rem',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  padding: '0.55rem 0.85rem',
                   fontSize: '0.82rem',
                   fontWeight: isActive ? 700 : 600,
-                  flexShrink: 0,
                   whiteSpace: 'nowrap',
                   borderRadius: '10px',
                   border: isActive
@@ -531,7 +475,9 @@ export const VesselDashboard = () => {
                     : theme === 'light'
                       ? '#334155'
                       : '#cbd5e1',
-                  boxShadow: isActive ? undefined : 'none'
+                  boxShadow: isActive ? undefined : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <Icon
@@ -539,7 +485,7 @@ export const VesselDashboard = () => {
                   color={isActive ? '#fff' : theme === 'light' ? '#0284c7' : '#7dd3fc'}
                   style={{ flexShrink: 0 }}
                 />
-                <span style={{ whiteSpace: 'nowrap' }}>{tab.label}</span>
+                <span>{tab.label}</span>
                 {tab.badge !== null && tab.badge !== undefined && (
                   <span className={`badge ${tab.alert ? 'badge-danger-pulse' : isActive ? 'badge-info' : 'badge-neutral'}`} style={{ fontSize: '0.68rem', padding: '0.05rem 0.4rem', flexShrink: 0 }}>
                     {tab.badge}
@@ -548,28 +494,6 @@ export const VesselDashboard = () => {
               </button>
             );
           })}
-          </div>
-          {canScrollRight && (
-            <button
-              type="button"
-              aria-label="Geser tab ke kanan"
-              onClick={() => subTabsRef.current?.scrollBy({ left: 280, behavior: 'smooth' })}
-              style={{
-                flexShrink: 0,
-                width: '30px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-surface-elevated)',
-                color: 'var(--text-main)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <ChevronRight size={16} />
-            </button>
-          )}
         </div>
       </div>
 
@@ -1872,9 +1796,31 @@ export const VesselDashboard = () => {
 
           {/* Findings Table */}
           <div className="glass-card" style={{ padding: '1.5rem' }}>
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>
-              Daftar Temuan Audit ISM Code Kapal {currentShip.name}
-            </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                Daftar Temuan Audit ISM Code Kapal {currentShip.name}
+              </h4>
+              <button
+                onClick={() => {
+                  setVesselReportSession({
+                    vesselId: currentShip.id,
+                    targetName: currentShip.name,
+                    standard: 'SMC',
+                    auditNo: `AUD-EXT-SMC-BKI-2026/04`,
+                    status: 'Completed',
+                    leadAuditor: 'Surveyor BKI Cabang Pontianak (Auditor Eksternal ISM Hubla)',
+                    auditee: `Capt. Hendra Gunawan, M.Mar & Ir. Bambang Wijaya (KKM ${currentShip.name})`,
+                    auditDate: '2026-07-20'
+                  });
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.76rem', fontWeight: 700, color: '#0284c7' }}
+                title="Cetak Laporan Hasil Audit ISM Code Kapal Ini (Standar A4)"
+              >
+                <Printer size={13} color="#0284c7" />
+                <span>🖨️ Cetak Laporan Audit Kapal</span>
+              </button>
+            </div>
 
             {shipAuditFindings.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
@@ -1947,15 +1893,36 @@ export const VesselDashboard = () => {
                             {finding.status}
                           </span>
                         </td>
-                        <td>
-                          <button
-                            onClick={() => setActiveTab('audit')}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
-                          >
-                            <span>Kelola Eviden</span>
-                            <ChevronRight size={12} />
-                          </button>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                            {finding.status === 'NC Close' && (
+                              <button
+                                onClick={() => setVesselReportFinding(finding)}
+                                className="btn btn-secondary btn-sm"
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '0.25rem 0.55rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  color: '#0284c7',
+                                  fontWeight: 700
+                                }}
+                                title="Cetak Lembar Verifikasi Penutupan NC Resmi (NCR Close-Out Form Standar BKI)"
+                              >
+                                <Printer size={12} color="#0284c7" />
+                                <span>Cetak NCR</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setActiveTab('audit')}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem' }}
+                            >
+                              <span>Kelola Eviden</span>
+                              <ChevronRight size={12} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2132,6 +2099,19 @@ export const VesselDashboard = () => {
           onClose={() => setShowPhotoModal(false)}
           onSavePhoto={(newPhotoUrl) => {
             updateVessel(currentShip.id, { photo: newPhotoUrl });
+          }}
+        />
+      )}
+
+      {/* Official Maritime Audit Report Print Modal */}
+      {(vesselReportFinding || vesselReportSession) && (
+        <AuditReportModal
+          session={vesselReportSession}
+          finding={vesselReportFinding}
+          initialMode={vesselReportFinding ? 'ncr' : 'session'}
+          onClose={() => {
+            setVesselReportFinding(null);
+            setVesselReportSession(null);
           }}
         />
       )}

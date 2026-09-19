@@ -31,10 +31,12 @@ import {
   Filter,
   Search,
   Ship,
-  Building2
+  Building2,
+  Printer
 } from 'lucide-react';
 import { calculateNCRange, formatIndoDate, calculateFleetTargetTimeStats } from '../../utils/auditTimeUtils';
 import { AuditNotificationModal } from '../audit/AuditNotificationModal';
+import { AuditReportModal } from '../audit/AuditReportModal';
 
 export const NotificationCenter = () => {
   const {
@@ -89,6 +91,7 @@ export const NotificationCenter = () => {
 
   // Audit Findings Notification State
   const [auditNotifModalFinding, setAuditNotifModalFinding] = useState(null);
+  const [auditPrintFinding, setAuditPrintFinding] = useState(null);
   const [auditFilterStatus, setAuditFilterStatus] = useState('all'); // 'all' | 'open' | 'overdue' | 'submitted' | 'closed'
   const [auditVesselFilter, setAuditVesselFilter] = useState('all');
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
@@ -2478,6 +2481,16 @@ export const NotificationCenter = () => {
                           <>
                             <button
                               type="button"
+                              onClick={() => setAuditPrintFinding(finding)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', color: '#0284c7', borderColor: 'rgba(2, 132, 199, 0.4)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+                              title="Cetak Laporan Penutupan NC Resmi Sesuai Standar ISM Code (NCR Close-Out Form)"
+                            >
+                              <Printer size={13} color="#0284c7" />
+                              <span>🖨️ Cetak Laporan NC Close</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => sendAuditWhatsAppNotification(finding, 'audit_nc_close', { recipientRole: 'Designated Person Ashore (DPA)' })}
                               className="btn btn-secondary btn-sm"
                               style={{ fontSize: '0.75rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }}
@@ -3008,6 +3021,15 @@ export const NotificationCenter = () => {
         <AuditNotificationModal
           finding={auditNotifModalFinding}
           onClose={() => setAuditNotifModalFinding(null)}
+        />
+      )}
+
+      {/* MODAL 4: Official Audit Report Print Modal */}
+      {auditPrintFinding && (
+        <AuditReportModal
+          finding={auditPrintFinding}
+          initialMode="ncr"
+          onClose={() => setAuditPrintFinding(null)}
         />
       )}
     </div>

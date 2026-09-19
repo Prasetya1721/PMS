@@ -25,8 +25,10 @@ import {
   Code,
   MapPin,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Printer
 } from 'lucide-react';
+import { AuditReportModal } from './AuditReportModal';
 
 export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultStandard }) => {
   const {
@@ -49,6 +51,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
   // Fullscreen state (default to true for maximum workspace comfort)
   const [isFullscreen, setIsFullscreen] = useState(true);
+  const [showPrintReport, setShowPrintReport] = useState(false);
 
   // Active form subtab
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'integrations' | 'checklist' | 'findings' | 'signoff'
@@ -423,11 +426,12 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         {/* ========================================================================= */}
         <div style={{
           display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
           gap: '0.4rem',
           padding: '0.65rem 1.5rem',
           background: 'var(--bg-surface-elevated)',
           borderBottom: '1px solid var(--border-subtle)',
-          overflowX: 'auto',
           flexShrink: 0
         }}>
           {[
@@ -1434,7 +1438,23 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setShowPrintReport(true)}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontWeight: 700,
+                  color: '#0284c7'
+                }}
+                title="Pratinjau & Cetak Laporan Lengkap Sesi Audit Sesuai Standar ISM Code (A4 Print / PDF)"
+              >
+                <Printer size={15} color="#0284c7" />
+                <span>🖨️ Cetak Laporan Audit Resmi</span>
+              </button>
               <button
                 type="button"
                 onClick={onClose}
@@ -1454,6 +1474,43 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
           </div>
         </form>
       </div>
+
+      {/* Official Audit Report Print Modal */}
+      {showPrintReport && (
+        <AuditReportModal
+          session={{
+            id: session?.id || 'aud-preview',
+            auditNo: auditNo || 'AUD-ISM-2026/PREVIEW',
+            auditType,
+            standard,
+            targetType,
+            targetName,
+            vesselId: targetType === 'Vessel' ? vesselId : null,
+            leadAuditor,
+            auditTeam: teamArray,
+            auditee,
+            auditLocation,
+            auditDate,
+            targetCloseDate,
+            scope,
+            status,
+            totalItemsChecked: checklist.length,
+            itemsComplied: checklistStats.complied,
+            findingsSummary: {
+              majorNC: checklistStats.majorNC,
+              minorNC: checklistStats.minorNC,
+              observation: checklistStats.obs,
+              totalOpen: checklistStats.majorNC + checklistStats.minorNC + checklistStats.obs,
+              totalClosed: 0
+            },
+            auditConclusion,
+            leadAuditorSign,
+            auditeeSign
+          }}
+          initialMode="session"
+          onClose={() => setShowPrintReport(false)}
+        />
+      )}
     </div>
   );
 };

@@ -31,12 +31,14 @@ import {
   Award,
   Radio,
   FileSpreadsheet,
-  MessageSquare
+  MessageSquare,
+  Printer
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
 import { SubmitEvidenceModal } from './SubmitEvidenceModal';
 import { AuditNotificationModal } from './AuditNotificationModal';
+import { AuditReportModal } from './AuditReportModal';
 import { calculateNCRange, calculateFleetTargetTimeStats, formatIndoDate } from '../../utils/auditTimeUtils';
 
 export const AuditManager = () => {
@@ -91,6 +93,12 @@ export const AuditManager = () => {
   const [evidenceTargetFinding, setEvidenceTargetFinding] = useState(null);
 
   const [notificationModalFinding, setNotificationModalFinding] = useState(null);
+
+  // Official Audit Report Print Modal state
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportModalSession, setReportModalSession] = useState(null);
+  const [reportModalFinding, setReportModalFinding] = useState(null);
+  const [reportModalMode, setReportModalMode] = useState('session'); // 'session' | 'ncr'
 
   // Manual checklist state per vessel
   const [customChecklistItems, setCustomChecklistItems] = useState([]);
@@ -895,6 +903,21 @@ export const AuditManager = () => {
             <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
                 onClick={() => {
+                  const targetSession = currentTarget.audits?.find(s => s.status === 'Completed') || currentTarget.audits?.[0];
+                  setReportModalSession(targetSession || null);
+                  setReportModalFinding(null);
+                  setReportModalMode('session');
+                  setReportModalOpen(true);
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#0284c7' }}
+                title="Cetak Laporan Audit ISM Code Resmi (DOC/SMC Standar BKI & Ditjen Hubla)"
+              >
+                <Printer size={15} color="#0284c7" />
+                <span>🖨️ Cetak Laporan Audit Resmi</span>
+              </button>
+              <button
+                onClick={() => {
                   setEditingSession(null);
                   setSessionModalOpen(true);
                 }}
@@ -1189,13 +1212,14 @@ export const AuditManager = () => {
             )}
           </div>
 
-          {/* Subtabs for this Vessel's Dedicated Menu */}
+          {/* Subtabs for this Vessel's Dedicated Menu — Terlihat Semua */}
           <div style={{
             display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
             gap: '0.5rem',
             borderBottom: '1px solid var(--border-subtle)',
-            paddingBottom: '0.5rem',
-            overflowX: 'auto'
+            paddingBottom: '0.65rem'
           }}>
             {[
               { id: 'findings', label: `1. Temuan NC Kapal (${currentTarget.findings.length})`, icon: AlertTriangle, badge: currentTarget.openNC > 0 ? `${currentTarget.openNC} Open` : null, alert: currentTarget.openNC > 0 },
@@ -1356,6 +1380,30 @@ export const AuditManager = () => {
                             >
                               <MessageSquare size={13} color="#22c55e" />
                               <span>Notif WA</span>
+                            </button>
+
+                            {/* Official Print Report Button */}
+                            <button
+                              onClick={() => {
+                                setReportModalSession(null);
+                                setReportModalFinding(f);
+                                setReportModalMode('ncr');
+                                setReportModalOpen(true);
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              title={isClosed ? 'Cetak Lembar Verifikasi Penutupan NC Resmi (NCR Close-Out Form)' : 'Cetak Laporan Temuan & Rencana Koreksi (CAP)'}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontSize: '0.72rem',
+                                color: isClosed ? '#0284c7' : 'var(--text-main)',
+                                fontWeight: 700,
+                                padding: '0.35rem 0.55rem'
+                              }}
+                            >
+                              <Printer size={13} color={isClosed ? '#0284c7' : 'currentColor'} />
+                              <span>{isClosed ? 'Cetak NCR Close' : 'Cetak NCR'}</span>
                             </button>
 
                             <button
@@ -1609,6 +1657,20 @@ export const AuditManager = () => {
                           Kepatuhan: <strong style={{ color: '#10b981' }}>{s.totalItemsChecked ? Math.round((s.itemsComplied / s.totalItemsChecked) * 100) : 100}%</strong>
                         </div>
                         <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button
+                            onClick={() => {
+                              setReportModalSession(s);
+                              setReportModalFinding(null);
+                              setReportModalMode('session');
+                              setReportModalOpen(true);
+                            }}
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                            title="Cetak Laporan Lengkap Sesi Audit Sesuai Standar ISM Code (A4 Print / PDF)"
+                          >
+                            <Printer size={13} />
+                            <span>Cetak Laporan</span>
+                          </button>
                           <button
                             onClick={() => {
                               setEditingSession(s);
@@ -2034,6 +2096,22 @@ export const AuditManager = () => {
         <AuditNotificationModal
           finding={notificationModalFinding}
           onClose={() => setNotificationModalFinding(null)}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL CETAK LAPORAN AUDIT RESMI (DOC/SMC & NCR CLOSEOUT)                  */}
+      {/* ========================================================================= */}
+      {reportModalOpen && (
+        <AuditReportModal
+          session={reportModalSession}
+          finding={reportModalFinding}
+          initialMode={reportModalMode}
+          onClose={() => {
+            setReportModalOpen(false);
+            setReportModalSession(null);
+            setReportModalFinding(null);
+          }}
         />
       )}
     </div>

@@ -511,7 +511,7 @@ export const VesselList = () => {
                   >
                     <option value="Pontianak, Kalimantan Barat">Pontianak, Kalimantan Barat</option>
                     <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
-                    <option value="Samarinda, Kalimantan Timur">Samarinda, Kalimantan Timur</option>
+                    <option value="Ketapang, Kalimantan Barat">Ketapang, Kalimantan Barat</option>
                     <option value="Balikpapan, Kalimantan Timur">Balikpapan, Kalimantan Timur</option>
                     <option value="Kumai, Kalimantan Tengah">Kumai, Kalimantan Tengah</option>
                     <option value="Surabaya, Jawa Timur">Surabaya, Jawa Timur</option>

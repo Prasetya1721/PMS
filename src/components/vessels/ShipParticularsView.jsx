@@ -310,18 +310,27 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
           </div>
         </div>
 
-        {/* Category Tabs for Fast Navigation */}
+        {/* Category Tabs for Fast Navigation — Terlihat Semua (Flex Wrap & No Clipping) */}
         <div style={{
           display: 'flex',
-          gap: '0.35rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '0.45rem',
           borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: '0.5rem',
-          overflowX: 'auto'
+          paddingBottom: '0.75rem'
         }} className="no-print">
           <button
             onClick={() => setActiveTab('all')}
             className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-            style={{ padding: '0.45rem 0.85rem', fontSize: '0.78rem', fontWeight: activeTab === 'all' ? 700 : 500 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.42rem 0.85rem',
+              fontSize: '0.78rem',
+              fontWeight: activeTab === 'all' ? 700 : 500,
+              whiteSpace: 'nowrap',
+              borderRadius: '8px'
+            }}
           >
             Semua Spesifikasi ({PARTICULAR_SECTIONS.length} Kategori)
           </button>
@@ -334,12 +343,14 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                 onClick={() => setActiveTab(section.id)}
                 className={`tab-btn ${isActive ? 'active' : ''}`}
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.45rem',
-                  padding: '0.45rem 0.85rem',
+                  padding: '0.42rem 0.85rem',
                   fontSize: '0.78rem',
-                  fontWeight: isActive ? 700 : 500
+                  fontWeight: isActive ? 700 : 500,
+                  whiteSpace: 'nowrap',
+                  borderRadius: '8px'
                 }}
               >
                 <Icon size={14} color={isActive ? '#38bdf8' : 'var(--text-subtle)'} />

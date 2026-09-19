@@ -21,9 +21,11 @@ import {
   Camera,
   Maximize2,
   Minimize2,
-  Clock
+  Clock,
+  Printer
 } from 'lucide-react';
 import { calculateNCRange } from '../../utils/auditTimeUtils';
+import { AuditReportModal } from './AuditReportModal';
 
 export const SubmitEvidenceModal = ({ finding, onClose }) => {
   const {
@@ -36,6 +38,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
   } = usePMS();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showPrintReport, setShowPrintReport] = useState(false);
   const evidence = finding?.evidence || {};
 
   const [rootCause, setRootCause] = useState(
@@ -114,7 +117,8 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
       closedBy: currentUser?.name || 'Lead Auditor DPA',
       auditorNotes
     });
-    onClose();
+    // Otomatis membuka pratinjau cetak laporan penutupan audit resmi
+    setShowPrintReport(true);
   };
 
   const handleReopenNC = () => {
@@ -467,17 +471,37 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {finding.status === 'NC Close' ? (
-                  <button
-                    type="button"
-                    onClick={handleReopenNC}
-                    className="btn btn-danger btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                  >
-                    <RotateCcw size={13} />
-                    <span>Buka Kembali Temuan (Reopen NC)</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintReport(true)}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        fontWeight: 800,
+                        background: '#0284c7',
+                        borderColor: '#0284c7',
+                        boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+                      }}
+                      title="Cetak Lembar Verifikasi Penutupan NC Resmi (NCR Close-Out Form Standar BKI)"
+                    >
+                      <Printer size={15} />
+                      <span>🖨️ Cetak Laporan NC Close</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReopenNC}
+                      className="btn btn-danger btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                    >
+                      <RotateCcw size={13} />
+                      <span>Buka Kembali Temuan (Reopen NC)</span>
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -501,6 +525,26 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Official Audit Report Printout Modal */}
+      {showPrintReport && (
+        <AuditReportModal
+          finding={{
+            ...finding,
+            status: 'NC Close',
+            evidence: {
+              ...finding.evidence,
+              auditorReviewNotes: auditorNotes,
+              closedDate: new Date().toISOString().split('T')[0]
+            }
+          }}
+          initialMode="ncr"
+          onClose={() => {
+            setShowPrintReport(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -56,12 +56,12 @@ export const Sidebar = () => {
     },
     {
       id: 'spareparts',
-      label: 'Sparepart & Stok',
+      label: 'Logistik & Suku Cadang',
       icon: Package,
       badge: lowStockCount > 0 ? lowStockCount : null,
       badgeType: 'warning'
     },
-    { id: 'costs', label: 'Biaya & Budgeting', icon: DollarSign },
+    { id: 'costs', label: 'Biaya & Anggaran Kapal', icon: DollarSign },
     { id: 'crew', label: 'Crew & Kehadiran', icon: Users },
     {
       id: 'documents',

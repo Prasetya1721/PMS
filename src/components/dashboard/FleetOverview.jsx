@@ -26,6 +26,8 @@ export const FleetOverview = () => {
     allCrewCertificates,
     allShipDocuments,
     allCosts,
+    allVesselBudgets,
+    vesselBudgets,
     setSelectedVesselId,
     setActiveTab,
     overdueWOCount,
@@ -37,6 +39,10 @@ export const FleetOverview = () => {
   const [fleetScope, setFleetScope] = useState('ALL'); // ALL | OWNER | OPERATOR
 
   // Fleet Calculations
+  const totalVessels = vessels.length;
+  const operationalVessels = vessels.filter(v => v.status === 'Operational').length;
+  const maintenanceVessels = vessels.filter(v => v.status === 'Under Maintenance').length;
+
   const totalEquipments = allEquipment.length;
   const totalRunningHours = allEquipment.reduce((acc, curr) => acc + (curr.runningHours || 0), 0);
   const completedWO = allWorkOrders.filter(w => w.status === 'Completed').length;
@@ -44,7 +50,7 @@ export const FleetOverview = () => {
   const complianceRate = Math.round((completedWO / Math.max(1, allWorkOrders.length)) * 100);
 
   const totalCosts = allCosts.reduce((acc, curr) => acc + curr.amount, 0);
-  const totalBudget = allCosts.reduce((acc, curr) => acc + curr.budgetAllocated, 0);
+  const totalBudget = (allVesselBudgets || vesselBudgets || []).reduce((acc, b) => acc + (b.totalBudget || 0), 0) || allCosts.reduce((acc, curr) => acc + curr.budgetAllocated, 0);
 
   const formatIDR = (val) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);

@@ -105,6 +105,7 @@ export const ROLE_PERMISSIONS = {
   'Crew / ABK': [
     'dashboard',
     'maintenance',
+    'spareparts',
     'crew',
     'documents',
   ],
@@ -162,8 +163,12 @@ export const canPerformAction = (role, action) => {
       return role === 'Super Admin';
 
     case 'edit_budget':
+    case 'edit_vessel_budget':
     case 'approve_po':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Finance';
+
+    case 'record_actual_expense':
+      return role === 'Super Admin' || role === 'Finance';
 
     case 'approve_leave':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'HR / Personalia';
@@ -186,6 +191,22 @@ export const canPerformAction = (role, action) => {
 
     case 'create_purchase_request':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Finance';
+
+    case 'create_crew_requisition':
+      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Crew / ABK';
+
+    case 'create_ship_requisition':
+      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
+
+    case 'approve_requisition_ship':
+      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda';
+
+    case 'approve_requisition_shore':
+    case 'transfer_warehouse_stock':
+      return role === 'Super Admin' || role === 'Fleet Manager';
+
+    case 'receive_onboard_goods':
+      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Crew / ABK';
 
     default:
       return false;

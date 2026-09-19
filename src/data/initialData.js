@@ -389,8 +389,11 @@ export const INITIAL_SPAREPARTS = [
     "name": "Valve Plate Set Sperre HL2/90",
     "equipmentCode": "AC-01",
     "vesselId": "v-001",
-    "category": "Valve & Mechanical",
+    "target": "Kapal",
+    "category": "Suku Cadang Mesin",
+    "subCategory": "Kompresor & Katup",
     "stockQty": 1,
+    "stockWarehouse": 5,
     "minStockQty": 3,
     "unit": "Set",
     "location": "Engine Store Rack B-01",
@@ -404,8 +407,11 @@ export const INITIAL_SPAREPARTS = [
     "name": "Oli Kompresor Shell Corena S4 R 68",
     "equipmentCode": "AC-01",
     "vesselId": "v-001",
+    "target": "Kapal",
     "category": "Pelumas / Oil",
+    "subCategory": "Minyak Pelumas Kompresor",
     "stockQty": 35,
+    "stockWarehouse": 120,
     "minStockQty": 20,
     "unit": "Liter",
     "location": "Drum Store Aft Deck",
@@ -419,41 +425,300 @@ export const INITIAL_SPAREPARTS = [
     "name": "Filter Oli Fleetguard LF9009 Cummins",
     "equipmentCode": "AE-01",
     "vesselId": "v-001",
-    "category": "Filter",
+    "target": "Kapal",
+    "category": "Suku Cadang Mesin",
+    "subCategory": "Filter Genset Aux Engine",
     "stockQty": 3,
+    "stockWarehouse": 14,
     "minStockQty": 6,
     "unit": "Pcs",
     "location": "Rack A-02 Engine Store",
     "unitCost": 700000,
     "supplier": "PT Cummins Marine Indonesia",
     "status": "Low Stock"
+  },
+  {
+    "id": "sp-104",
+    "code": "SP-DECK-TR01",
+    "name": "Tali Tambat Mooring Rope Polypropylene 8-Strand (220M)",
+    "equipmentCode": "DK-01",
+    "vesselId": "v-001",
+    "target": "Kapal",
+    "category": "Deck & Tali Tross",
+    "subCategory": "Perlengkapan Deck & Mooring",
+    "stockQty": 2,
+    "stockWarehouse": 4,
+    "minStockQty": 2,
+    "unit": "Roll",
+    "location": "Forecastle Deck Store",
+    "unitCost": 8500000,
+    "supplier": "CV Samudra Tali Pontianak",
+    "status": "Normal"
+  },
+  {
+    "id": "sp-105",
+    "code": "SP-PNT-EP01",
+    "name": "Cat Marine Anti-Fouling & Primer Epoxy International",
+    "equipmentCode": "HL-01",
+    "vesselId": "v-001",
+    "target": "Kapal",
+    "category": "Deck Stores & Cat",
+    "subCategory": "Perawatan Lambung Kapal",
+    "stockQty": 4,
+    "stockWarehouse": 12,
+    "minStockQty": 4,
+    "unit": "Pail (20L)",
+    "location": "Paint Locker Main Deck",
+    "unitCost": 2400000,
+    "supplier": "PT AkzoNobel Marine Paints",
+    "status": "Normal"
+  },
+  {
+    "id": "sp-106",
+    "code": "LOG-CRW-BRS01",
+    "name": "Beras Premium Ramos Super 25 Kg",
+    "equipmentCode": "CRW-BAMA",
+    "vesselId": "v-001",
+    "target": "Crew",
+    "category": "Logistik Crew (BAMA)",
+    "subCategory": "Ransum Pokok Dapur (Galley)",
+    "stockQty": 3,
+    "stockWarehouse": 20,
+    "minStockQty": 5,
+    "unit": "Zak",
+    "location": "Galley Dry Store (Dapur)",
+    "unitCost": 375000,
+    "supplier": "Distributor Sembako Pelabuhan Pontianak",
+    "status": "Low Stock"
+  },
+  {
+    "id": "sp-107",
+    "code": "LOG-CRW-AIR01",
+    "name": "Air Minum Galon Aqua Higienis 19 Liter",
+    "equipmentCode": "CRW-BAMA",
+    "vesselId": "v-001",
+    "target": "Crew",
+    "category": "Logistik Crew (BAMA)",
+    "subCategory": "Air Minum Awak Kapal",
+    "stockQty": 8,
+    "stockWarehouse": 45,
+    "minStockQty": 12,
+    "unit": "Galon",
+    "location": "Galley & Mess Room Dispenser",
+    "unitCost": 22000,
+    "supplier": "Depo Air Bersih Pelabuhan Dwikora",
+    "status": "Low Stock"
+  },
+  {
+    "id": "sp-108",
+    "code": "LOG-CRW-WPK01",
+    "name": "Wearpack Katun Pelaut Logo Bordir Baharimas",
+    "equipmentCode": "CRW-PPE",
+    "vesselId": "v-001",
+    "target": "Crew",
+    "category": "Perlengkapan APD Kru",
+    "subCategory": "Pakaian Kerja & Seragam",
+    "stockQty": 6,
+    "stockWarehouse": 25,
+    "minStockQty": 4,
+    "unit": "Stel",
+    "location": "Safety Locker Cabin",
+    "unitCost": 285000,
+    "supplier": "CV Baharimas Konveksi Safety",
+    "status": "Normal"
+  },
+  {
+    "id": "sp-109",
+    "code": "LOG-CRW-SHOE01",
+    "name": "Safety Shoes Pelaut Ujung Besi SNI Steel Toe",
+    "equipmentCode": "CRW-PPE",
+    "vesselId": "v-001",
+    "target": "Crew",
+    "category": "Perlengkapan APD Kru",
+    "subCategory": "Alat Pelindung Diri (APD)",
+    "stockQty": 2,
+    "stockWarehouse": 10,
+    "minStockQty": 4,
+    "unit": "Pasang",
+    "location": "Safety Locker Cabin",
+    "unitCost": 450000,
+    "supplier": "Toko Perlengkapan Maritim Pontianak",
+    "status": "Low Stock"
+  },
+  {
+    "id": "sp-110",
+    "code": "LOG-CRW-P3K01",
+    "name": "Medicine Chest & P3K Standar Maritim Reg. IV",
+    "equipmentCode": "CRW-MED",
+    "vesselId": "v-001",
+    "target": "Crew",
+    "category": "Kesehatan & P3K Kru",
+    "subCategory": "Obat-obatan & First Aid",
+    "stockQty": 1,
+    "stockWarehouse": 4,
+    "minStockQty": 1,
+    "unit": "Kit",
+    "location": "Ship's Clinic / Hospital Room",
+    "unitCost": 1850000,
+    "supplier": "Apotek Kimia Farma Pontianak",
+    "status": "Normal"
   }
 ];
 
 export const INITIAL_REQUISITIONS = [
   {
-    "id": "PR-2026-081",
+    "id": "SPBK-2026-001",
     "vesselId": "v-001",
-    "requesterName": "Ir. Bambang Wijaya (KKM)",
-    "dateSubmitted": "2026-09-06",
+    "vesselName": "KM. RP 2020",
+    "title": "Permintaan Ransum BAMA Galley & APD Tambahan Kru Baru",
+    "targetType": "Logistik Crew",
+    "requesterName": "Dedi Mulyadi (Juru Masak / Cook)",
+    "requesterRole": "Crew / Cook",
+    "dateSubmitted": "2026-09-12",
     "urgency": "Urgent",
-    "status": "Approved Fleet",
+    "status": "Disetujui Nakhoda", // 'Diajukan' | 'Disetujui Nakhoda' | 'Disetujui Gudang Darat' | 'Dalam Pengiriman' | 'Selesai Diterima di Kapal'
+    "totalEstimatedCost": 2244000,
+    "items": [
+      {
+        "partId": "sp-106",
+        "name": "Beras Premium Ramos Super 25 Kg",
+        "qty": 3,
+        "unit": "Zak",
+        "estimatedUnitCost": 375000,
+        "received": false
+      },
+      {
+        "partId": "sp-107",
+        "name": "Air Minum Galon Aqua Higienis 19 Liter",
+        "qty": 15,
+        "unit": "Galon",
+        "estimatedUnitCost": 22000,
+        "received": false
+      },
+      {
+        "partId": "sp-108",
+        "name": "Wearpack Katun Pelaut Logo Bordir Baharimas",
+        "qty": 2,
+        "unit": "Stel",
+        "estimatedUnitCost": 285000,
+        "received": false
+      },
+      {
+        "partId": "sp-109",
+        "name": "Safety Shoes Pelaut Ujung Besi SNI Steel Toe",
+        "qty": 1,
+        "unit": "Pasang",
+        "estimatedUnitCost": 450000,
+        "received": false
+      }
+    ],
+    "notes": "Persediaan ransum dapur sisa 3 zak untuk rute towing Pontianak - Banjarmasin, butuh tambahan 1 pasang sepatu kru baru join."
+  },
+  {
+    "id": "SPBK-2026-002",
+    "vesselId": "v-001",
+    "vesselName": "KM. RP 2020",
+    "title": "Pengadaan Rutin Sparepart Valve Plate Kompresor Sperre & Filter Genset",
+    "targetType": "Logistik Kapal",
+    "requesterName": "Ir. Bambang Wijaya (Chief Engineer / KKM)",
+    "requesterRole": "Teknisi / Chief Engineer",
+    "dateSubmitted": "2026-09-08",
+    "urgency": "Urgent",
+    "status": "Disetujui Gudang Darat",
     "totalEstimatedCost": 6900000,
     "items": [
       {
         "partId": "sp-101",
         "name": "Valve Plate Set Sperre HL2/90",
         "qty": 3,
-        "estimatedUnitCost": 900000
+        "unit": "Set",
+        "estimatedUnitCost": 900000,
+        "received": false
       },
       {
         "partId": "sp-103",
         "name": "Filter Oli Fleetguard LF9009 Cummins",
         "qty": 6,
-        "estimatedUnitCost": 700000
+        "unit": "Pcs",
+        "estimatedUnitCost": 700000,
+        "received": false
       }
     ],
-    "notes": "Stok valve plate dan filter genset sudah di bawah batas minimum kapal RP 2020."
+    "notes": "Stok valve plate di atas kapal tersisa 1 set, perlu restock 3 set sebelum jadwal servis 2000 jam."
+  }
+];
+
+export const INITIAL_VESSEL_BUDGETS = [
+  {
+    "id": "bgt-v001-2026",
+    "vesselId": "v-001",
+    "vesselName": "KM. RP 2020",
+    "year": 2026,
+    "period": "Tahun Anggaran 2026",
+    "totalBudget": 485000000,
+    "currency": "IDR",
+    "status": "Disahkan Finance",
+    "approvedBy": "Hj. Siti Rahmawati, S.E. (Finance Manager)",
+    "lastUpdated": "2026-09-18",
+    "notes": "Pagu anggaran operasional pemeliharaan teknis, provisi logistik awak kapal, dan docking KM. RP 2020",
+    "categories": [
+      {
+        "id": "cat-eng",
+        "code": "5101-ENG",
+        "name": "Sparepart & Perawatan Mesin",
+        "target": "Kapal",
+        "allocated": 150000000,
+        "spent": 42500000
+      },
+      {
+        "id": "cat-bama",
+        "code": "5102-BAMA",
+        "name": "Bahan Makanan & Provisi Kru (BAMA)",
+        "target": "Crew",
+        "allocated": 95000000,
+        "spent": 31200000
+      },
+      {
+        "id": "cat-ppe",
+        "code": "5103-APD",
+        "name": "Perlengkapan APD & Seragam Kru",
+        "target": "Crew",
+        "allocated": 25000000,
+        "spent": 6800000
+      },
+      {
+        "id": "cat-deck",
+        "code": "5104-DECK",
+        "name": "Deck Stores, Tali Tross & Cat Lambung",
+        "target": "Kapal",
+        "allocated": 45000000,
+        "spent": 14200000
+      },
+      {
+        "id": "cat-oil",
+        "code": "5105-LUBE",
+        "name": "Minyak Pelumas, Oli Drum & Chemical",
+        "target": "Kapal",
+        "allocated": 60000000,
+        "spent": 21500000
+      },
+      {
+        "id": "cat-dock",
+        "code": "5106-SRV",
+        "name": "Jasa Servis, Kalibrasi & Galangan Docking",
+        "target": "Kapal",
+        "allocated": 80000000,
+        "spent": 18000000
+      },
+      {
+        "id": "cat-doc",
+        "code": "5107-DOC",
+        "name": "Sertifikasi, Survey Kelas & Dokumen Kapal",
+        "target": "Kapal",
+        "allocated": 30000000,
+        "spent": 8500000
+      }
+    ]
   }
 ];
 
@@ -462,23 +727,53 @@ export const INITIAL_COSTS = [
     "id": "cost-01",
     "vesselId": "v-001",
     "period": "2026-08",
-    "category": "Sparepart Mesin",
+    "category": "Sparepart & Perawatan Mesin",
+    "budgetCategoryCode": "5101-ENG",
     "description": "Pengadaan Filter & Lube Oil Yanmar & Cummins",
     "amount": 12500000,
     "budgetAllocated": 18000000,
     "date": "2026-08-15",
-    "vendor": "PT Yanmar Marine Indo"
+    "vendor": "PT Yanmar Marine Indo",
+    "invoiceNo": "INV-YMR-2026-088"
   },
   {
     "id": "cost-02",
     "vesselId": "v-001",
     "period": "2026-08",
-    "category": "Jasa Servis & Kalibrasi",
+    "category": "Jasa Servis, Kalibrasi & Galangan Docking",
+    "budgetCategoryCode": "5106-SRV",
     "description": "Kalibrasi Injektor Mesin Utama di Workshop Darat",
     "amount": 5800000,
     "budgetAllocated": 7000000,
     "date": "2026-08-22",
-    "vendor": "CV Pontianak Presisi Diesel"
+    "vendor": "CV Pontianak Presisi Diesel",
+    "invoiceNo": "INV-PPD-2026-014"
+  },
+  {
+    "id": "cost-03",
+    "vesselId": "v-001",
+    "period": "2026-09",
+    "category": "Bahan Makanan & Provisi Kru (BAMA)",
+    "budgetCategoryCode": "5102-BAMA",
+    "description": "Belanja Ransum Sembako Dapur KM. RP 2020 Pelayaran September",
+    "amount": 8450000,
+    "budgetAllocated": 10000000,
+    "date": "2026-09-05",
+    "vendor": "Distributor Sembako Pelabuhan Pontianak",
+    "invoiceNo": "INV-DWK-09-02"
+  },
+  {
+    "id": "cost-04",
+    "vesselId": "v-001",
+    "period": "2026-09",
+    "category": "Deck Stores, Tali Tross & Cat Lambung",
+    "budgetCategoryCode": "5104-DECK",
+    "description": "Pembelian Tali Tross Tambat Mooring 2 Roll",
+    "amount": 17000000,
+    "budgetAllocated": 20000000,
+    "date": "2026-09-10",
+    "vendor": "CV Samudra Tali Pontianak",
+    "invoiceNo": "INV-STP-2026-119"
   }
 ];
 
