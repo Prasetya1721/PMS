@@ -282,6 +282,87 @@ export const PMSProvider = ({ children }) => {
     showToast(`Running hours berhasil diperbarui untuk equipment!`, 'success');
   };
 
+  const addEquipment = (equipmentData) => {
+    const running = Number(equipmentData.runningHours) || 0;
+    const nextService = Number(equipmentData.nextServiceHours) || (running + 500);
+    const lastMaintenance = Number(equipmentData.lastMaintenanceHours) || 0;
+    const hoursToNext = nextService - running;
+
+    let status = equipmentData.status || 'Normal';
+    if (!equipmentData.status || equipmentData.status === 'Normal') {
+      if (hoursToNext <= 0) {
+        status = 'Overdue';
+      } else if (hoursToNext <= 200) {
+        status = 'Due Soon';
+      } else {
+        status = 'Normal';
+      }
+    }
+
+    const newEq = {
+      id: `eq-${Date.now()}`,
+      vesselId: equipmentData.vesselId || (vessels[0]?.id || 'v-001'),
+      code: equipmentData.code?.trim() || `EQ-${Math.floor(100 + Math.random() * 900)}`,
+      name: equipmentData.name?.trim() || 'Equipment Baru',
+      category: equipmentData.category || 'Propulsi',
+      model: equipmentData.model?.trim() || '-',
+      serialNumber: equipmentData.serialNumber?.trim() || '-',
+      maker: equipmentData.maker?.trim() || '-',
+      location: equipmentData.location?.trim() || 'Engine Room',
+      runningHours: running,
+      lastMaintenanceHours: lastMaintenance,
+      nextServiceHours: nextService,
+      status,
+      criticality: equipmentData.criticality || 'Tinggi',
+      installedDate: equipmentData.installedDate || new Date().toISOString().split('T')[0],
+      subComponents: Array.isArray(equipmentData.subComponents) ? equipmentData.subComponents : [],
+      notes: equipmentData.notes || ''
+    };
+
+    setEquipment(prev => [newEq, ...prev]);
+    showToast(`Equipment ${newEq.name} (${newEq.code}) berhasil ditambahkan ke database!`, 'success');
+    return newEq;
+  };
+
+  const updateEquipment = (equipmentId, updatedData) => {
+    setEquipment(prev => prev.map(eq => {
+      if (eq.id !== equipmentId) return eq;
+
+      const running = updatedData.runningHours !== undefined ? Number(updatedData.runningHours) : eq.runningHours;
+      const nextService = updatedData.nextServiceHours !== undefined ? Number(updatedData.nextServiceHours) : eq.nextServiceHours;
+      const hoursToNext = nextService - running;
+
+      let status = updatedData.status || eq.status;
+      if (!updatedData.status) {
+        if (hoursToNext <= 0) {
+          status = 'Overdue';
+        } else if (hoursToNext <= 200) {
+          status = 'Due Soon';
+        } else {
+          status = 'Normal';
+        }
+      }
+
+      return {
+        ...eq,
+        ...updatedData,
+        runningHours: running,
+        nextServiceHours: nextService,
+        status
+      };
+    }));
+    showToast(`Data equipment berhasil diperbarui!`, 'success');
+  };
+
+  const deleteEquipment = (equipmentId) => {
+    setEquipment(prev => {
+      const eq = prev.find(e => e.id === equipmentId);
+      const next = prev.filter(e => e.id !== equipmentId);
+      showToast(`Equipment ${eq?.name || equipmentId} berhasil dihapus.`, 'info');
+      return next;
+    });
+  };
+
   // 2. Work Order Actions
   const toggleChecklist = (woId, checkId) => {
     setWorkOrders(prev => prev.map(wo => {
@@ -2033,6 +2114,9 @@ export const PMSProvider = ({ children }) => {
 
         // Actions
         updateRunningHours,
+        addEquipment,
+        updateEquipment,
+        deleteEquipment,
         toggleChecklist,
         updateWorkOrderStatus,
         addWorkOrder,
