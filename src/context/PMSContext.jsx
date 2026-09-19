@@ -17,10 +17,11 @@ import {
   INITIAL_NOTIFICATION_LOGS,
   INITIAL_USERS
 } from '../data/initialData';
+import { createDefaultShipParticulars } from '../data/shipParticularsData';
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v6-fleet-28-sync-all-data';
+const PMS_STORAGE_VERSION = 'v8-fleet-28-categories-dates';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -52,10 +53,20 @@ export const PMSProvider = ({ children }) => {
       if (!saved) return fallback;
       const parsed = JSON.parse(saved);
       // Extra safeguard: if stored vessels array doesn't have 28 items or lacks v-op-, force reload fallback
-      if (key === 'vessels' && (!Array.isArray(parsed) || parsed.length !== fallback.length || !parsed.some(v => v.id?.startsWith('v-op-')))) {
-        return fallback;
+      if (key === 'vessels') {
+        if (!Array.isArray(parsed) || parsed.length !== fallback.length || !parsed.some(v => v.id?.startsWith('v-op-'))) {
+          return fallback;
+        }
+        return parsed.map(v => {
+          const fallbackVessel = fallback.find(fb => fb.id === v.id) || {};
+          return {
+            ...fallbackVessel,
+            ...v,
+            particulars: v.particulars || fallbackVessel.particulars || createDefaultShipParticulars(v)
+          };
+        });
       }
-      if (key === 'shipDocuments' && (!Array.isArray(parsed) || parsed.length !== fallback.length)) {
+      if (key === 'shipDocuments' && (!Array.isArray(parsed) || parsed.length < 215)) {
         return fallback;
       }
       if (key === 'notificationSettings') {
@@ -355,7 +366,7 @@ export const PMSProvider = ({ children }) => {
   const addVessel = (vesselData) => {
     const newId = `v-${Date.now()}`;
     const isBarge = vesselData.type?.toLowerCase().includes('tongkang') || vesselData.type?.toLowerCase().includes('barge');
-    const newVessel = {
+    const baseNewVessel = {
       ...vesselData,
       id: newId,
       gt: Number(vesselData.gt) || (isBarge ? 3500 : 300),
@@ -371,6 +382,11 @@ export const PMSProvider = ({ children }) => {
           ? "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80"
           : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80"
       )
+    };
+
+    const newVessel = {
+      ...baseNewVessel,
+      particulars: vesselData.particulars || createDefaultShipParticulars(baseNewVessel)
     };
 
     setVessels(prev => [newVessel, ...prev]);
@@ -576,8 +592,68 @@ export const PMSProvider = ({ children }) => {
     return newVessel;
   };
 
+  const updateVesselParticulars = (vesselId, updatedParticulars) => {
+    setVessels(prev => {
+      const next = prev.map(v => {
+        if (v.id === vesselId) {
+          const currentParticulars = v.particulars || createDefaultShipParticulars(v);
+          const newParticulars = {
+            ...currentParticulars,
+            ...updatedParticulars,
+            lastUpdated: new Date().toISOString()
+          };
+
+          return {
+            ...v,
+            name: newParticulars.vesselName || v.name,
+            gt: newParticulars.grossTonnage !== undefined ? Number(newParticulars.grossTonnage) || v.gt : v.gt,
+            dwt: newParticulars.deadweight !== undefined ? Number(newParticulars.deadweight) || v.dwt : v.dwt,
+            flag: newParticulars.flag || v.flag,
+            portOfRegistry: newParticulars.portOfRegistry || v.portOfRegistry,
+            callSign: newParticulars.callSign || v.callSign,
+            imo: newParticulars.imoNumber || v.imo,
+            regNo: newParticulars.officialNo?.split(' ')[0] || v.regNo,
+            builder: newParticulars.builder || v.builder,
+            yearBuilt: newParticulars.yearBuilt ? Number(newParticulars.yearBuilt) : v.yearBuilt,
+            particulars: newParticulars
+          };
+        }
+        return v;
+      });
+      localStorage.setItem('pms_vessels', JSON.stringify(next));
+      return next;
+    });
+
+    try {
+      confetti({ particleCount: 45, spread: 60, origin: { y: 0.65 } });
+    } catch {}
+
+    showToast('Data Particular Kapal berhasil diperbarui & disimpan!', 'success');
+  };
+
+  const updateVessel = (vesselId, updatedFields) => {
+    setVessels(prev => {
+      const next = prev.map(v => {
+        if (v.id === vesselId) {
+          return {
+            ...v,
+            ...updatedFields,
+            particulars: updatedFields.particulars
+              ? { ...(v.particulars || {}), ...updatedFields.particulars }
+              : v.particulars
+          };
+        }
+        return v;
+      });
+      localStorage.setItem('pms_vessels', JSON.stringify(next));
+      return next;
+    });
+    showToast('Data Kapal berhasil diperbarui!', 'success');
+  };
+
   const addShipDocument = (docData) => {
     const expiry = docData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const issue = docData.issueDate || new Date().toISOString().split('T')[0];
     const todayRef = new Date('2026-09-09T00:00:00Z');
     const expDate = new Date(expiry + 'T00:00:00Z');
     const days = Math.round((expDate.getTime() - todayRef.getTime()) / (1000 * 60 * 60 * 24));
@@ -588,15 +664,56 @@ export const PMSProvider = ({ children }) => {
     const newDoc = {
       ...docData,
       id: `doc-s-${Date.now()}`,
+      category: docData.category || 'KSOP',
+      issueDate: issue,
       expiryDate: expiry,
       status: docData.status || status,
       daysUntilExpiry: days,
-      issuer: docData.issuer || "Biro Klasifikasi Indonesia (BKI) / Ditjen Hubla",
-      mandatoryAuditor: docData.mandatoryAuditor || "BKI Surveyor"
+      issuer: docData.issuer || (docData.category === 'KSOP' ? 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)' : 'Biro Klasifikasi Indonesia (BKI) / Ditjen Hubla'),
+      mandatoryAuditor: docData.mandatoryAuditor || (docData.category === 'KSOP' ? 'Syahbandar KSOP' : 'Surveyor BKI')
     };
     setShipDocuments(prev => [newDoc, ...prev]);
-    showToast(`Sertifikat ${newDoc.name} berhasil ditambahkan!`, 'success');
+    showToast(`Sertifikat ${newDoc.name} (${newDoc.category}) berhasil ditambahkan!`, 'success');
     return newDoc;
+  };
+
+  const updateShipDocument = (docId, updatedFields) => {
+    setShipDocuments(prev => {
+      const next = prev.map(d => {
+        if (d.id === docId) {
+          const expiry = updatedFields.expiryDate || d.expiryDate;
+          const issue = updatedFields.issueDate || d.issueDate;
+          const todayRef = new Date('2026-09-09T00:00:00Z');
+          const expDate = new Date(expiry + 'T00:00:00Z');
+          const days = Math.round((expDate.getTime() - todayRef.getTime()) / (1000 * 60 * 60 * 24));
+          let status = 'Active';
+          if (days <= 0) status = 'Expired';
+          else if (days <= 30) status = 'Due Soon';
+
+          return {
+            ...d,
+            ...updatedFields,
+            issueDate: issue,
+            expiryDate: expiry,
+            daysUntilExpiry: days,
+            status: updatedFields.status || status
+          };
+        }
+        return d;
+      });
+      localStorage.setItem('pms_shipDocuments', JSON.stringify(next));
+      return next;
+    });
+    showToast('Dokumen sertifikat kapal berhasil diperbarui!', 'success');
+  };
+
+  const deleteShipDocument = (docId) => {
+    setShipDocuments(prev => {
+      const next = prev.filter(d => d.id !== docId);
+      localStorage.setItem('pms_shipDocuments', JSON.stringify(next));
+      return next;
+    });
+    showToast('Dokumen sertifikat berhasil dihapus.', 'info');
   };
 
   // 5. WhatsApp & Notification Engine (Multi-Interval: 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom & Auto-Send)
@@ -1362,8 +1479,12 @@ export const PMSProvider = ({ children }) => {
         updateSparepartStock,
         addRequisition,
         addVessel,
+        updateVessel,
+        updateVesselParticulars,
         setVessels,
         addShipDocument,
+        updateShipDocument,
+        deleteShipDocument,
         addCrew,
         approveLeave,
         submitLeave,

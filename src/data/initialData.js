@@ -2,8 +2,10 @@
 // 28 Separated Vessels (17 As Owner & 11 As Operator)
 // 215 BKI Survey Certificates mapped directly from daftar_kapal.md
 // Corresponds to PRD specifications: Ships, Equipment, Maintenance, Spareparts, Costs, Crew, Documents, Notifications
+import { createDefaultShipParticulars } from './shipParticularsData.js';
+import { buildComprehensiveFleetDocuments } from './shipCertificatesMaster.js';
 
-export const INITIAL_VESSELS = [
+const RAW_INITIAL_VESSELS = [
   {
     "id": "v-001",
     "name": "RP 2020",
@@ -621,6 +623,11 @@ export const INITIAL_VESSELS = [
     "ownershipCategory": "Operator"
   }
 ];
+
+export const INITIAL_VESSELS = RAW_INITIAL_VESSELS.map(v => ({
+  ...v,
+  particulars: createDefaultShipParticulars(v)
+}));
 
 export const INITIAL_EQUIPMENT = [
   {
@@ -8626,7 +8633,7 @@ export const INITIAL_CREW_CERTIFICATES = [
   }
 ];
 
-export const INITIAL_SHIP_DOCUMENTS = [
+const RAW_INITIAL_SHIP_DOCUMENTS = [
   {
     "id": "doc-s-001",
     "vesselId": "v-001",
@@ -11853,6 +11860,8 @@ export const INITIAL_SHIP_DOCUMENTS = [
     "rawNote": "25 Jul 2029"
   }
 ];
+
+export const INITIAL_SHIP_DOCUMENTS = buildComprehensiveFleetDocuments(RAW_INITIAL_SHIP_DOCUMENTS, INITIAL_VESSELS);
 
 export const INITIAL_NOTIFICATION_SETTINGS = {
   "thresholds": [

@@ -15,8 +15,10 @@ import {
   Search,
   Filter,
   FileCheck,
+  FileText,
   X
 } from 'lucide-react';
+import { ParticularsModal } from './ParticularsModal';
 
 export const VesselList = () => {
   const {
@@ -27,12 +29,14 @@ export const VesselList = () => {
     allShipDocuments,
     setSelectedVesselId,
     setActiveTab,
-    addVessel
+    addVessel,
+    updateVesselParticulars
   } = usePMS();
 
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('ALL'); // ALL | OWNER | OPERATOR | TUGBOAT | BARGE
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedVesselForParticulars, setSelectedVesselForParticulars] = useState(null);
 
   // Form State for Manual Ship Entry
   const [formData, setFormData] = useState({
@@ -268,17 +272,36 @@ export const VesselList = () => {
                         </p>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          setSelectedVesselId(v.id);
-                          setActiveTab('dashboard');
-                        }}
-                        className="btn btn-primary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 1.15rem' }}
-                      >
-                        <span>Buka Dashboard Kapal</span>
-                        <ArrowRight size={15} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => setSelectedVesselForParticulars(v)}
+                          className="btn btn-secondary"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            padding: '0.55rem 1rem',
+                            fontSize: '0.825rem',
+                            border: '1px solid rgba(56, 189, 248, 0.35)'
+                          }}
+                          title="Lihat dan Edit Data Particular Lengkap Kapal Ini"
+                        >
+                          <FileText size={15} color="#38bdf8" />
+                          <span style={{ color: '#38bdf8', fontWeight: 600 }}>Data Particular</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setSelectedVesselId(v.id);
+                            setActiveTab('dashboard');
+                          }}
+                          className="btn btn-primary"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 1.15rem' }}
+                        >
+                          <span>Buka Dashboard Kapal</span>
+                          <ArrowRight size={15} />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Technical Specs Grid */}
@@ -627,6 +650,19 @@ export const VesselList = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Edit Vessel Particulars Modal */}
+      {selectedVesselForParticulars && (
+        <ParticularsModal
+          vessel={selectedVesselForParticulars}
+          isOpen={!!selectedVesselForParticulars}
+          onClose={() => setSelectedVesselForParticulars(null)}
+          onSave={(shipId, updatedData) => {
+            updateVesselParticulars(shipId, updatedData);
+            setSelectedVesselForParticulars(prev => prev ? ({ ...prev, particulars: updatedData }) : null);
+          }}
+        />
       )}
     </div>
   );

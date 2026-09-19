@@ -16,8 +16,13 @@ import {
   QrCode,
   X,
   CalendarPlus,
-  Calendar
+  Calendar,
+  Plus,
+  Edit2,
+  Trash2
 } from 'lucide-react';
+import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
+import { DocumentFormModal } from './DocumentFormModal';
 
 export const DocumentTracker = () => {
   const {
@@ -31,13 +36,19 @@ export const DocumentTracker = () => {
     h30ExpiringCount,
     h1ExpiringCount,
     h7ExpiringCount,
-    h365ExpiringCount
+    h365ExpiringCount,
+    addShipDocument,
+    updateShipDocument,
+    deleteShipDocument
   } = usePMS();
 
   const [docTypeTab, setDocTypeTab] = useState('all'); // 'all' | 'crew' | 'ship'
+  const [categoryFilter, setCategoryFilter] = useState('ALL'); // 'ALL' | 'BKI' | 'Statutory' | 'Asuransi' | 'KSOP' | 'Kesehatan'
   const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'H-1' | 'H-7' | 'H-30' | 'H-365' | 'Expired' | 'Due Soon' | 'Active'
   const [search, setSearch] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [showAddDocModal, setShowAddDocModal] = useState(false);
+  const [editingDoc, setEditingDoc] = useState(null);
 
   // Modals for G-Cal and WA interval pickers
   const [calModalDoc, setCalModalDoc] = useState(null);
@@ -59,6 +70,8 @@ export const DocumentTracker = () => {
       (docTypeTab === 'crew' && item.itemCategory === 'Sertifikat Kru') ||
       (docTypeTab === 'ship' && item.itemCategory === 'Surat Legal Kapal');
 
+    const matchCategory = categoryFilter === 'ALL' || item.category === categoryFilter;
+
     let matchStatus = true;
     if (statusFilter === 'H-1') {
       matchStatus = item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 1 && item.daysUntilExpiry >= 0;
@@ -76,9 +89,10 @@ export const DocumentTracker = () => {
       (item.certificateNo && item.certificateNo.toLowerCase().includes(search.toLowerCase())) ||
       (item.documentNo && item.documentNo.toLowerCase().includes(search.toLowerCase())) ||
       (item.crewName && item.crewName.toLowerCase().includes(search.toLowerCase())) ||
+      (item.category && item.category.toLowerCase().includes(search.toLowerCase())) ||
       item.issuer.toLowerCase().includes(search.toLowerCase());
 
-    return matchType && matchStatus && matchSearch;
+    return matchType && matchCategory && matchStatus && matchSearch;
   });
 
   const expiredCount = allItems.filter(i => i.status === 'Expired').length;
@@ -97,10 +111,21 @@ export const DocumentTracker = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            onClick={() => {
+              setEditingDoc(null);
+              setShowAddDocModal(true);
+            }}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)' }}
+          >
+            <Plus size={14} />
+            <span>Tambah Dokumen / Sertifikat</span>
+          </button>
           <button onClick={() => exportMultiIntervalICS()} className="btn btn-secondary btn-sm" title="Ekspor .ics multi-alarm untuk Google Calendar">
             <CalendarPlus size={14} />
-            <span>Ekspor Kalender Multi-Alarm (.ics)</span>
+            <span>Ekspor Kalender (.ics)</span>
           </button>
           {h1ExpiringCount > 0 && (
             <span className="badge badge-danger-pulse" style={{ padding: '0.45rem 0.85rem', fontSize: '0.8rem' }}>
@@ -191,6 +216,47 @@ export const DocumentTracker = () => {
             />
           </div>
         </div>
+
+        {/* Category Tabs: BKI, Statutory, Asuransi, KSOP, Kesehatan */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.35rem' }}>
+            <Filter size={13} />
+            <span>Kategori Maritim:</span>
+          </span>
+          <button
+            onClick={() => setCategoryFilter('ALL')}
+            className={`tab-btn ${categoryFilter === 'ALL' ? 'active' : ''}`}
+            style={{ padding: '0.3rem 0.75rem', fontSize: '0.78rem' }}
+          >
+            Semua ({shipDocuments.length})
+          </button>
+          {CERTIFICATE_CATEGORIES.map(cat => {
+            const count = shipDocuments.filter(d => d.category === cat.id).length;
+            const isActive = categoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryFilter(cat.id)}
+                className={`tab-btn ${isActive ? 'active' : ''}`}
+                style={{
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '0.78rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  border: isActive ? `1px solid ${cat.borderColor}` : '1px solid transparent',
+                  background: isActive ? cat.bgColor : undefined,
+                  color: isActive ? cat.color : undefined
+                }}
+              >
+                <span style={{ fontWeight: isActive ? 700 : 500 }}>{cat.label.split(' ')[0]}</span>
+                <span className="badge badge-neutral" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem' }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Documents Table */}
@@ -199,14 +265,15 @@ export const DocumentTracker = () => {
           <table className="pms-table">
             <thead>
               <tr>
-                <th>Kategori & Jenis</th>
+                <th>Kategori</th>
                 <th>Nama Dokumen / Sertifikat</th>
                 <th>Pemilik / Kapal</th>
                 <th>Nomor Dokumen</th>
-                <th>Instansi Penerbit (Issuer)</th>
-                <th>Jatuh Tempo (Expiry)</th>
+                <th>Instansi Penerbit</th>
+                <th>Tgl Penerbitan</th>
+                <th>Tgl Expired</th>
                 <th>Status Kelaikan</th>
-                <th style={{ textAlign: 'right' }}>Aksi Reminder & Kalender</th>
+                <th style={{ textAlign: 'right' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -219,14 +286,41 @@ export const DocumentTracker = () => {
                 return (
                   <tr key={item.id} style={{ background: isExpired ? 'rgba(239, 68, 68, 0.04)' : isH30 ? 'rgba(245, 158, 11, 0.03)' : undefined }}>
                     <td>
-                      <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
-                        {item.itemCategory}
-                      </span>
+                      {item.category ? (
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            background: item.category === 'KSOP' ? 'rgba(245, 158, 11, 0.15)' :
+                              item.category === 'BKI' ? 'rgba(56, 189, 248, 0.15)' :
+                              item.category === 'Statutory' ? 'rgba(16, 185, 129, 0.15)' :
+                              item.category === 'Asuransi' ? 'rgba(168, 85, 247, 0.15)' :
+                              'rgba(236, 72, 153, 0.15)',
+                            color: item.category === 'KSOP' ? '#f59e0b' :
+                              item.category === 'BKI' ? '#38bdf8' :
+                              item.category === 'Statutory' ? '#10b981' :
+                              item.category === 'Asuransi' ? '#c084fc' :
+                              '#f472b6',
+                            border: item.category === 'KSOP' ? '1px solid rgba(245, 158, 11, 0.35)' :
+                              item.category === 'BKI' ? '1px solid rgba(56, 189, 248, 0.35)' :
+                              item.category === 'Statutory' ? '1px solid rgba(16, 185, 129, 0.35)' :
+                              item.category === 'Asuransi' ? '1px solid rgba(168, 85, 247, 0.35)' :
+                              '1px solid rgba(236, 72, 153, 0.35)'
+                          }}
+                        >
+                          {item.category}
+                        </span>
+                      ) : (
+                        <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                          {item.itemCategory}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <strong style={{ fontSize: '0.92rem' }}>{item.name}</strong>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                        {item.type || item.category}
+                        {item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}
                       </div>
                     </td>
                     <td>
@@ -241,6 +335,14 @@ export const DocumentTracker = () => {
                     </td>
                     <td className="mono" style={{ fontSize: '0.78rem' }}>{docNo}</td>
                     <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{item.issuer}</td>
+                    <td>
+                      <div className="mono" style={{ fontSize: '0.825rem', color: 'var(--text-main)', fontWeight: 600 }}>
+                        {item.issueDate || '-'}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
+                        Penerbitan
+                      </div>
+                    </td>
                     <td>
                       <div className="mono" style={{ fontWeight: 700, fontSize: '0.85rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : '#10b981' }}>
                         {item.expiryDate}
@@ -259,7 +361,18 @@ export const DocumentTracker = () => {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', alignItems: 'center' }}>
+                        {item.itemCategory === 'Surat Legal Kapal' && (
+                          <button
+                            onClick={() => setEditingDoc(item)}
+                            className="btn btn-secondary btn-sm"
+                            title="Edit Data & Tanggal Dokumen Ini"
+                            style={{ padding: '0.35rem 0.55rem' }}
+                          >
+                            <Edit2 size={13} />
+                            <span>Edit</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => setPreviewDoc(item)}
                           className="btn btn-secondary btn-sm"
@@ -275,7 +388,7 @@ export const DocumentTracker = () => {
                             setCalOffset(item.daysUntilExpiry <= 1 ? 1 : item.daysUntilExpiry <= 7 ? 7 : item.daysUntilExpiry <= 30 ? 30 : 365);
                           }}
                           className="btn btn-secondary btn-sm"
-                          title="Pilih Jadwal Google Calendar (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom)"
+                          title="Pilih Jadwal Google Calendar"
                           style={{ padding: '0.35rem 0.55rem', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}
                         >
                           <CalendarPlus size={13} />
@@ -293,6 +406,20 @@ export const DocumentTracker = () => {
                           <Send size={13} />
                           <span>WA</span>
                         </button>
+                        {item.itemCategory === 'Surat Legal Kapal' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Hapus sertifikat ${item.name}?`)) {
+                                deleteShipDocument(item.id);
+                              }
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            title="Hapus Dokumen"
+                            style={{ padding: '0.35rem 0.5rem', color: '#ef4444' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -674,6 +801,26 @@ export const DocumentTracker = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add/Edit Document Modal */}
+      {(showAddDocModal || editingDoc) && (
+        <DocumentFormModal
+          isOpen={showAddDocModal || !!editingDoc}
+          initialData={editingDoc}
+          vessels={vessels}
+          onClose={() => {
+            setShowAddDocModal(false);
+            setEditingDoc(null);
+          }}
+          onSave={(data) => {
+            if (editingDoc) {
+              updateShipDocument(editingDoc.id, data);
+            } else {
+              addShipDocument(data);
+            }
+          }}
+        />
       )}
     </div>
   );

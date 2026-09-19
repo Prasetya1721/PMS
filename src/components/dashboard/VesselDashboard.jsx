@@ -26,10 +26,17 @@ import {
   FileText,
   MessageCircle,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Edit3,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { RunningHoursModal } from '../equipment/RunningHoursModal';
 import { WorkOrderModal } from '../maintenance/WorkOrderModal';
+import { ShipParticularsView } from '../vessels/ShipParticularsView';
+import { ParticularsModal } from '../vessels/ParticularsModal';
+import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
+import { DocumentFormModal } from '../documents/DocumentFormModal';
 
 export const VesselDashboard = () => {
   const {
@@ -55,14 +62,20 @@ export const VesselDashboard = () => {
     toggleChecklist,
     addCrew,
     addShipDocument,
+    updateShipDocument,
+    deleteShipDocument,
+    updateVesselParticulars,
     theme
   } = usePMS();
 
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | crew | documents | equipment | workorders | spareparts
+  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | particulars | crew | documents | equipment | workorders | spareparts
   const [selectedEqForHours, setSelectedEqForHours] = useState(null);
   const [showNewWOModal, setShowNewWOModal] = useState(false);
   const [showAddCrewModal, setShowAddCrewModal] = useState(false);
   const [showAddDocModal, setShowAddDocModal] = useState(false);
+  const [showParticularsModal, setShowParticularsModal] = useState(false);
+  const [shipDocCatFilter, setShipDocCatFilter] = useState('ALL');
+  const [editingShipDoc, setEditingShipDoc] = useState(null);
 
   // New Crew Form State
   const [newCrewData, setNewCrewData] = useState({
@@ -74,15 +87,6 @@ export const VesselDashboard = () => {
     whatsapp: '',
     contractDurationMonths: 8,
     leaveBalanceDays: 14
-  });
-
-  // New Ship Doc Form State
-  const [newDocData, setNewDocData] = useState({
-    name: '',
-    category: 'Classification',
-    documentNo: '',
-    issuer: 'Biro Klasifikasi Indonesia (BKI)',
-    expiryDate: '2027-06-30'
   });
 
   // Current vessel with safe fallback
@@ -146,19 +150,6 @@ export const VesselDashboard = () => {
       contractDurationMonths: 8,
       leaveBalanceDays: 14
     });
-  };
-
-  const handleCreateDoc = (e) => {
-    e.preventDefault();
-    if (!newDocData.name.trim()) return;
-
-    addShipDocument({
-      ...newDocData,
-      vesselId: currentShip.id,
-      documentNo: newDocData.documentNo || `BKI-${currentShip.regNo || 'DOC'}-${Date.now().toString().slice(-4)}`
-    });
-
-    setShowAddDocModal(false);
   };
 
   return (
@@ -292,6 +283,14 @@ export const VesselDashboard = () => {
                 <FileCheck size={14} />
                 <span>Tambah Sertifikat BKI</span>
               </button>
+              <button
+                onClick={() => setShowParticularsModal(true)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', border: '1px solid rgba(56, 189, 248, 0.4)' }}
+              >
+                <Edit3 size={14} color="#38bdf8" />
+                <span style={{ color: '#38bdf8', fontWeight: 600 }}>Edit Data Particular</span>
+              </button>
             </div>
           </div>
         </div>
@@ -307,8 +306,9 @@ export const VesselDashboard = () => {
         }}>
           {[
             { id: 'overview', label: 'Ringkasan & Vital Status', icon: Compass, badge: null },
+            { id: 'particulars', label: 'Data Particular Kapal', icon: FileText, badge: 'BKI' },
             { id: 'crew', label: 'Awak Kapal (Crew Roster)', icon: Users, badge: shipCrew.length },
-            { id: 'documents', label: 'Sertifikat & Survei BKI', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
+            { id: 'documents', label: 'Sertifikat & Dokumen Kapal', icon: FileCheck, badge: shipDocs.length, alert: expiredDocs.length > 0 },
             { id: 'equipment', label: 'Equipment & Jam Mesin', icon: Wrench, badge: shipEquipment.length },
             { id: 'workorders', label: 'Work Orders & Servis', icon: Clock, badge: shipWOs.length, alert: overdueWO.length > 0 },
             { id: 'spareparts', label: 'Inventaris Sparepart', icon: Package, badge: shipParts.length }
@@ -627,7 +627,16 @@ export const VesselDashboard = () => {
         </div>
       )}
 
-      {/* SUB-TAB 2: AWAK KAPAL (CREW ROSTER) */}
+      {/* SUB-TAB 2: DATA PARTICULAR KAPAL (SHIP PARTICULARS) */}
+      {activeSubTab === 'particulars' && (
+        <ShipParticularsView
+          vessel={currentShip}
+          onEdit={() => setShowParticularsModal(true)}
+          theme={theme}
+        />
+      )}
+
+      {/* SUB-TAB 3: AWAK KAPAL (CREW ROSTER) */}
       {activeSubTab === 'crew' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -729,25 +738,76 @@ export const VesselDashboard = () => {
         </div>
       )}
 
-      {/* SUB-TAB 3: SERTIFIKAT & SURVEI BKI (STATUTORY RADAR) */}
+      {/* SUB-TAB 3: SERTIFIKAT & DOKUMEN KAPAL (BKI, STATUTORY, ASURANSI, KSOP, KESEHATAN) */}
       {activeSubTab === 'documents' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-                Sertifikat & Catatan Survei BKI: {currentShip.name}
+                Sertifikat & Dokumen Legal Kapal: {currentShip.name}
               </h3>
               <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Seluruh sertifikasi survei berkala Biro Klasifikasi Indonesia (Special Survey, Annual, Docking, Load Line, Poros Propeller)
+                Manajemen sertifikasi kelaikan laut kapal (BKI, Statutory, Asuransi, KSOP, dan Kesehatan) sesuai checklist standar.
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={() => setShowAddDocModal(true)} className="btn btn-primary btn-sm">
+              <button
+                onClick={() => {
+                  setEditingShipDoc(null);
+                  setShowAddDocModal(true);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
                 <Plus size={14} />
                 <span>Tambah Sertifikat Baru</span>
               </button>
             </div>
+          </div>
+
+          {/* Category Filter Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => setShipDocCatFilter('ALL')}
+              className={`btn btn-sm ${shipDocCatFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '0.78rem', fontWeight: 600 }}
+            >
+              Semua ({shipDocs.length})
+            </button>
+            {CERTIFICATE_CATEGORIES.map(cat => {
+              const count = shipDocs.filter(d => d.category === cat.id).length;
+              const isActive = shipDocCatFilter === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setShipDocCatFilter(cat.id)}
+                  className="btn btn-sm"
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    background: isActive ? cat.badgeColor : 'var(--bg-card)',
+                    color: isActive ? '#fff' : 'var(--text-main)',
+                    border: `1px solid ${isActive ? cat.badgeColor : 'var(--border-glass)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                >
+                  <span>{cat.label}</span>
+                  <span
+                    className="badge"
+                    style={{
+                      fontSize: '0.65rem',
+                      background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                      color: isActive ? '#fff' : 'var(--text-muted)'
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="glass-card" style={{ overflow: 'hidden' }}>
@@ -755,78 +815,142 @@ export const VesselDashboard = () => {
               <table className="pms-table">
                 <thead>
                   <tr>
-                    <th>Jenis Survei / Kategori</th>
-                    <th>Nama Survei & Sertifikat</th>
-                    <th>Nomor Dokumen BKI</th>
-                    <th>Instansi Pemeriksa</th>
-                    <th>Jatuh Tempo (Expiry)</th>
-                    <th>Sisa Hari</th>
+                    <th>Kategori</th>
+                    <th>Nama Sertifikat & Deskripsi</th>
+                    <th>Nomor Dokumen</th>
+                    <th>Instansi Penerbit</th>
+                    <th>Tgl Penerbitan</th>
+                    <th>Tgl Expired</th>
                     <th>Status Kelaikan</th>
-                    <th style={{ textAlign: 'right' }}>Aksi Reminder</th>
+                    <th style={{ textAlign: 'right' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shipDocs.map(d => {
-                    const isExpired = d.status === 'Expired' || d.daysUntilExpiry <= 0;
-                    const isH30 = d.daysUntilExpiry > 0 && d.daysUntilExpiry <= 30;
+                  {shipDocs
+                    .filter(d => shipDocCatFilter === 'ALL' || d.category === shipDocCatFilter)
+                    .map(d => {
+                      const isExpired = d.status === 'Expired' || (d.daysUntilExpiry !== undefined && d.daysUntilExpiry <= 0);
+                      const isH30 = d.daysUntilExpiry !== undefined && d.daysUntilExpiry > 0 && d.daysUntilExpiry <= 30;
 
-                    return (
-                      <tr key={d.id} style={{ background: isExpired ? 'rgba(239, 68, 68, 0.04)' : isH30 ? 'rgba(245, 158, 11, 0.03)' : undefined }}>
-                        <td>
-                          <span className={`badge ${d.category === 'Statutory Certificate' ? 'badge-info' : 'badge-neutral'}`} style={{ fontSize: '0.7rem' }}>
-                            {d.category}
-                          </span>
-                        </td>
-                        <td>
-                          <strong style={{ fontSize: '0.92rem' }}>{d.name}</strong>
-                          {d.rawNote && (
-                            <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                              Catatan daftar: {d.rawNote}
+                      return (
+                        <tr key={d.id} style={{ background: isExpired ? 'rgba(239, 68, 68, 0.04)' : isH30 ? 'rgba(245, 158, 11, 0.03)' : undefined }}>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                background: d.category === 'KSOP' ? 'rgba(245, 158, 11, 0.15)' :
+                                  d.category === 'BKI' ? 'rgba(56, 189, 248, 0.15)' :
+                                  d.category === 'Statutory' ? 'rgba(16, 185, 129, 0.15)' :
+                                  d.category === 'Asuransi' ? 'rgba(168, 85, 247, 0.15)' :
+                                  'rgba(236, 72, 153, 0.15)',
+                                color: d.category === 'KSOP' ? '#f59e0b' :
+                                  d.category === 'BKI' ? '#38bdf8' :
+                                  d.category === 'Statutory' ? '#10b981' :
+                                  d.category === 'Asuransi' ? '#c084fc' :
+                                  '#f472b6',
+                                border: d.category === 'KSOP' ? '1px solid rgba(245, 158, 11, 0.35)' :
+                                  d.category === 'BKI' ? '1px solid rgba(56, 189, 248, 0.35)' :
+                                  d.category === 'Statutory' ? '1px solid rgba(16, 185, 129, 0.35)' :
+                                  d.category === 'Asuransi' ? '1px solid rgba(168, 85, 247, 0.35)' :
+                                  '1px solid rgba(236, 72, 153, 0.35)'
+                              }}
+                            >
+                              {d.category || 'Dokumen'}
+                            </span>
+                          </td>
+                          <td>
+                            <strong style={{ fontSize: '0.92rem' }}>{d.name}</strong>
+                            {d.rawNote && (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                                Catatan daftar: {d.rawNote}
+                              </div>
+                            )}
+                            {d.mandatoryAuditor && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                Auditor / Surveyor: {d.mandatoryAuditor}
+                              </div>
+                            )}
+                          </td>
+                          <td className="mono" style={{ fontSize: '0.8rem' }}>{d.documentNo || '-'}</td>
+                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{d.issuer || '-'}</td>
+                          <td>
+                            <div className="mono" style={{ fontSize: '0.825rem', color: 'var(--text-main)', fontWeight: 600 }}>
+                              {d.issueDate || '-'}
                             </div>
-                          )}
-                        </td>
-                        <td className="mono" style={{ fontSize: '0.8rem' }}>{d.documentNo}</td>
-                        <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{d.issuer}</td>
-                        <td>
-                          <strong className="mono" style={{ fontSize: '0.85rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : '#10b981' }}>
-                            {d.expiryDate}
-                          </strong>
-                        </td>
-                        <td>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-muted)' }}>
-                            {d.daysUntilExpiry > 0 ? `${d.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(d.daysUntilExpiry)} HARI!`}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge ${isExpired ? 'badge-danger-pulse' : isH30 ? 'badge-warning' : 'badge-success'}`}>
-                            {d.status}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                            <button
-                              onClick={() => openGoogleCalendar(d)}
-                              className="btn btn-secondary btn-sm"
-                              title="Sinkron ke Google Calendar"
-                              style={{ padding: '0.35rem 0.55rem', color: '#38bdf8' }}
-                            >
-                              <CalendarPlus size={13} />
-                              <span>G-Cal</span>
-                            </button>
-                            <button
-                              onClick={() => sendWhatsAppReminder(d, 'ship_doc')}
-                              className="btn btn-whatsapp btn-sm"
-                              title="Kirim Peringatan WhatsApp"
-                              style={{ padding: '0.35rem 0.55rem' }}
-                            >
-                              <Send size={13} />
-                              <span>WA</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
+                              Penerbitan
+                            </div>
+                          </td>
+                          <td>
+                            <strong className="mono" style={{ fontSize: '0.85rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : '#10b981' }}>
+                              {d.expiryDate}
+                            </strong>
+                            <div style={{ fontSize: '0.72rem', color: isExpired ? '#ef4444' : isH30 ? '#f59e0b' : 'var(--text-subtle)', fontWeight: isH30 ? 600 : 400 }}>
+                              {d.daysUntilExpiry > 0 ? `${d.daysUntilExpiry} hari lagi` : `LEWAT ${Math.abs(d.daysUntilExpiry)} HARI!`}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`badge ${isExpired ? 'badge-danger-pulse' : isH30 ? 'badge-warning' : 'badge-success'}`}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', alignItems: 'center' }}>
+                              <button
+                                onClick={() => setEditingShipDoc(d)}
+                                className="btn btn-secondary btn-sm"
+                                title="Edit Data & Tanggal Dokumen Ini"
+                                style={{ padding: '0.35rem 0.55rem' }}
+                              >
+                                <Edit2 size={13} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                onClick={() => openGoogleCalendar(d)}
+                                className="btn btn-secondary btn-sm"
+                                title="Sinkron ke Google Calendar"
+                                style={{ padding: '0.35rem 0.55rem', color: '#38bdf8' }}
+                              >
+                                <CalendarPlus size={13} />
+                                <span>G-Cal</span>
+                              </button>
+                              <button
+                                onClick={() => sendWhatsAppReminder(d, 'ship_doc')}
+                                className="btn btn-whatsapp btn-sm"
+                                title="Kirim Peringatan WhatsApp"
+                                style={{ padding: '0.35rem 0.55rem' }}
+                              >
+                                <Send size={13} />
+                                <span>WA</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Hapus sertifikat "${d.name}" (${d.documentNo}) dari ${currentShip.name}?`)) {
+                                    deleteShipDocument(d.id);
+                                  }
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                title="Hapus Dokumen"
+                                style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {shipDocs.filter(d => shipDocCatFilter === 'ALL' || d.category === shipDocCatFilter).length === 0 && (
+                    <tr>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                        <FileCheck size={36} color="var(--text-subtle)" style={{ margin: '0 auto 0.75rem' }} />
+                        <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>Tidak ada sertifikat dalam kategori ini.</p>
+                        <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klik "Tambah Sertifikat Baru" untuk mencatat sertifikat baru untuk kapal ini.</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1210,100 +1334,29 @@ export const VesselDashboard = () => {
         </div>
       )}
 
-      {/* Modal: Tambah Sertifikat Baru */}
-      {showAddDocModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1.5rem'
-        }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: '580px', padding: '1.75rem', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '0.25rem' }}>
-              Tambah Sertifikat / Survei: {currentShip.name}
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              Catat sertifikat klasifikasi BKI atau statutory baru untuk kapal ini
-            </p>
-
-            <form onSubmit={handleCreateDoc} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label className="field-label">Nama Sertifikat / Jenis Survei *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Annual Survey (AS)"
-                  value={newDocData.name}
-                  onChange={(e) => setNewDocData(prev => ({ ...prev, name: e.target.value }))}
-                  className="input-control"
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="field-label">Kategori</label>
-                  <select
-                    value={newDocData.category}
-                    onChange={(e) => setNewDocData(prev => ({ ...prev, category: e.target.value }))}
-                    className="select-control"
-                  >
-                    <option value="Classification">Classification (Klas BKI)</option>
-                    <option value="Statutory Certificate">Statutory Certificate (Pemerintah)</option>
-                    <option value="Asuransi & P&I">Asuransi & P&I</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="field-label">Nomor Dokumen</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: BKI-30937-AS"
-                    value={newDocData.documentNo}
-                    onChange={(e) => setNewDocData(prev => ({ ...prev, documentNo: e.target.value }))}
-                    className="input-control"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="field-label">Instansi Penerbit</label>
-                  <input
-                    type="text"
-                    placeholder="Biro Klasifikasi Indonesia (BKI)"
-                    value={newDocData.issuer}
-                    onChange={(e) => setNewDocData(prev => ({ ...prev, issuer: e.target.value }))}
-                    className="input-control"
-                  />
-                </div>
-                <div>
-                  <label className="field-label">Tanggal Jatuh Tempo (Expiry) *</label>
-                  <input
-                    type="date"
-                    required
-                    value={newDocData.expiryDate}
-                    onChange={(e) => setNewDocData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                    className="input-control"
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem' }}>
-                <button type="button" onClick={() => setShowAddDocModal(false)} className="btn btn-secondary">
-                  Batal
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Simpan Sertifikat
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal: Tambah & Edit Sertifikat (BKI, Statutory, Asuransi, KSOP, Kesehatan) */}
+      <DocumentFormModal
+        isOpen={showAddDocModal || !!editingShipDoc}
+        onClose={() => {
+          setShowAddDocModal(false);
+          setEditingShipDoc(null);
+        }}
+        initialData={editingShipDoc}
+        vessels={vessels}
+        defaultVesselId={currentShip.id}
+        onSave={(docData) => {
+          if (editingShipDoc) {
+            updateShipDocument(editingShipDoc.id, docData);
+          } else {
+            addShipDocument({
+              ...docData,
+              vesselId: currentShip.id
+            });
+          }
+          setShowAddDocModal(false);
+          setEditingShipDoc(null);
+        }}
+      />
 
       {/* Existing Modals */}
       {selectedEqForHours && (
@@ -1317,6 +1370,18 @@ export const VesselDashboard = () => {
         <WorkOrderModal
           vesselId={currentShip.id}
           onClose={() => setShowNewWOModal(false)}
+        />
+      )}
+
+      {/* Edit Vessel Particulars Modal */}
+      {showParticularsModal && (
+        <ParticularsModal
+          vessel={currentShip}
+          isOpen={showParticularsModal}
+          onClose={() => setShowParticularsModal(false)}
+          onSave={(shipId, updatedData) => {
+            updateVesselParticulars(shipId, updatedData);
+          }}
         />
       )}
     </div>
