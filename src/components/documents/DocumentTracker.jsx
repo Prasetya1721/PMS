@@ -322,6 +322,16 @@ export const DocumentTracker = () => {
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
                         {item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}
                       </div>
+                      {item.notificationReminders && item.notificationReminders.enabled !== false && (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                          <span className="badge" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }} title="Interval Pengingat Expired Aktif">
+                            🔔 {item.notificationReminders.year?.enabled ? `${item.notificationReminders.year.value}Th ` : ''}
+                            {item.notificationReminders.month?.enabled ? `${item.notificationReminders.month.value}Bl ` : ''}
+                            {item.notificationReminders.week?.enabled ? `${item.notificationReminders.week.value}Mg ` : ''}
+                            {item.notificationReminders.day?.enabled ? `${item.notificationReminders.day.value}Hr` : ''}
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       {item.crewName ? (

@@ -29,12 +29,14 @@ import {
   ChevronRight,
   Edit3,
   Edit2,
-  Trash2
+  Trash2,
+  Camera
 } from 'lucide-react';
 import { RunningHoursModal } from '../equipment/RunningHoursModal';
 import { WorkOrderModal } from '../maintenance/WorkOrderModal';
 import { ShipParticularsView } from '../vessels/ShipParticularsView';
 import { ParticularsModal } from '../vessels/ParticularsModal';
+import { EditVesselPhotoModal } from '../vessels/EditVesselPhotoModal';
 import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { DocumentFormModal } from '../documents/DocumentFormModal';
 
@@ -64,6 +66,7 @@ export const VesselDashboard = () => {
     addShipDocument,
     updateShipDocument,
     deleteShipDocument,
+    updateVessel,
     updateVesselParticulars,
     theme
   } = usePMS();
@@ -74,6 +77,7 @@ export const VesselDashboard = () => {
   const [showAddCrewModal, setShowAddCrewModal] = useState(false);
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [showParticularsModal, setShowParticularsModal] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [shipDocCatFilter, setShipDocCatFilter] = useState('ALL');
   const [editingShipDoc, setEditingShipDoc] = useState(null);
 
@@ -105,7 +109,7 @@ export const VesselDashboard = () => {
     gt: 310,
     status: 'Operasional (Berlayar)',
     currentLocation: 'Muara Berau (Towing Tongkang)',
-    photo: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80'
+    photo: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80'
   };
 
   // Specific data filtered for THIS ship with defensive checks
@@ -162,7 +166,7 @@ export const VesselDashboard = () => {
           minHeight: '230px'
         }}>
           {/* Photo & Status */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', overflow: 'hidden' }}>
             <img
               src={currentShip.photo}
               alt={currentShip.name}
@@ -183,6 +187,31 @@ export const VesselDashboard = () => {
                 {currentShip.ownershipStatus || 'As Owner'}
               </span>
             </div>
+
+            {/* Quick Edit Photo Button on image */}
+            <button
+              onClick={() => setShowPhotoModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                position: 'absolute',
+                bottom: '0.75rem',
+                left: '0.75rem',
+                background: 'rgba(2, 6, 23, 0.75)',
+                backdropFilter: 'blur(4px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                color: '#fff',
+                fontSize: '0.72rem',
+                padding: '0.3rem 0.65rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                zIndex: 2
+              }}
+              title="Ganti / Edit Foto Kapal Ini"
+            >
+              <Camera size={13} color="#38bdf8" />
+              <span>Ganti Foto Kapal</span>
+            </button>
           </div>
 
           {/* Details & Specifications */}
@@ -290,6 +319,15 @@ export const VesselDashboard = () => {
               >
                 <Edit3 size={14} color="#38bdf8" />
                 <span style={{ color: '#38bdf8', fontWeight: 600 }}>Edit Data Particular</span>
+              </button>
+              <button
+                onClick={() => setShowPhotoModal(true)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                title="Ganti atau upload foto kapal"
+              >
+                <Camera size={14} color="#f59e0b" />
+                <span>Edit Foto</span>
               </button>
             </div>
           </div>
@@ -872,6 +910,16 @@ export const VesselDashboard = () => {
                                 Auditor / Surveyor: {d.mandatoryAuditor}
                               </div>
                             )}
+                            {d.notificationReminders && d.notificationReminders.enabled !== false && (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.2rem' }}>
+                                <span className="badge" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }} title="Interval Pengingat Expired Aktif">
+                                  🔔 {d.notificationReminders.year?.enabled ? `${d.notificationReminders.year.value}Th ` : ''}
+                                  {d.notificationReminders.month?.enabled ? `${d.notificationReminders.month.value}Bl ` : ''}
+                                  {d.notificationReminders.week?.enabled ? `${d.notificationReminders.week.value}Mg ` : ''}
+                                  {d.notificationReminders.day?.enabled ? `${d.notificationReminders.day.value}Hr` : ''}
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="mono" style={{ fontSize: '0.8rem' }}>{d.documentNo || '-'}</td>
                           <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{d.issuer || '-'}</td>
@@ -1381,6 +1429,18 @@ export const VesselDashboard = () => {
           onClose={() => setShowParticularsModal(false)}
           onSave={(shipId, updatedData) => {
             updateVesselParticulars(shipId, updatedData);
+          }}
+        />
+      )}
+
+      {/* Edit Vessel Photo Modal */}
+      {showPhotoModal && (
+        <EditVesselPhotoModal
+          vessel={currentShip}
+          isOpen={showPhotoModal}
+          onClose={() => setShowPhotoModal(false)}
+          onSavePhoto={(newPhotoUrl) => {
+            updateVessel(currentShip.id, { photo: newPhotoUrl });
           }}
         />
       )}

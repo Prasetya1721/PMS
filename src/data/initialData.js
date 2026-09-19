@@ -24,7 +24,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 7.8,
     "chiefEngineer": "Ir. Bambang Wijaya (KKM)",
     "masterCaptain": "Capt. Hendra Gunawan, M.Mar",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Owner",
     "ownershipCategory": "Owner"
   },
@@ -112,7 +112,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 7.2,
     "chiefEngineer": "Didik Hermawan",
     "masterCaptain": "Capt. Fajar Kurniawan",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Owner",
     "ownershipCategory": "Owner"
   },
@@ -178,7 +178,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 7.5,
     "chiefEngineer": "Harry Santoso",
     "masterCaptain": "Capt. Joko Prasetyo",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Owner",
     "ownershipCategory": "Owner"
   },
@@ -310,7 +310,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 8.5,
     "chiefEngineer": "Edi Susanto",
     "masterCaptain": "Capt. Rudi Hartono",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Owner",
     "ownershipCategory": "Owner"
   },
@@ -398,7 +398,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 7.8,
     "chiefEngineer": "Ir. Bambang Wijaya (KKM)",
     "masterCaptain": "Capt. Hendra Gunawan, M.Mar",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Operator",
     "ownershipCategory": "Operator"
   },
@@ -552,7 +552,7 @@ const RAW_INITIAL_VESSELS = [
     "speedKnots": 8.5,
     "chiefEngineer": "Edi Susanto",
     "masterCaptain": "Capt. Rudi Hartono",
-    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Operator",
     "ownershipCategory": "Operator"
   },

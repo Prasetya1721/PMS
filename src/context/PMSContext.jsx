@@ -60,9 +60,14 @@ export const PMSProvider = ({ children }) => {
         }
         return parsed.map(v => {
           const fallbackVessel = fallback.find(fb => fb.id === v.id) || {};
+          let photo = v.photo || fallbackVessel.photo;
+          if (!photo || photo.includes('photo-1544620347-c4fd4a3d5957')) {
+            photo = 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80';
+          }
           return {
             ...fallbackVessel,
             ...v,
+            photo,
             particulars: v.particulars || fallbackVessel.particulars || createDefaultShipParticulars(v)
           };
         });
