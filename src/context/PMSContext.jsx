@@ -46,7 +46,7 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v11-kalbar-pontianak-clean-report';
+const PMS_STORAGE_VERSION = 'v12-kalbar-pontianak-pure';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -76,7 +76,12 @@ export const PMSProvider = ({ children }) => {
       }
       const saved = localStorage.getItem(`pms_${key}`);
       if (!saved) return fallback;
-      const sanitized = saved.replace(/Samarinda/gi, 'Pontianak');
+      const sanitized = saved
+        .replace(/Samarinda/gi, 'Pontianak')
+        .replace(/Balikpapan/gi, 'Ketapang')
+        .replace(/Muara Berau/gi, 'Muara Jungkat')
+        .replace(/Kalimantan Timur/gi, 'Kalimantan Barat')
+        .replace(/Sungai Mahakam/gi, 'Sungai Kapuas');
       const parsed = JSON.parse(sanitized);
       // Extra safeguard: if stored vessels array doesn't match fallback or lacks v-001, force reload fallback
       if (key === 'vessels') {

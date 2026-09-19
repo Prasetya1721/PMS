@@ -510,9 +510,10 @@ export const VesselList = () => {
                     className="select-control"
                   >
                     <option value="Pontianak, Kalimantan Barat">Pontianak, Kalimantan Barat</option>
-                    <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
                     <option value="Ketapang, Kalimantan Barat">Ketapang, Kalimantan Barat</option>
-                    <option value="Balikpapan, Kalimantan Timur">Balikpapan, Kalimantan Timur</option>
+                    <option value="Kendawangan, Kalimantan Barat">Kendawangan, Kalimantan Barat</option>
+                    <option value="Singkawang, Kalimantan Barat">Singkawang, Kalimantan Barat</option>
+                    <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
                     <option value="Kumai, Kalimantan Tengah">Kumai, Kalimantan Tengah</option>
                     <option value="Surabaya, Jawa Timur">Surabaya, Jawa Timur</option>
                     <option value="Batam, Kepulauan Riau">Batam, Kepulauan Riau</option>
@@ -587,7 +588,7 @@ export const VesselList = () => {
                   <input
                     type="text"
                     name="currentLocation"
-                    placeholder="Contoh: Muara Berau Anchorage"
+                    placeholder="Contoh: Muara Jungkat / Sungai Kapuas (Pontianak)"
                     value={formData.currentLocation}
                     onChange={handleInputChange}
                     className="input-control"

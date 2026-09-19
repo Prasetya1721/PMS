@@ -234,7 +234,7 @@ export const VesselDashboard = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Vessel Profile Hero Card */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
+      <div className="glass-card no-print" style={{ overflow: 'hidden' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: '360px 1fr',
@@ -1651,7 +1651,7 @@ export const VesselDashboard = () => {
 
                         <div style={{ padding: '0.5rem 0.75rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
                           <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>🏢 Logistik Gudang PBK:</div>
-                          <strong style={{ color: '#10b981' }}>Gudang Logistik Banjarmasin</strong>
+                          <strong style={{ color: '#10b981' }}>Gudang Logistik Pontianak (Shore Base PBK)</strong>
                           <div style={{ fontSize: '0.68rem', color: ['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status) ? '#10b981' : '#f59e0b', marginTop: '0.15rem' }}>
                             {['Completed', 'Diterima di Kapal (Selesai)', 'Diterima di Kapal'].includes(wo.status) ? '✓ Selesai & Diterima di Kapal' : '⏳ Dalam Proses Gudang'}
                           </div>

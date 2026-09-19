@@ -273,7 +273,7 @@ export const INITIAL_WORK_ORDERS = [
     "assignedTo": "Asep Sunandar (Masinis 3)",
     "captain": "Capt. Hendra Gunawan, M.Mar",
     "supervisor": "Capt. Hendra Gunawan, M.Mar",
-    "deliveryLocation": "Muara Berau Anchorage",
+    "deliveryLocation": "Dermaga Dwikora Pontianak / Muara Jungkat",
     "items": [
       {
         "id": "it-201",
@@ -378,7 +378,7 @@ export const INITIAL_WORK_ORDERS = [
         "received": false
       }
     ],
-    "notes": "Ransum konsumsi pelayaran towing Muara Berau - Surabaya dan APD kru baru join."
+    "notes": "Ransum konsumsi pelayaran towing Pontianak - Kendawangan dan APD kru baru join."
   }
 ];
 
@@ -905,7 +905,7 @@ export const INITIAL_LEAVES = [
     "status": "Approved Fleet",
     "appliedDate": "2026-09-02",
     "replacementCrew": "Standby Pool Pontianak",
-    "notes": "Keperluan keluarga di Surabaya, sign off di Muara Berau."
+    "notes": "Keperluan keluarga di Surabaya, sign off di Pelabuhan Dwikora Pontianak."
   },
   {
     "id": "leave-002",

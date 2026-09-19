@@ -679,7 +679,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                       required
                       value={auditLocation}
                       onChange={(e) => setAuditLocation(e.target.value)}
-                      placeholder="contoh: Dermaga Muara Berau / Kantor Pusat"
+                      placeholder="contoh: Dermaga Dwikora Pontianak / Kantor Pusat"
                       className="input-control"
                     />
                   </div>

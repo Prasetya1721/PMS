@@ -932,23 +932,137 @@ h1, h2, h3, h4, h5 {
     border-color: #cbd5e1 !important;
   }
 
-  /* 7. DUKUNGAN UNTUK DOKUMEN LAIN (PARTICULARS & SURAT PERMINTAAN BARANG GUDANG) */
-  .particulars-sheet {
-    box-shadow: none !important;
-    border: 1px solid #cbd5e1 !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    padding: 5mm !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
+  /* 7. DUKUNGAN CETAK DOKUMEN PARTICULARS KAPAL RESMI (A4 MARITIM) */
+  .particular-section-screen-hidden {
+    display: block !important;
   }
 
   body:has(.particulars-sheet) aside,
   body:has(.particulars-sheet) header,
+  body:has(.particulars-sheet) nav,
   body:has(.particulars-sheet) .sidebar,
-  body:has(.particulars-sheet) .urgency-banner {
+  body:has(.particulars-sheet) .urgency-banner,
+  body:has(.particulars-sheet) .top-navbar,
+  body:has(.particulars-sheet) .navbar,
+  body:has(.particulars-sheet) .glass-card.no-print,
+  body:has(.particulars-sheet) .no-print,
+  body.particulars-printing-active aside,
+  body.particulars-printing-active header,
+  body.particulars-printing-active nav,
+  body.particulars-printing-active .sidebar,
+  body.particulars-printing-active .urgency-banner,
+  body.particulars-printing-active .top-navbar,
+  body.particulars-printing-active .navbar,
+  body.particulars-printing-active .glass-card.no-print,
+  body.particulars-printing-active .no-print {
     display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body:has(.particulars-sheet) .main-content,
+  body:has(.particulars-sheet) .page-body,
+  body:has(.particulars-sheet) .vessel-dashboard,
+  body.particulars-printing-active .main-content,
+  body.particulars-printing-active .page-body,
+  body.particulars-printing-active .vessel-dashboard {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .particulars-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    page-break-inside: auto;
+  }
+
+  .particulars-kop {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 14px !important;
+    border-bottom: 3px double #0f172a !important;
+  }
+
+  .particulars-showcase {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .particular-section-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 12px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+  }
+
+  .particular-section-header {
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding: 6px 12px !important;
+  }
+
+  .particular-fields-grid {
+    background: #e2e8f0 !important;
+    border-top: 1px solid #cbd5e1 !important;
+  }
+
+  .particular-field-cell {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 5px 10px !important;
+  }
+
+  .particular-field-cell span {
+    color: #475569 !important;
+    font-size: 7pt !important;
+    font-weight: 600 !important;
+  }
+
+  .particular-field-cell div {
+    color: #0f172a !important;
+    font-size: 8.2pt !important;
+    font-weight: 700 !important;
+  }
+
+  .particulars-signatures {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 18px !important;
+    border-top: 1.5px dashed #94a3b8 !important;
+    padding-top: 12px !important;
+  }
+
+  .particulars-footer-note {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 20px !important;
   }
 
   .glass-card {
@@ -956,6 +1070,10 @@ h1, h2, h3, h4, h5 {
     border: 1px solid #cbd5e1 !important;
     box-shadow: none !important;
   }
+}
+
+.particular-section-screen-hidden {
+  display: none !important;
 }
 
 /* =========================================================

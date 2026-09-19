@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Ship,
   Edit3,
@@ -67,8 +67,20 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
     setTimeout(() => setCopied(false), 3000);
   };
 
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('particulars-printing-active');
+    };
+  }, []);
+
   const handlePrint = () => {
-    window.print();
+    document.body.classList.add('particulars-printing-active');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('particulars-printing-active');
+      }, 500);
+    }, 50);
   };
 
   return (
@@ -154,67 +166,75 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
         background: theme === 'light' ? '#ffffff' : 'var(--bg-surface-card)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '2rem'
+        gap: '1.75rem'
       }}>
         {/* Certificate Header / Letterhead */}
-        <div style={{
+        <div className="particulars-kop" style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          paddingBottom: '1.5rem',
-          borderBottom: '2px solid rgba(2, 132, 199, 0.35)',
+          paddingBottom: '1.25rem',
+          borderBottom: '3px double #0f172a',
           position: 'relative'
         }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '8px',
-                background: '#0284c7',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
-              }}>
-                <Anchor size={26} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.04em', color: 'var(--text-main)' }}>
-                  PT. PELAYARAN BAHARIMAS KALIMANTAN
-                </h2>
-                <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', letterSpacing: '0.02em', textTransform: 'uppercase', fontWeight: 600 }}>
-                  Technical Marine & Fleet Maintenance Department • Pontianak, Kalimantan Barat
-                </p>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: '#0284c7',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)',
+              border: '2px solid #38bdf8',
+              flexShrink: 0
+            }}>
+              <Ship size={28} strokeWidth={2.2} />
+              <span style={{ fontSize: '5.5pt', fontWeight: 900, letterSpacing: '1px', marginTop: '1px' }}>PBK</span>
+            </div>
+            <div>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 900, letterSpacing: '0.03em', color: 'var(--text-main)', margin: 0, textTransform: 'uppercase' }}>
+                PT. PELAYARAN BAHARIMAS KALIMANTAN
+              </h2>
+              <p style={{ fontSize: '0.78rem', color: '#0284c7', letterSpacing: '0.02em', textTransform: 'uppercase', fontWeight: 700, margin: '2px 0 0 0' }}>
+                SHIP OWNER, OPERATOR & MARITIME LOGISTICS SERVICES
+              </p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                Kantor Pusat: Komp. Pontianak Mall Blok D No. 8-9, Jl. Tanjungpura, Kota Pontianak 78122, Kalimantan Barat • Telp: (0561) 734567
+              </p>
             </div>
           </div>
 
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem', borderLeft: '1px solid #cbd5e1', paddingLeft: '1rem' }}>
             <span style={{
               fontSize: '0.92rem',
-              fontWeight: 800,
-              color: '#38bdf8',
-              letterSpacing: '0.08em',
+              fontWeight: 900,
+              color: '#0284c7',
+              letterSpacing: '0.06em',
               textTransform: 'uppercase'
             }}>
-              VESSEL TECHNICAL PARTICULARS
+              SPESIFIKASI TEKNIS KAPAL
             </span>
-            <span className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-subtle)' }}>
-              DOC REF: PBK-PAR-{particulars.officialNo?.split(' ')[0] || vessel.regNo || '001'}
+            <span className="mono" style={{ fontSize: '0.76rem', color: 'var(--text-main)', fontWeight: 800 }}>
+              DOC NO: PBK-PAR-{particulars.officialNo?.split(' ')[0] || vessel.regNo || '001'}
             </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               Klasifikasi: <strong>Biro Klasifikasi Indonesia (BKI)</strong>
+            </span>
+            <span style={{ fontSize: '0.66rem', color: '#64748b' }}>
+              Edisi / Revisi: <strong>2026 / Rev. 02</strong>
             </span>
           </div>
         </div>
 
         {/* Vessel Identity Showcase */}
-        <div style={{
+        <div className="particulars-showcase" style={{
           display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          gap: '1.75rem',
+          gridTemplateColumns: '250px 1fr',
+          gap: '1.5rem',
           padding: '1.25rem',
           background: 'var(--bg-surface-elevated)',
           borderRadius: '12px',
@@ -249,7 +269,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
-                  <h1 style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-main)', lineHeight: 1.1 }}>
+                  <h1 style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-main)', lineHeight: 1.1, margin: 0 }}>
                     {particulars.vesselName || vessel.name}
                   </h1>
                   <p style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 700, marginTop: '0.25rem' }}>
@@ -273,30 +293,30 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: '0.85rem',
-                marginTop: '1.15rem'
+                gap: '0.75rem',
+                marginTop: '1rem'
               }}>
-                <div style={{ padding: '0.55rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>No. Registrasi BKI</span>
-                  <p className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '0.1rem' }}>
+                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', display: 'block' }}>No. Registrasi BKI</span>
+                  <p className="mono" style={{ fontSize: '0.825rem', fontWeight: 800, margin: '0.1rem 0 0 0' }}>
                     {particulars.officialNo || vessel.regNo}
                   </p>
                 </div>
-                <div style={{ padding: '0.55rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Call Sign / IMO</span>
-                  <p className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, marginTop: '0.1rem' }}>
+                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', display: 'block' }}>Call Sign / IMO</span>
+                  <p className="mono" style={{ fontSize: '0.825rem', fontWeight: 800, margin: '0.1rem 0 0 0' }}>
                     {particulars.callSign || '-'} / {particulars.imoNumber || '-'}
                   </p>
                 </div>
-                <div style={{ padding: '0.55rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Tonase (GT / DWT)</span>
-                  <p className="mono" style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', marginTop: '0.1rem' }}>
+                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', display: 'block' }}>Tonase (GT / DWT)</span>
+                  <p className="mono" style={{ fontSize: '0.825rem', fontWeight: 800, color: '#10b981', margin: '0.1rem 0 0 0' }}>
                     {particulars.grossTonnage?.toLocaleString()} GT / {particulars.deadweight?.toLocaleString()} DWT
                   </p>
                 </div>
-                <div style={{ padding: '0.55rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>Daya Mesin / BHP</span>
-                  <p style={{ fontSize: '0.825rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.1rem' }}>
+                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', display: 'block' }}>Daya Mesin / BHP</span>
+                  <p style={{ fontSize: '0.825rem', fontWeight: 800, color: '#f59e0b', margin: '0.1rem 0 0 0' }}>
                     {particulars.totalHorsepower?.split('(')[0] || particulars.totalHorsepower || '-'}
                   </p>
                 </div>
@@ -360,31 +380,41 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
           })}
         </div>
 
-        {/* Sections Grid Rendering */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {PARTICULAR_SECTIONS.filter(s => activeTab === 'all' || activeTab === s.id).map(section => {
+        {/* Sections Grid Rendering — In Print mode, all sections are printed */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {PARTICULAR_SECTIONS.map(section => {
+            const isSelectedOnScreen = activeTab === 'all' || activeTab === section.id;
             const Icon = SECTION_ICONS[section.id] || Ship;
             return (
-              <div key={section.id} style={{
-                borderRadius: '12px',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-surface-elevated)',
-                overflow: 'hidden'
-              }}>
+              <div
+                key={section.id}
+                className={`particular-section-block ${!isSelectedOnScreen ? 'particular-section-screen-hidden' : ''}`}
+                style={{
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-surface-elevated)',
+                  overflow: 'hidden',
+                  pageBreakInside: 'avoid',
+                  breakInside: 'avoid'
+                }}
+              >
                 {/* Section Header */}
-                <div style={{
-                  padding: '0.85rem 1.25rem',
-                  background: 'rgba(2, 132, 199, 0.08)',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
+                <div
+                  className="particular-section-header"
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    background: 'rgba(2, 132, 199, 0.08)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                     <Icon size={17} color="#38bdf8" />
                     <div>
-                      <h4 style={{ fontSize: '0.98rem', fontWeight: 800 }}>{section.title}</h4>
-                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>{section.subtitle}</p>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 800, margin: 0 }}>{section.title}</h4>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '1px 0 0 0' }}>{section.subtitle}</p>
                     </div>
                   </div>
                   <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>
@@ -393,12 +423,15 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                 </div>
 
                 {/* Section Attributes Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '1px',
-                  background: 'var(--border-subtle)'
-                }}>
+                <div
+                  className="particular-fields-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '1px',
+                    background: 'var(--border-subtle)'
+                  }}
+                >
                   {section.fields.map(field => {
                     const val = particulars[field.key];
                     const isFullWidth = field.type === 'textarea' || (val && String(val).length > 60);
@@ -406,12 +439,13 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                     return (
                       <div
                         key={field.key}
+                        className="particular-field-cell"
                         style={{
-                          padding: '0.75rem 1.25rem',
+                          padding: '0.65rem 1.15rem',
                           background: 'var(--bg-surface)',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.2rem',
+                          gap: '0.15rem',
                           gridColumn: isFullWidth ? 'span 2' : 'span 1'
                         }}
                       >
@@ -436,55 +470,86 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
         </div>
 
         {/* Certificate Seal & Signatures Footer */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          paddingTop: '1.75rem',
-          borderTop: '2px dashed var(--border-subtle)',
-          flexWrap: 'wrap',
-          gap: '1.5rem',
-          marginTop: '1rem'
-        }}>
+        <div
+          className="particulars-signatures"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '1.5rem',
+            borderTop: '2px dashed var(--border-subtle)',
+            flexWrap: 'wrap',
+            gap: '1.5rem',
+            marginTop: '0.5rem',
+            pageBreakInside: 'avoid',
+            breakInside: 'avoid'
+          }}
+        >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <Award size={28} color="#0284c7" />
+              <Award size={30} color="#0284c7" />
               <div>
-                <p style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  VERIFIKASI TEKNIS & KELAIKLAUTAN
+                <p style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  VERIFIKASI TEKNIS & KELAIKLAUTAN KAPAL
                 </p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                  Data disesuaikan dengan Akta Pendaftaran Kapal, Surat Ukur, & Sertifikat Garis Muat BKI.
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                  Data diselaraskan dengan Surat Ukur, Akta Pendaftaran, dan Sertifikat Garis Muat BKI.
+                </p>
+                <p style={{ fontSize: '0.68rem', color: '#0284c7', margin: '2px 0 0 0', fontWeight: 700 }}>
+                  Ditetapkan di: Pontianak, Kalimantan Barat
                 </p>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '3rem', textAlign: 'center' }}>
-            <div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
-                Disetujui Nakhoda / Perwira:
+          <div style={{ display: 'flex', gap: '2.5rem', textAlign: 'center' }}>
+            <div style={{ minWidth: '130px' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 2.5rem 0' }}>
+                Disetujui Nakhoda Kapal:
               </p>
-              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid var(--text-subtle)', paddingTop: '0.25rem' }}>
-                {vessel.masterCaptain || 'Capt. M. Mar'}
+              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid #94a3b8', paddingTop: '0.25rem', margin: 0, textDecoration: 'underline' }}>
+                {vessel.masterCaptain || 'Capt. Hendra Gunawan, M.Mar'}
               </p>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Master / Captain</span>
             </div>
-            <div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+            <div style={{ minWidth: '130px' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 2.5rem 0' }}>
                 Chief Engineer / KKM:
               </p>
-              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid var(--text-subtle)', paddingTop: '0.25rem' }}>
-                {vessel.chiefEngineer || 'Chief Engineer (KKM)'}
+              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid #94a3b8', paddingTop: '0.25rem', margin: 0, textDecoration: 'underline' }}>
+                {vessel.chiefEngineer || 'Ir. Bambang Wijaya'}
               </p>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Kepala Kamar Mesin</span>
             </div>
-            <div>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2.5rem' }}>
+            <div style={{ minWidth: '130px' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 2.5rem 0' }}>
                 Superintendent Armada:
               </p>
-              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid var(--text-subtle)', paddingTop: '0.25rem' }}>
-                PT. Pelayaran Baharimas
+              <p style={{ fontSize: '0.82rem', fontWeight: 800, borderTop: '1px solid #94a3b8', paddingTop: '0.25rem', margin: 0, textDecoration: 'underline' }}>
+                Ir. Heri Prasetyo
               </p>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>PT. Pelayaran Baharimas Kalimantan</span>
             </div>
+          </div>
+        </div>
+
+        {/* Document Official Footer Notes */}
+        <div
+          className="particulars-footer-note"
+          style={{
+            paddingTop: '0.5rem',
+            borderTop: '1px solid var(--border-subtle)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '6.5pt',
+            color: '#64748b'
+          }}
+        >
+          <div>
+            Dokumen Teknis Resmi PT. Pelayaran Baharimas Kalimantan • Sistem Manajemen Armada PMS Cloud
+          </div>
+          <div>
+            Distribusi: 1. Arsip Kantor Darat Pontianak | 2. Onboard {vessel.name} | 3. Arsip Syahbandar / BKI
           </div>
         </div>
       </div>

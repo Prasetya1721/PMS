@@ -1236,7 +1236,7 @@ export const InventoryList = () => {
                     value={spbkForm.notes}
                     onChange={e => setSpbkForm({ ...spbkForm, notes: e.target.value })}
                     className="input-control"
-                    placeholder="Contoh: Stok beras galley tinggal sedikit untuk rute towing Muara Berau - Surabaya..."
+                    placeholder="Contoh: Stok beras galley tinggal sedikit untuk rute towing Pontianak - Kendawangan..."
                   />
                 </div>
               </div>

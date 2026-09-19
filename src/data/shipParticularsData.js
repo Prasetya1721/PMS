@@ -272,7 +272,7 @@ export const createDefaultShipParticulars = (vessel = {}) => {
     crewComplement: '10 - 12 Orang (Nakhoda, Perwira & ABK)',
     cabins: '1 x Captain Cabin, 1 x Chief Engineer Cabin, 4 x Officer/Crew Double Berths',
     airConditioning: 'Fully Air Conditioned Berths, Galley & Mess Room',
-    specialNotes: `Kapal tunda niaga bersertifikasi BKI laik laut, dioperasikan secara profesional untuk penarikan tongkang batubara 300ft/330ft di perairan Sungai Mahakam, Pontianak, Trisakti Banjarmasin, hingga lintas kepulauan Indonesia.`
+    specialNotes: `Kapal tunda niaga bersertifikasi BKI laik laut, dioperasikan secara profesional untuk penarikan tongkang batubara & bauksit 300ft/330ft di perairan Sungai Kapuas, Muara Jungkat, Pontianak, Ketapang - Kendawangan Kalimantan Barat, hingga lintas kepulauan Indonesia.`
   };
 };
 
