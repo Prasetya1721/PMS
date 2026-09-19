@@ -26,7 +26,8 @@ export const CrewManager = () => {
     submitLeave,
     addDrill,
     addCrew,
-    currentRole
+    currentRole,
+    canAction
   } = usePMS();
 
   const [crewTab, setCrewTab] = useState('list'); // 'list' | 'leaves' | 'drills'
@@ -233,34 +234,44 @@ export const CrewManager = () => {
                       </p>
                     </div>
 
-                    {/* Approval Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      {l.status === 'Pending Ship Admin' && (
-                        <button
-                          onClick={() => approveLeave(l.id, 'Approved Ship Admin')}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          <CheckCircle size={14} color="#38bdf8" />
-                          <span>Approve Nakhoda</span>
-                        </button>
-                      )}
-                      {(l.status === 'Approved Ship Admin' || l.status === 'Pending Ship Admin') && (
-                        <button
-                          onClick={() => approveLeave(l.id, 'Approved Fleet')}
-                          className="btn btn-success btn-sm"
-                        >
-                          <CheckCircle size={14} />
-                          <span>Approve Fleet Manager</span>
-                        </button>
-                      )}
-                      {isPending && (
-                        <button
-                          onClick={() => approveLeave(l.id, 'Rejected')}
-                          className="btn btn-danger btn-sm"
-                        >
-                          <XCircle size={14} />
-                          <span>Tolak</span>
-                        </button>
+                    {/* Approval Buttons or Status indicator */}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {canAction('approve_leave') ? (
+                        <>
+                          {l.status === 'Pending Ship Admin' && (
+                            <button
+                              onClick={() => approveLeave(l.id, 'Approved Ship Admin')}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              <CheckCircle size={14} color="#38bdf8" />
+                              <span>Approve Nakhoda</span>
+                            </button>
+                          )}
+                          {(l.status === 'Approved Ship Admin' || l.status === 'Pending Ship Admin') && (
+                            <button
+                              onClick={() => approveLeave(l.id, 'Approved Fleet')}
+                              className="btn btn-success btn-sm"
+                            >
+                              <CheckCircle size={14} />
+                              <span>Approve Fleet Manager</span>
+                            </button>
+                          )}
+                          {isPending && (
+                            <button
+                              onClick={() => approveLeave(l.id, 'Rejected')}
+                              className="btn btn-danger btn-sm"
+                            >
+                              <XCircle size={14} />
+                              <span>Tolak</span>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        isPending && (
+                          <span className="badge badge-warning" style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}>
+                            Menunggu Otorisasi Atasan
+                          </span>
+                        )
                       )}
                     </div>
                   </div>

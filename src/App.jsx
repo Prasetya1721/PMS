@@ -17,7 +17,8 @@ import { NotificationCenter } from './components/notification/NotificationCenter
 import { ReportGenerator } from './components/reports/ReportGenerator';
 import { MasterDataAdmin } from './components/admin/MasterDataAdmin';
 import { AuditManager } from './components/audit/AuditManager';
-import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Info, ShieldAlert } from 'lucide-react';
+import { hasAccess, ROLE_DEFINITIONS } from './utils/rbac';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -70,9 +71,68 @@ class ErrorBoundary extends React.Component {
 }
 
 const AppContent = () => {
-  const { activeTab, selectedVesselId, toastMessage } = usePMS();
+  const { activeTab, setActiveTab, currentRole, selectedVesselId, toastMessage } = usePMS();
 
   const renderContent = () => {
+    // Role-based Module Access Guard
+    if (!hasAccess(currentRole, activeTab)) {
+      const roleDef = ROLE_DEFINITIONS[currentRole] || {};
+      return (
+        <div style={{
+          minHeight: '55vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem'
+        }}>
+          <div className="glass-card" style={{ maxWidth: '540px', textAlign: 'center', padding: '2.5rem' }}>
+            <div style={{
+              width: '68px',
+              height: '68px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.5rem',
+              color: '#f87171'
+            }}>
+              <ShieldAlert size={36} />
+            </div>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f87171', marginBottom: '0.5rem' }}>
+              Akses Modul Dibatasi Sesuai Peran
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+              Peran aktif Anda sebagai <strong style={{ color: roleDef.badgeColor || '#38bdf8' }}>{roleDef.label || currentRole}</strong> tidak memiliki otorisasi untuk mengakses modul ini (<span className="mono">{activeTab}</span>).
+            </p>
+            <div style={{
+              padding: '0.85rem 1.1rem',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--border-glass)',
+              fontSize: '0.825rem',
+              color: 'var(--text-muted)',
+              marginBottom: '1.5rem',
+              textAlign: 'left'
+            }}>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '0.25rem' }}>
+                Cakupan Otoritas Peran:
+              </span>
+              {roleDef.description || 'Hubungi Super Admin atau Fleet Manager untuk penyesuaian hak akses operasional.'}
+            </div>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.5rem' }}
+            >
+              Kembali ke Dashboard Utama
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return selectedVesselId === 'all' ? <FleetOverview /> : <VesselDashboard />;

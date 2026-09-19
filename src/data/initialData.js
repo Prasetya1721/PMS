@@ -901,6 +901,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     },
@@ -913,6 +914,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     },
@@ -925,6 +927,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     },
@@ -937,6 +940,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     }
@@ -951,6 +955,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     },
@@ -963,6 +968,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "enabled": true,
       "notifyChannels": [
         "WhatsApp",
+        "Email",
         "Google Calendar"
       ]
     }
@@ -973,6 +979,7 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
     "frequency": "daily",
     "channels": {
       "whatsapp": true,
+      "email": true,
       "googleCalendar": true,
       "browserNotification": true
     },
@@ -981,6 +988,15 @@ export const INITIAL_NOTIFICATION_SETTINGS = {
       "apiUrl": "https://kalsel.wablas.com/api/send-message",
       "apiKey": "",
       "senderPhone": "081250000000"
+    },
+    "emailGateway": {
+      "provider": "Backend API",
+      "apiUrl": "/api/notifications/email",
+      "apiKey": "",
+      "fromName": "PMS Baharimas",
+      "fromEmail": "noreply@baharimas.co.id",
+      "replyTo": "fleet.ops@baharimas.co.id",
+      "defaultRecipients": ["fleet.ops@baharimas.co.id"]
     },
     "lastRunDate": ""
   },

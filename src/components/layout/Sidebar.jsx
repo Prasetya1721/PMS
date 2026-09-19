@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
+import { hasAccess, ROLE_DEFINITIONS } from '../../utils/rbac';
 import {
   LayoutDashboard,
   Ship,
@@ -138,12 +139,19 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      {/* Navigation Items */}
+      {/* Navigation Items (Filtered by Current Role) */}
       <nav style={{ padding: '1rem 0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.3rem', overflowY: 'auto' }}>
-        <div style={{ padding: '0.4rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Menu Navigasi
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            Menu Navigasi
+          </span>
+          <span className="badge badge-info mono" style={{ fontSize: '0.62rem', padding: '0.1rem 0.45rem' }}>
+            {navItems.filter(item => hasAccess(currentRole, item.id)).length} Modul
+          </span>
         </div>
-        {navItems.map(item => {
+        {navItems
+          .filter(item => hasAccess(currentRole, item.id))
+          .map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -262,23 +270,28 @@ export const Sidebar = () => {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'var(--primary)',
+              background: ROLE_DEFINITIONS[currentRole]?.color || 'var(--primary)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
               fontSize: '0.8rem',
-              flexShrink: 0
+              flexShrink: 0,
+              overflow: 'hidden'
             }}>
-              <ShieldCheck size={16} />
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <ShieldCheck size={16} />
+              )}
             </div>
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                {currentUser ? currentUser.name.split(',')[0] : currentRole}
+                {currentUser?.name ? currentUser.name.split(',')[0] : currentRole}
               </div>
               <div style={{ fontSize: '0.7rem', color: theme === 'light' ? '#0284c7' : '#38bdf8', fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                {currentUser ? currentUser.role : 'Akses Maritim'}
+                {currentUser?.role || currentRole}
               </div>
             </div>
           </div>

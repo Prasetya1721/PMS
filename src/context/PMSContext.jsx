@@ -26,6 +26,22 @@ import {
   ISM_SMC_ELEMENTS
 } from '../data/auditMasterData';
 import { calculateNCRange } from '../utils/auditTimeUtils';
+import {
+  DEFAULT_EMAIL_GATEWAY,
+  buildEmailPayload,
+  sendEmailViaBackend,
+  buildMailtoUrl,
+  stripWhatsappMarkdown,
+  buildEmailHtml,
+  normalizeEmailList,
+} from '../services/emailService';
+import {
+  hasAccess,
+  getAllowedTabs,
+  canPerformAction,
+  ROLE_DEFINITIONS,
+  ROLE_PERMISSIONS
+} from '../utils/rbac';
 
 const PMSContext = createContext();
 
@@ -86,14 +102,26 @@ export const PMSProvider = ({ children }) => {
         if (!parsed || !parsed.thresholds || !parsed.autoSend || !parsed.thresholds.some(t => t.id === 'th-1d')) {
           return fallback;
         }
+        const ensureEmailChannel = (list) => (list || []).map(t => ({
+          ...t,
+          notifyChannels: Array.from(new Set([...(t.notifyChannels || []), 'Email'])),
+        }));
         return {
           ...fallback,
           ...parsed,
-          thresholds: parsed.thresholds || fallback.thresholds,
-          customThresholds: parsed.customThresholds || fallback.customThresholds,
+          thresholds: ensureEmailChannel(parsed.thresholds || fallback.thresholds),
+          customThresholds: ensureEmailChannel(parsed.customThresholds || fallback.customThresholds),
           autoSend: {
             ...fallback.autoSend,
-            ...(parsed.autoSend || {})
+            ...(parsed.autoSend || {}),
+            channels: {
+              ...(fallback.autoSend?.channels || {}),
+              ...((parsed.autoSend || {}).channels || {}),
+            },
+            emailGateway: {
+              ...(fallback.autoSend?.emailGateway || {}),
+              ...((parsed.autoSend || {}).emailGateway || {}),
+            },
           }
         };
       }
@@ -123,27 +151,62 @@ export const PMSProvider = ({ children }) => {
   const [audits, setAudits] = useState(() => loadStored('audits', INITIAL_AUDITS));
   const [auditFindings, setAuditFindings] = useState(() => loadStored('auditFindings', INITIAL_AUDIT_FINDINGS));
 
-  // Global App Controls
-  const [selectedVesselId, setSelectedVesselId] = useState('all'); // 'all' or 'v-001' etc.
-  const [currentRole, setCurrentRole] = useState('Super Admin');
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState(null);
-
   // Authentication state for PT. Pelayaran Baharimas Kalimantan
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('pms_current_user');
-      return saved ? JSON.parse(saved) : null;
+      return saved ? JSON.parse(saved) : (INITIAL_USERS[0] || null);
     } catch {
-      return null;
+      return INITIAL_USERS[0] || null;
     }
   });
+
+  // Global App Controls & Role Management
+  const [selectedVesselId, setSelectedVesselId] = useState('all'); // 'all' or 'v-001' etc.
+  const [currentRole, setCurrentRoleState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pms_current_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.role) return parsed.role;
+      }
+    } catch {}
+    return 'Super Admin';
+  });
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Set Current Role with RBAC sync and auto-redirect
+  const setCurrentRole = (newRole) => {
+    setCurrentRoleState(newRole);
+    // Find representative user for this role
+    const matchedUser = (users || INITIAL_USERS).find(u => u.role === newRole);
+    if (matchedUser) {
+      setCurrentUser(matchedUser);
+      try {
+        localStorage.setItem('pms_current_user', JSON.stringify(matchedUser));
+      } catch {}
+    }
+    // If current activeTab is not allowed, auto redirect to 'dashboard'
+    if (!hasAccess(newRole, activeTab)) {
+      setActiveTab('dashboard');
+      showToast(`Beralih ke peran ${newRole}. Menampilkan modul yang diizinkan.`, 'info');
+    } else {
+      showToast(`Peran aktif: ${newRole}`, 'info');
+    }
+  };
+
+  const hasPermission = (moduleId) => hasAccess(currentRole, moduleId);
+  const canAction = (action) => canPerformAction(currentRole, action);
 
   const login = (userData) => {
     setCurrentUser(userData);
     if (userData.role) {
-      setCurrentRole(userData.role);
+      setCurrentRoleState(userData.role);
+      if (!hasAccess(userData.role, activeTab)) {
+        setActiveTab('dashboard');
+      }
     }
     localStorage.setItem('pms_current_user', JSON.stringify(userData));
     showToast(`Selamat datang, ${userData.name}! Anda masuk sebagai ${userData.role}.`, 'success');
@@ -1285,7 +1348,7 @@ export const PMSProvider = ({ children }) => {
       label: label?.trim() || `H-${numDays} Hari (Kustom)`,
       description: description?.trim() || `Pengingat kustom ${numDays} hari sebelum jatuh tempo`,
       enabled: true,
-      notifyChannels: notifyChannels || ['WhatsApp', 'Google Calendar']
+      notifyChannels: notifyChannels || ['WhatsApp', 'Email', 'Google Calendar']
     };
 
     setNotificationSettings(prev => {
@@ -1578,6 +1641,109 @@ export const PMSProvider = ({ children }) => {
     return await sendWhatsAppReminder(finding, type, options);
   };
 
+  // Email recipient resolver (backend-ready: uses users + gateway defaults)
+  const resolveEmailRecipients = (item, type = 'crew_cert', options = {}) => {
+    const gateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
+    const defaults = normalizeEmailList(gateway.defaultRecipients?.length ? gateway.defaultRecipients : ['fleet.ops@baharimas.co.id']);
+    if (options.to) return normalizeEmailList(options.to);
+    if (options.recipientEmail) return normalizeEmailList(options.recipientEmail);
+    const userEmailByRole = (keyword) => {
+      const u = (users || []).find(x => (x.role || '').toLowerCase().includes(keyword.toLowerCase()));
+      return u?.email || null;
+    };
+    if (type === 'crew_cert') {
+      const targetCrew = crew.find(c => c.id === item.crewId);
+      const crewEmail = targetCrew?.email || null;
+      return normalizeEmailList([crewEmail, userEmailByRole('HR'), userEmailByRole('Nakhoda'), ...defaults].filter(Boolean));
+    }
+    if (type === 'ship_doc') return normalizeEmailList([userEmailByRole('Nakhoda'), userEmailByRole('Fleet'), 'nakhoda@baharimas.co.id', ...defaults]);
+    if (type === 'work_order') return normalizeEmailList([userEmailByRole('Teknisi'), userEmailByRole('Chief'), 'kkm@baharimas.co.id', ...defaults]);
+    if (type === 'audit_nc_open') return normalizeEmailList([options.email || null, userEmailByRole('Nakhoda'), userEmailByRole('Fleet'), ...defaults].filter(Boolean));
+    if (type === 'audit_nc_close') return normalizeEmailList([options.email || null, userEmailByRole('Super Admin'), 'admin@baharimas.co.id', ...defaults].filter(Boolean));
+    return defaults;
+  };
+
+  // Email Sender — otomatis + backend-ready (mailto fallback saat backend belum ada)
+  const sendEmailReminder = async (item, type = 'crew_cert', options = {}) => {
+    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : (item.daysUntilExpiry ?? 30);
+    const v = vessels.find(ship => ship.id === item.vesselId);
+    const vesselName = v?.name || item.targetName || 'Fleet';
+    const gateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
+    const toList = resolveEmailRecipients(item, type, options);
+    if (!toList.length) {
+      if (!options.silent) showToast('Alamat email penerima tidak ditemukan. Isi Email Gateway / data user dulu.', 'warning');
+      return null;
+    }
+    let urgencyBadge = `H-${offsetDays} Hari`;
+    if (offsetDays === 1) urgencyBadge = 'H-1 Hari';
+    else if (offsetDays === 7) urgencyBadge = 'H-1 Minggu';
+    else if (offsetDays === 30) urgencyBadge = 'H-1 Bulan';
+    else if (offsetDays === 365) urgencyBadge = 'H-1 Tahun';
+
+    const docNo = item.certificateNo || item.documentNo || item.findingNo || '-';
+    let subject = options.customSubject;
+    let textBody = options.customMessage ? stripWhatsappMarkdown(options.customMessage) : '';
+    if (!subject) {
+      if (type === 'audit_nc_open') subject = `[NC OPEN] ${item.findingNo} — ${item.targetName || vesselName}`;
+      else if (type === 'audit_nc_close') subject = `[NC CLOSE] ${item.findingNo} — ${item.targetName || vesselName}`;
+      else if (type === 'work_order') subject = `[WO OVERDUE] ${item.title} — ${vesselName}`;
+      else subject = `[PMS ${urgencyBadge}] ${item.name} — ${vesselName} (Jatuh tempo ${item.expiryDate})`;
+    }
+    if (!textBody) {
+      if (type === 'audit_nc_open' || type === 'audit_nc_close') {
+        textBody = `Kepada Yth. Penerima,\n\nTemuan audit ${item.findingNo} (${item.category || ''}) pada ${item.targetName || vesselName} — status ${type === 'audit_nc_open' ? 'NC OPEN' : 'NC CLOSE'}.\nKlausul: ${item.clauseCode || ''} - ${item.clauseName || ''}\nDeskripsi: ${item.description || ''}\nTarget close: ${item.dueDate || '-'}\n\nMohon tindak lanjut via Portal PMS Baharimas.\n\n_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
+      } else if (type === 'work_order') {
+        textBody = `Kepada Teknisi,\n\nWork Order ${item.title} (ID: ${item.id}) status OVERDUE.\nTarget: ${item.targetHours} jam (saat ini ${item.currentRunningHours} jam).\nKapal: ${vesselName}\n\nHarap segera menindaklanjuti servicing.\n\n_Sistem PMS Baharimas_`;
+      } else {
+        textBody = `Kepada Yth. Penerima,\n\nDokumen/Sertifikat: ${item.name} (No: ${docNo})\nKapal/Pemilik: ${item.crewName ? `Kru ${item.crewName}` : vesselName}\nJatuh tempo: ${item.expiryDate} (${item.daysUntilExpiry ?? offsetDays} hari lagi) — ${urgencyBadge}\nPenerbit: ${item.issuer || '-'}\n\nMohon segera proses perpanjangan ke BKI/Syahbandar/personalia sebelum batas toleransi habis.\n\n_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
+      }
+    }
+    const html = buildEmailHtml({
+      preheader: subject,
+      title: subject,
+      badge: urgencyBadge,
+      rows: [
+        { label: 'Kapal / Entitas', value: vesselName },
+        { label: 'Dokumen / Temuan', value: `${item.name || item.title || item.findingNo || '-'}` },
+        { label: 'Nomor', value: docNo },
+        { label: 'Jatuh Tempo', value: `${item.expiryDate || item.dueDate || '-'}` },
+      ],
+      bodyText: textBody,
+    });
+    const payload = buildEmailPayload({ to: toList, cc: options.cc, bcc: options.bcc, subject, text: textBody, html, meta: { type, vesselName, offsetDays } });
+    // Coba backend dulu (otomatis, tanpa buka tab). Kalau backend belum ada -> status Queued.
+    const backendRes = await sendEmailViaBackend(payload, gateway);
+    const channelLabel = backendRes.ok ? `Email Auto (${gateway.provider})` : 'Email Auto';
+    const newLog = {
+      id: `notif-email-${Date.now()}`,
+      timestamp: new Date().toLocaleString('id-ID'),
+      channel: channelLabel,
+      target: payload.to.join(', '),
+      vesselName: item.targetName || vesselName,
+      subject,
+      message: textBody,
+      status: backendRes.status,
+      thresholdTriggered: urgencyBadge,
+    };
+    setNotificationLogs(prev => [newLog, ...prev]);
+    if (!options.silent) {
+      if (backendRes.ok) {
+        showToast(`Email otomatis terkirim ke ${payload.to.join(', ')} (${urgencyBadge})`, 'success');
+      } else {
+        // Fallback frontend-only: buka aplikasi email agar user bisa kirim sekarang,
+        // log tetap tercatat sebagai Queued agar tidak hilang saat backend hadir.
+        if (!options.skipMailto) window.open(buildMailtoUrl(payload.to, subject, textBody), '_self');
+        showToast(`Backend email belum aktif — draf email dibuka & dicatat sebagai antrean (${payload.to.join(', ')})`, 'info');
+      }
+    }
+    return { ...newLog, backend: backendRes, payload };
+  };
+
+  const sendAuditEmailNotification = async (finding, notificationType = 'open', options = {}) => {
+    const type = notificationType === 'open' ? 'audit_nc_open' : 'audit_nc_close';
+    return await sendEmailReminder(finding, type, options);
+  };
+
   // Google Calendar URL Generator with custom offset days and scheduled hour
   const getGoogleCalendarUrl = (item, options = {}) => {
     // options: { offsetDays: 0 | 1 | 7 | 30 | 365 | number, eventTime: '08:00' }
@@ -1797,21 +1963,60 @@ export const PMSProvider = ({ children }) => {
     const timeStr = notificationSettings.autoSend?.scheduleTime || '08:00';
     const runKey = `${todayStr}_${timeStr}`;
 
-    const newLogs = matchedDispatches.map(m => {
+    const waEnabled = notificationSettings.autoSend?.channels?.whatsapp !== false;
+    const emailEnabled = notificationSettings.autoSend?.channels?.email !== false;
+    const emailGateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
+
+    const newLogs = [];
+    for (const m of matchedDispatches) {
       const v = vessels.find(ship => ship.id === m.item.vesselId);
       const recipient = m.item.crewName || `Nakhoda & Admin ${v?.name || ''}`;
-      return {
-        id: `notif-auto-${Date.now()}-${m.item.id}-${m.threshold.days}`,
-        timestamp: new Date().toLocaleString('id-ID'),
-        channel: `WhatsApp Auto (${m.threshold.label})`,
-        target: recipient,
-        vesselName: v?.name || 'Fleet',
-        subject: `[Auto Bot ${m.threshold.label}] ${m.item.name}`,
-        message: `Pemberitahuan Otomatis ${m.threshold.label}: Dokumen ${m.item.name} akan jatuh tempo pada ${m.item.expiryDate} (${m.item.daysUntilExpiry} hari lagi).`,
-        status: 'Delivered',
-        thresholdTriggered: m.threshold.label
-      };
-    });
+      const wantsWA = waEnabled && (m.threshold.notifyChannels || []).includes('WhatsApp');
+      const wantsEmail = emailEnabled && (m.threshold.notifyChannels || []).includes('Email');
+      if (wantsWA) {
+        newLogs.push({
+          id: `notif-auto-wa-${Date.now()}-${m.item.id}-${m.threshold.days}`,
+          timestamp: new Date().toLocaleString('id-ID'),
+          channel: `WhatsApp Auto (${m.threshold.label})`,
+          target: recipient,
+          vesselName: v?.name || 'Fleet',
+          subject: `[Auto Bot ${m.threshold.label}] ${m.item.name}`,
+          message: `Pemberitahuan Otomatis ${m.threshold.label}: Dokumen ${m.item.name} akan jatuh tempo pada ${m.item.expiryDate} (${m.item.daysUntilExpiry} hari lagi).`,
+          status: 'Delivered',
+          thresholdTriggered: m.threshold.label
+        });
+      }
+      if (wantsEmail) {
+        const toList = resolveEmailRecipients(m.item, m.item.itemCategory || 'ship_doc', { offsetDays: m.threshold.days });
+        const subject = `[PMS ${m.threshold.label}] ${m.item.name} — ${v?.name || 'Fleet'} (Jatuh tempo ${m.item.expiryDate})`;
+        const textBody = `Pemberitahuan Otomatis ${m.threshold.label}: Dokumen ${m.item.name} akan jatuh tempo pada ${m.item.expiryDate} (${m.item.daysUntilExpiry} hari lagi).\nKapal: ${v?.name || 'Fleet'}\nNomor: ${m.item.certificateNo || m.item.documentNo || '-'}\n\nMohon tindak lanjut sebelum batas toleransi habis.\n\n_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
+        let emailStatus = 'Queued (Menunggu Backend)';
+        try {
+          const payload = buildEmailPayload({
+            to: toList,
+            subject,
+            text: textBody,
+            html: buildEmailHtml({ preheader: subject, title: subject, badge: m.threshold.label, bodyText: textBody }),
+            meta: { auto: true, threshold: m.threshold.label, itemId: m.item.id },
+          });
+          const res = await sendEmailViaBackend(payload, emailGateway);
+          emailStatus = res.status;
+        } catch (e) {
+          emailStatus = 'Queued (Menunggu Backend)';
+        }
+        newLogs.push({
+          id: `notif-auto-email-${Date.now()}-${m.item.id}-${m.threshold.days}`,
+          timestamp: new Date().toLocaleString('id-ID'),
+          channel: `Email Auto (${m.threshold.label})`,
+          target: (toList.length ? toList.join(', ') : recipient),
+          vesselName: v?.name || 'Fleet',
+          subject,
+          message: textBody,
+          status: emailStatus,
+          thresholdTriggered: m.threshold.label
+        });
+      }
+    }
 
     if (newLogs.length > 0) {
       setNotificationLogs(prev => [...newLogs, ...prev]);
@@ -2083,11 +2288,15 @@ export const PMSProvider = ({ children }) => {
         setTheme,
         toggleTheme,
 
-        // Filters & Navigation
+        // Filters, RBAC & Navigation
         selectedVesselId,
         setSelectedVesselId,
         currentRole,
         setCurrentRole,
+        hasPermission,
+        canAction,
+        rolePermissions: ROLE_PERMISSIONS,
+        roleDefinitions: ROLE_DEFINITIONS,
         activeTab,
         setActiveTab,
         searchQuery,
@@ -2145,6 +2354,9 @@ export const PMSProvider = ({ children }) => {
         addDrill,
         sendWhatsAppReminder,
         sendAuditWhatsAppNotification,
+        sendEmailReminder,
+        sendAuditEmailNotification,
+        resolveEmailRecipients,
         escalateNotification,
         openGoogleCalendar,
         getGoogleCalendarUrl,

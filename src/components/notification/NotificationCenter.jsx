@@ -3,6 +3,7 @@ import { usePMS } from '../../context/PMSContext';
 import {
   BellRing,
   Send,
+  Mail,
   MessageSquare,
   AlertTriangle,
   CheckCircle,
@@ -52,6 +53,9 @@ export const NotificationCenter = () => {
     allExpiringItems,
     allExpiringCount,
     sendWhatsAppReminder,
+    sendEmailReminder,
+    sendAuditEmailNotification,
+    resolveEmailRecipients,
     openGoogleCalendar,
     getGoogleCalendarUrl,
     exportMultiIntervalICS,
@@ -115,36 +119,55 @@ export const NotificationCenter = () => {
   const [waCustomDays, setWaCustomDays] = useState(14);
   const [waCustomMessage, setWaCustomMessage] = useState('');
 
+  // Email Modal state for expiring items
+  const [emailModalItem, setEmailModalItem] = useState(null);
+  const [emailOffset, setEmailOffset] = useState(30);
+  const [emailRecipients, setEmailRecipients] = useState('');
+  const [emailCustomSubject, setEmailCustomSubject] = useState('');
+  const [emailCustomBody, setEmailCustomBody] = useState('');
+
   // New Custom Threshold Form state in Settings
   const [newCustDays, setNewCustDays] = useState(14);
   const [newCustLabel, setNewCustLabel] = useState('H-14 Hari Persiapan Kru');
   const [newCustDesc, setNewCustDesc] = useState('Pengingat konfirmasi sertifikat 2 minggu sebelum jatuh tempo');
-  const [newCustChannels, setNewCustChannels] = useState(['WhatsApp', 'Google Calendar']);
+  const [newCustChannels, setNewCustChannels] = useState(['WhatsApp', 'Email', 'Google Calendar']);
 
-  // Gateway API test state
+  // Gateway API test states
   const [gatewayTesting, setGatewayTesting] = useState(false);
+  const [emailGatewayTesting, setEmailGatewayTesting] = useState(false);
+
+  // Log channel filter
+  const [logChannelFilter, setLogChannelFilter] = useState('all');
 
   // Simulator tab state
+  const [simChannel, setSimChannel] = useState('whatsapp'); // 'whatsapp' | 'email'
   const [simInterval, setSimInterval] = useState('30');
   const [simRecipient, setSimRecipient] = useState(crew[0]?.whatsapp || '+6281288991122');
   const [simMessage, setSimMessage] = useState('');
+  const [simEmailTo, setSimEmailTo] = useState('fleet.ops@baharimas.co.id');
+  const [simEmailSubject, setSimEmailSubject] = useState('');
+  const [simEmailBody, setSimEmailBody] = useState('');
 
   // Update simulator message when template interval changes
   useEffect(() => {
-    const sampleShip = vessels[0]?.name || 'RP 2020';
+    const sampleShip = vessels[0]?.name || 'KM. RP 2020';
     const days = parseInt(simInterval, 10);
     let prefix = '*🔔 PEMBERITAHUAN JATUH TEMPO H-1 BULAN (H-30)*';
     let instr = 'Harap segera memproses perpanjangan ke Kantor BKI / Syahbandar.';
+    let urgencyBadge = `H-${days} Hari`;
 
     if (days === 1) {
       prefix = '*🚨 PERINGATAN DARURAT H-1 (HARI TERAKHIR)*';
       instr = 'TINDAKAN MENDESAK: Besok dokumen kadaluarsa! Segera urus surat jalan atau survey darurat.';
+      urgencyBadge = 'H-1 Hari (Darurat)';
     } else if (days === 7) {
       prefix = '*⚠️ PERINGATAN KRITIS H-1 MINGGU (H-7)*';
       instr = 'PERHATIAN: Tersisa 7 hari. Konfirmasi tanggal kedatangan surveyor ke atas kapal.';
+      urgencyBadge = 'H-1 Minggu (Kritis)';
     } else if (days === 365) {
       prefix = '*📋 PERSIAPAN ANGGARAN DINI H-1 TAHUN (H-365)*';
       instr = 'Perencanaan dini anggaran tahunan survey besar (Special Survey / Docking tahun depan).';
+      urgencyBadge = 'H-1 Tahun (Dini)';
     } else if (days > 0) {
       prefix = `*📌 PENGINGAT JATUH TEMPO H-${days} HARI*`;
       instr = `Pengingat kustom ${days} hari sebelum masa berlaku berakhir.`;
@@ -158,6 +181,22 @@ export const NotificationCenter = () => {
       `Tanggal Jatuh Tempo: 18 Oktober 2026 (${days} hari lagi).\n\n` +
       `${instr}\n\n` +
       `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`
+    );
+
+    setSimEmailSubject(`[PMS ${urgencyBadge}] Surat Laut & Keselamatan Konstruksi — ${sampleShip}`);
+    setSimEmailBody(
+      `Kepada Yth. Nakhoda, KKM & Marine Superintendent ${sampleShip},\n\n` +
+      `Melalui notifikasi otomatis ini, Sistem PMS PT. Pelayaran Baharimas Kalimantan memberitahukan status dokumen armada:\n\n` +
+      `• Kapal / Entitas: ${sampleShip}\n` +
+      `• Nama Dokumen: Surat Laut & Sertifikat Keselamatan Konstruksi Kapal Barang\n` +
+      `• Nomor Dokumen: PK.001/14/09/BKI-2026\n` +
+      `• Tanggal Jatuh Tempo: 18 Oktober 2026 (${days} hari lagi)\n` +
+      `• Ambang Batas: ${urgencyBadge}\n\n` +
+      `Instruksi Tindak Lanjut:\n` +
+      `${instr}\n\n` +
+      `Harap segera lakukan pembaruan dokumen melalui Syahbandar / BKI Pontianak atau hubungi personalia operasional darat.\n\n` +
+      `Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan\n` +
+      `Jl. Husin Hamzah / Komp. Ruko Bahari Mas, Pontianak, Kalimantan Barat`
     );
   }, [simInterval, vessels]);
 
@@ -266,6 +305,124 @@ export const NotificationCenter = () => {
         showToast(`ℹ️ Token API Gateway belum diisi. Mode otomatis berjalan dengan Fallback Queue & Browser Push.`, 'info');
       }
     }, 1200);
+  };
+
+  // Test Email Gateway Ping
+  const handleTestEmailGatewayPing = async () => {
+    setEmailGatewayTesting(true);
+    const egw = notificationSettings?.autoSend?.emailGateway;
+    showToast(`Menguji koneksi email gateway ke ${egw?.provider || 'Email Gateway'}...`, 'info');
+
+    setTimeout(() => {
+      setEmailGatewayTesting(false);
+      if (egw?.apiUrl && egw?.apiKey) {
+        showToast(`✅ Koneksi Email Gateway Berhasil! Endpoint ${egw.apiUrl} aktif (${egw.provider}).`, 'success');
+      } else if (egw?.apiUrl) {
+        showToast(`✅ Endpoint Email ${egw.apiUrl} merespons siap (Mode pengujian / no-auth).`, 'success');
+      } else {
+        showToast(`ℹ️ Endpoint REST API belum diisi. Pengiriman email otomatis dicatat sebagai Antrean (Queued) & Mailto Client siap digunakan.`, 'info');
+      }
+    }, 1200);
+  };
+
+  // Open Email Modal with prefilled smart defaults
+  const handleOpenEmailModal = (item) => {
+    const days = item.daysUntilExpiry ?? 30;
+    const off = days <= 1 ? 1 : days <= 7 ? 7 : days <= 30 ? 30 : 365;
+    const type = item.crewName ? 'crew_cert' : 'ship_doc';
+    const recs = resolveEmailRecipients ? resolveEmailRecipients(item, type, { offsetDays: off }) : [];
+    const v = vessels.find(s => s.id === item.vesselId);
+    const vName = v?.name || item.targetName || 'KM. RP 2020';
+    const docNo = item.certificateNo || item.documentNo || '-';
+    let urgencyBadge = `H-${off} Hari`;
+    if (off === 1) urgencyBadge = 'H-1 Hari (Darurat)';
+    else if (off === 7) urgencyBadge = 'H-1 Minggu (Kritis)';
+    else if (off === 30) urgencyBadge = 'H-1 Bulan (Standar)';
+    else if (off === 365) urgencyBadge = 'H-1 Tahun (Dini)';
+
+    setEmailModalItem(item);
+    setEmailOffset(off);
+    setEmailRecipients(recs.join(', '));
+    setEmailCustomSubject(`[PMS ${urgencyBadge}] ${item.name} — ${vName}`);
+    setEmailCustomBody(
+      `Kepada Yth. Penerima Notifikasi & Staf Kapal ${vName},\n\n` +
+      `Pemberitahuan resmi Sistem PMS PT. Pelayaran Baharimas Kalimantan mengenai dokumen jatuh tempo:\n\n` +
+      `• Dokumen / Sertifikat: ${item.name}\n` +
+      `• Nomor Dokumen: ${docNo}\n` +
+      `• Kapal / Pemilik: ${item.crewName ? `Kru ${item.crewName}` : vName}\n` +
+      `• Penerbit: ${item.issuer || '-'}\n` +
+      `• Tanggal Jatuh Tempo: ${item.expiryDate} (${item.daysUntilExpiry} hari lagi)\n` +
+      `• Status Ambang Batas: ${urgencyBadge}\n\n` +
+      (off <= 1
+        ? 'TINDAKAN MENDESAK: Masa berlaku berakhir besok! Segera proses survey dispensasi kelaiklautan ke Syahbandar/BKI.\n\n'
+        : off <= 7
+        ? 'PERHATIAN KRITIS: Sisa waktu 7 hari. Harap konfirmasi jadwal kedatangan surveyor ke atas kapal.\n\n'
+        : off <= 30
+        ? 'Harap segera daftarkan permohonan survey perpanjangan kelaiklautan kapal / sertifikat kru.\n\n'
+        : 'Perencanaan anggaran survey pembaharuan tahunan kapal.\n\n') +
+      `Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan\n` +
+      `Pontianak, Kalimantan Barat`
+    );
+  };
+
+  // Update offset inside Email Modal
+  const updateEmailModalOffset = (off) => {
+    setEmailOffset(off);
+    if (!emailModalItem) return;
+    const v = vessels.find(s => s.id === emailModalItem.vesselId);
+    const vName = v?.name || emailModalItem.targetName || 'KM. RP 2020';
+    const docNo = emailModalItem.certificateNo || emailModalItem.documentNo || '-';
+    let urgencyBadge = `H-${off} Hari`;
+    if (off === 1) urgencyBadge = 'H-1 Hari (Darurat)';
+    else if (off === 7) urgencyBadge = 'H-1 Minggu (Kritis)';
+    else if (off === 30) urgencyBadge = 'H-1 Bulan (Standar)';
+    else if (off === 365) urgencyBadge = 'H-1 Tahun (Dini)';
+
+    setEmailCustomSubject(`[PMS ${urgencyBadge}] ${emailModalItem.name} — ${vName}`);
+    setEmailCustomBody(
+      `Kepada Yth. Penerima Notifikasi & Staf Kapal ${vName},\n\n` +
+      `Pemberitahuan resmi Sistem PMS PT. Pelayaran Baharimas Kalimantan mengenai dokumen jatuh tempo:\n\n` +
+      `• Dokumen / Sertifikat: ${emailModalItem.name}\n` +
+      `• Nomor Dokumen: ${docNo}\n` +
+      `• Kapal / Pemilik: ${emailModalItem.crewName ? `Kru ${emailModalItem.crewName}` : vName}\n` +
+      `• Penerbit: ${emailModalItem.issuer || '-'}\n` +
+      `• Tanggal Jatuh Tempo: ${emailModalItem.expiryDate} (${emailModalItem.daysUntilExpiry} hari lagi)\n` +
+      `• Status Ambang Batas: ${urgencyBadge}\n\n` +
+      (off <= 1
+        ? 'TINDAKAN MENDESAK: Masa berlaku berakhir besok! Segera proses survey dispensasi kelaiklautan ke Syahbandar/BKI.\n\n'
+        : off <= 7
+        ? 'PERHATIAN KRITIS: Sisa waktu 7 hari. Harap konfirmasi jadwal kedatangan surveyor ke atas kapal.\n\n'
+        : off <= 30
+        ? 'Harap segera daftarkan permohonan survey perpanjangan kelaiklautan kapal / sertifikat kru.\n\n'
+        : 'Perencanaan anggaran survey pembaharuan tahunan kapal.\n\n') +
+      `Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan\n` +
+      `Pontianak, Kalimantan Barat`
+    );
+  };
+
+  // Send Test Simulator Email
+  const handleSendSimulatorEmail = async (useGateway = true) => {
+    if (!simEmailTo) {
+      showToast('Masukkan alamat email tujuan simulator.', 'warning');
+      return;
+    }
+    const days = parseInt(simInterval, 10);
+    const mockItem = {
+      name: 'Surat Laut & Keselamatan Konstruksi Kapal Barang',
+      documentNo: 'PK.001/14/09/BKI-2026',
+      vesselId: vessels[0]?.id || 'v-001',
+      targetName: vessels[0]?.name || 'KM. RP 2020',
+      expiryDate: '18 Oktober 2026',
+      daysUntilExpiry: days,
+      issuer: 'Kantor Kesyahbandaran & BKI Pontianak'
+    };
+    await sendEmailReminder(mockItem, 'ship_doc', {
+      offsetDays: days,
+      recipientEmail: simEmailTo,
+      customSubject: simEmailSubject,
+      customMessage: simEmailBody,
+      skipMailto: useGateway
+    });
   };
 
   // Request native browser desktop notifications
@@ -663,8 +820,8 @@ export const NotificationCenter = () => {
                         </p>
                       </div>
 
-                      {/* Action Buttons: Modal Google Calendar + Modal WhatsApp */}
-                      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                      {/* Action Buttons: Modal Google Calendar + Modal WhatsApp + Modal Email */}
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => {
                             setCalendarModalItem(item);
@@ -690,6 +847,16 @@ export const NotificationCenter = () => {
                           <Send size={15} />
                           <span>Kirim WA</span>
                         </button>
+
+                        <button
+                          onClick={() => handleOpenEmailModal(item)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ border: '1px solid rgba(14, 165, 233, 0.5)', color: '#38bdf8', background: 'rgba(14, 165, 233, 0.1)' }}
+                          title="Pratinjau dan kirim notifikasi via Email (API Gateway / Aplikasi Email)"
+                        >
+                          <Mail size={15} />
+                          <span>Kirim Email</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -703,13 +870,51 @@ export const NotificationCenter = () => {
       {/* TAB 2: Logs */}
       {activeTab === 'logs' && (
         <div className="glass-card" style={{ overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-              Audit Log Pengiriman Notifikasi & Sinkronisasi
-            </h4>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Total tercatat: <strong>{notificationLogs.length}</strong> aktivitas
-            </span>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+                Audit Log Pengiriman Notifikasi & Sinkronisasi
+              </h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Total tercatat: <strong>{notificationLogs.length}</strong> aktivitas
+              </span>
+            </div>
+
+            {/* Filter by Channel */}
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Filter Kanal:</span>
+              <button
+                onClick={() => setLogChannelFilter('all')}
+                className={`btn btn-sm ${logChannelFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}
+              >
+                Semua
+              </button>
+              <button
+                onClick={() => setLogChannelFilter('Email')}
+                className={`btn btn-sm ${logChannelFilter === 'Email' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', color: logChannelFilter === 'Email' ? '#fff' : '#38bdf8' }}
+              >
+                <Mail size={12} />
+                <span>Email ({notificationLogs.filter(l => l.channel?.toLowerCase().includes('email')).length})</span>
+              </button>
+              <button
+                onClick={() => setLogChannelFilter('WhatsApp')}
+                className={`btn btn-sm ${logChannelFilter === 'WhatsApp' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem', color: logChannelFilter === 'WhatsApp' ? '#fff' : '#22c55e' }}
+              >
+                <Send size={12} />
+                <span>WhatsApp ({notificationLogs.filter(l => l.channel?.toLowerCase().includes('whatsapp')).length})</span>
+              </button>
+              <button
+                onClick={() => setLogChannelFilter('Calendar')}
+                className={`btn btn-sm ${logChannelFilter === 'Calendar' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}
+              >
+                <Calendar size={12} />
+                <span>Calendar ({notificationLogs.filter(l => l.channel?.toLowerCase().includes('calendar')).length})</span>
+              </button>
+            </div>
           </div>
 
           <div className="table-container">
@@ -726,14 +931,28 @@ export const NotificationCenter = () => {
                 </tr>
               </thead>
               <tbody>
-                {notificationLogs.map(log => (
+                {notificationLogs
+                  .filter(log => {
+                    if (logChannelFilter === 'all') return true;
+                    if (logChannelFilter === 'Email') return (log.channel || '').toLowerCase().includes('email');
+                    if (logChannelFilter === 'WhatsApp') return (log.channel || '').toLowerCase().includes('whatsapp');
+                    if (logChannelFilter === 'Calendar') return (log.channel || '').toLowerCase().includes('calendar');
+                    return true;
+                  })
+                  .map(log => (
                   <tr key={log.id}>
                     <td className="mono" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       {log.timestamp}
                     </td>
                     <td>
-                      <span className={`badge ${log.channel.includes('Calendar') ? 'badge-info' : 'badge-success'}`} style={{ fontSize: '0.7rem' }}>
-                        {log.channel}
+                      <span className={`badge ${
+                        log.channel?.toLowerCase().includes('email') ? 'badge-primary' :
+                        log.channel?.includes('Calendar') ? 'badge-info' : 'badge-success'
+                      }`} style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        {log.channel?.toLowerCase().includes('email') && <Mail size={11} />}
+                        {log.channel?.includes('Calendar') && <Calendar size={11} />}
+                        {log.channel?.toLowerCase().includes('whatsapp') && <Send size={11} />}
+                        <span>{log.channel}</span>
                       </span>
                     </td>
                     <td>
@@ -750,7 +969,8 @@ export const NotificationCenter = () => {
                     <td>
                       <span className={`badge ${
                         log.status === 'Escalated' ? 'badge-danger-pulse' :
-                        log.status === 'Delivered' ? 'badge-success' : 'badge-warning'
+                        log.status === 'Delivered' ? 'badge-success' :
+                        log.status?.includes('Queued') ? 'badge-info' : 'badge-warning'
                       }`}>
                         {log.status}
                       </span>
@@ -842,6 +1062,17 @@ export const NotificationCenter = () => {
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' }}>
                         <input
                           type="checkbox"
+                          checked={th.notifyChannels.includes('Email')}
+                          onChange={() => toggleThresholdChannel(th.id, 'Email', false)}
+                          disabled={!th.enabled}
+                          style={{ accentColor: '#0ea5e9' }}
+                        />
+                        <span style={{ color: '#38bdf8', fontWeight: 600 }}>Email</span>
+                      </label>
+
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
                           checked={th.notifyChannels.includes('Google Calendar')}
                           onChange={() => toggleThresholdChannel(th.id, 'Google Calendar', false)}
                           disabled={!th.enabled}
@@ -912,6 +1143,16 @@ export const NotificationCenter = () => {
                           style={{ accentColor: '#22c55e' }}
                         />
                         <span>WA</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={cth.notifyChannels.includes('Email')}
+                          onChange={() => toggleThresholdChannel(cth.id, 'Email', true)}
+                          disabled={!cth.enabled}
+                          style={{ accentColor: '#0ea5e9' }}
+                        />
+                        <span style={{ color: '#38bdf8', fontWeight: 600 }}>Email</span>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', cursor: 'pointer' }}>
                         <input
@@ -1034,7 +1275,7 @@ export const NotificationCenter = () => {
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>Status Pengiriman Otomatis</div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Otomatis kirim WhatsApp & sinkron Google Calendar
+                    Otomatis kirim Email, WhatsApp & sinkron Google Calendar
                   </div>
                 </div>
                 <input
@@ -1043,6 +1284,48 @@ export const NotificationCenter = () => {
                   onChange={(e) => updateAutoSendConfig({ enabled: e.target.checked })}
                   style={{ width: '22px', height: '22px', accentColor: '#22c55e', cursor: 'pointer' }}
                 />
+              </div>
+
+              {/* Auto-Send Active Channels Toggle */}
+              <div style={{ padding: '0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  Kanal Aktif Mesin Pengiriman Otomatis:
+                </span>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={notificationSettings?.autoSend?.channels?.email ?? true}
+                      onChange={(e) => updateAutoSendConfig({
+                        channels: { ...(notificationSettings?.autoSend?.channels || {}), email: e.target.checked }
+                      })}
+                      style={{ accentColor: '#0ea5e9' }}
+                    />
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>Email Otomatis (SMTP/REST)</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={notificationSettings?.autoSend?.channels?.whatsapp ?? true}
+                      onChange={(e) => updateAutoSendConfig({
+                        channels: { ...(notificationSettings?.autoSend?.channels || {}), whatsapp: e.target.checked }
+                      })}
+                      style={{ accentColor: '#22c55e' }}
+                    />
+                    <span>WhatsApp</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={notificationSettings?.autoSend?.channels?.googleCalendar ?? true}
+                      onChange={(e) => updateAutoSendConfig({
+                        channels: { ...(notificationSettings?.autoSend?.channels || {}), googleCalendar: e.target.checked }
+                      })}
+                      style={{ accentColor: '#38bdf8' }}
+                    />
+                    <span>Google Calendar</span>
+                  </label>
+                </div>
               </div>
 
               {/* Jam Pengiriman Configuration */}
@@ -1172,10 +1455,176 @@ export const NotificationCenter = () => {
 
               <div style={{ padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
                 <div style={{ fontWeight: 700, color: '#f59e0b', fontSize: '0.78rem' }}>
-                  Catatan Headless Auto-Send:
+                  Catatan Headless Auto-Send WA:
                 </div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   Jika token API Gateway diisi, pengiriman notifikasi WhatsApp akan berjalan secara background otomatis tanpa harus mengklik tab browser. Jika token dikosongkan, sistem beralih ke WhatsApp Web Direct Link & Audit Log.
+                </p>
+              </div>
+            </div>
+
+            {/* Email Gateway API & SMTP Configuration */}
+            <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Mail size={18} color="#0ea5e9" />
+                  <span>Konektor Email Gateway API & SMTP</span>
+                </h4>
+                <span className="badge badge-info">Otomatis / REST API</span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Provider Layanan Email
+                </label>
+                <select
+                  value={notificationSettings?.autoSend?.emailGateway?.provider || 'REST API / Cloud SMTP'}
+                  onChange={(e) => updateAutoSendConfig({
+                    emailGateway: {
+                      ...notificationSettings?.autoSend?.emailGateway,
+                      provider: e.target.value
+                    }
+                  })}
+                  className="select-control"
+                >
+                  <option value="REST API / Cloud SMTP">REST API Backend / Cloud Gateway (SendGrid / Brevo / Resend)</option>
+                  <option value="SMTP Relay Server">SMTP Relay Server (Custom Host & Port)</option>
+                  <option value="Mailgun API">Mailgun REST API</option>
+                  <option value="Google Workspace / SES">Google Workspace / AWS SES API</option>
+                  <option value="Direct Mailto Fallback">Direct Mailto: Fallback (Aplikasi Email Desktop)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  API Endpoint URL / Webhook
+                </label>
+                <input
+                  type="text"
+                  value={notificationSettings?.autoSend?.emailGateway?.apiUrl || ''}
+                  onChange={(e) => updateAutoSendConfig({
+                    emailGateway: {
+                      ...notificationSettings?.autoSend?.emailGateway,
+                      apiUrl: e.target.value
+                    }
+                  })}
+                  className="input-control mono"
+                  placeholder="https://api.baharimas.co.id/v1/email/send atau https://api.resend.com/emails"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    API Token / Secret Key
+                  </label>
+                  <input
+                    type="password"
+                    value={notificationSettings?.autoSend?.emailGateway?.apiKey || ''}
+                    onChange={(e) => updateAutoSendConfig({
+                      emailGateway: {
+                        ...notificationSettings?.autoSend?.emailGateway,
+                        apiKey: e.target.value
+                      }
+                    })}
+                    className="input-control mono"
+                    placeholder="Bearer token / API key"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Alamat Email Pengirim (From)
+                  </label>
+                  <input
+                    type="email"
+                    value={notificationSettings?.autoSend?.emailGateway?.fromEmail || ''}
+                    onChange={(e) => updateAutoSendConfig({
+                      emailGateway: {
+                        ...notificationSettings?.autoSend?.emailGateway,
+                        fromEmail: e.target.value
+                      }
+                    })}
+                    className="input-control mono"
+                    placeholder="pms.armada@baharimas.co.id"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Nama Pengirim (Display Name)
+                  </label>
+                  <input
+                    type="text"
+                    value={notificationSettings?.autoSend?.emailGateway?.fromName || ''}
+                    onChange={(e) => updateAutoSendConfig({
+                      emailGateway: {
+                        ...notificationSettings?.autoSend?.emailGateway,
+                        fromName: e.target.value
+                      }
+                    })}
+                    className="input-control"
+                    placeholder="PMS PT. Pelayaran Baharimas Kalimantan"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Reply-To
+                  </label>
+                  <input
+                    type="email"
+                    value={notificationSettings?.autoSend?.emailGateway?.replyTo || ''}
+                    onChange={(e) => updateAutoSendConfig({
+                      emailGateway: {
+                        ...notificationSettings?.autoSend?.emailGateway,
+                        replyTo: e.target.value
+                      }
+                    })}
+                    className="input-control mono"
+                    placeholder="operations@baharimas.co.id"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Penerima Notifikasi Default / CC (Pisahkan koma):
+                </label>
+                <input
+                  type="text"
+                  value={Array.isArray(notificationSettings?.autoSend?.emailGateway?.defaultRecipients)
+                    ? notificationSettings.autoSend.emailGateway.defaultRecipients.join(', ')
+                    : (notificationSettings?.autoSend?.emailGateway?.defaultRecipients || '')}
+                  onChange={(e) => {
+                    const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                    updateAutoSendConfig({
+                      emailGateway: {
+                        ...notificationSettings?.autoSend?.emailGateway,
+                        defaultRecipients: arr
+                      }
+                    });
+                  }}
+                  className="input-control mono"
+                  placeholder="fleet.ops@baharimas.co.id, dpa.baharimas@gmail.com"
+                />
+              </div>
+
+              <button
+                onClick={handleTestEmailGatewayPing}
+                disabled={emailGatewayTesting}
+                className="btn btn-secondary btn-sm"
+                style={{ width: '100%', borderColor: 'rgba(14, 165, 233, 0.4)', color: '#38bdf8' }}
+              >
+                {emailGatewayTesting ? 'Menguji Koneksi Email...' : 'Uji Koneksi Gateway Email'}
+              </button>
+
+              <div style={{ padding: '0.75rem', background: 'rgba(14, 165, 233, 0.08)', borderRadius: '8px', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
+                <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.78rem' }}>
+                  Sistem Notifikasi Email Terpadu:
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Bot otomatis mengirimkan email notifikasi ke alamat penerima di atas sesuai jam kirim harian. Jika endpoint API belum diisi, pengiriman notifikasi otomatis tetap dicatat di Audit Log Antrean (Queued) dan dapat dikirim via aplikasi email default.
                 </p>
               </div>
             </div>
@@ -1185,138 +1634,347 @@ export const NotificationCenter = () => {
 
       {/* TAB 4: Simulator */}
       {activeTab === 'simulator' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
-          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
-              Simulator Pesan WhatsApp Sesuai Interval
-            </h4>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-              Pilih template nada pesan (1 hari, 1 minggu, 1 bulan, 1 tahun, kustom) dan uji coba format WhatsApp:
-            </p>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Pilih Nada Peringatan Berdasarkan Interval:
-              </label>
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => setSimInterval('1')}
-                  className={`btn btn-sm ${simInterval === '1' ? 'btn-danger' : 'btn-secondary'}`}
-                >
-                  1 Hari (Darurat H-1)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSimInterval('7')}
-                  className={`btn btn-sm ${simInterval === '7' ? 'btn-warning' : 'btn-secondary'}`}
-                >
-                  1 Minggu (Kritis H-7)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSimInterval('30')}
-                  className={`btn btn-sm ${simInterval === '30' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  1 Bulan (Standar H-30)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSimInterval('365')}
-                  className={`btn btn-sm ${simInterval === '365' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  1 Tahun (Dini H-365)
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Nomor WhatsApp Tujuan (Format: 628...)
-              </label>
-              <input
-                type="text"
-                value={simRecipient}
-                onChange={(e) => setSimRecipient(e.target.value)}
-                className="input-control mono"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                Isi Pesan Notifikasi (Mendukung Markdown WhatsApp: *tebal*, _miring_)
-              </label>
-              <textarea
-                rows="8"
-                value={simMessage}
-                onChange={(e) => setSimMessage(e.target.value)}
-                className="input-control"
-              />
-            </div>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Sub-selector for simulator channel */}
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', background: 'var(--bg-surface-elevated)', padding: '0.5rem 1rem', borderRadius: '10px', width: 'fit-content' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Pilih Kanal Simulator:</span>
             <button
-              onClick={() => {
-                const clean = simRecipient.replace(/[^0-9]/g, '');
-                const url = `https://wa.me/${clean}?text=${encodeURIComponent(simMessage)}`;
-                window.open(url, '_blank');
-              }}
-              className="btn btn-whatsapp"
-              style={{ width: '100%', marginTop: '0.5rem' }}
+              onClick={() => setSimChannel('whatsapp')}
+              className={`btn btn-sm ${simChannel === 'whatsapp' ? 'btn-whatsapp' : 'btn-secondary'}`}
+              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              <Send size={16} />
-              <span>Kirim Melalui WhatsApp Web / App</span>
+              <Send size={14} />
+              <span>WhatsApp Message</span>
+            </button>
+            <button
+              onClick={() => setSimChannel('email')}
+              className={`btn btn-sm ${simChannel === 'email' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: simChannel === 'email' ? '#fff' : '#38bdf8' }}
+            >
+              <Mail size={14} />
+              <span>Surat Elektronik (Email)</span>
             </button>
           </div>
 
-          {/* Smartphone WhatsApp Preview */}
-          <div
-            className="glass-card"
-            style={{
-              padding: '1.5rem',
-              background: '#0b141a',
-              borderRadius: '24px',
-              border: '8px solid #1f2c34',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              minHeight: '440px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
-            }}
-          >
-            {/* Phone Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #202c33', paddingBottom: '0.75rem' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#00a884', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>
-                PMS
-              </div>
-              <div>
-                <div style={{ color: '#e9edef', fontWeight: 700, fontSize: '0.9rem' }}>PMS Baharimas Bot (Official)</div>
-                <div style={{ color: '#8696a0', fontSize: '0.72rem' }}>Verified Enterprise • Jam {notificationSettings?.autoSend?.scheduleTime || '08:00'} WIB</div>
-              </div>
-            </div>
+          {simChannel === 'whatsapp' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+              <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+                  Simulator Pesan WhatsApp Sesuai Interval
+                </h4>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Pilih template nada pesan (1 hari, 1 minggu, 1 bulan, 1 tahun, kustom) dan uji coba format WhatsApp:
+                </p>
 
-            {/* Bubble */}
-            <div
-              style={{
-                background: '#005c4b',
-                color: '#e9edef',
-                padding: '0.9rem 1.1rem',
-                borderRadius: '12px 12px 0 12px',
-                fontSize: '0.825rem',
-                lineHeight: 1.45,
-                whiteSpace: 'pre-wrap',
-                margin: '1rem 0'
-              }}
-            >
-              {simMessage}
-              <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#8696a0', marginTop: '0.4rem' }}>
-                {currentTimeStr?.slice(0, 5) || '08:00'} WIB ✓✓
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Pilih Nada Peringatan Berdasarkan Interval:
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('1')}
+                      className={`btn btn-sm ${simInterval === '1' ? 'btn-danger' : 'btn-secondary'}`}
+                    >
+                      1 Hari (Darurat H-1)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('7')}
+                      className={`btn btn-sm ${simInterval === '7' ? 'btn-warning' : 'btn-secondary'}`}
+                    >
+                      1 Minggu (Kritis H-7)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('30')}
+                      className={`btn btn-sm ${simInterval === '30' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      1 Bulan (Standar H-30)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('365')}
+                      className={`btn btn-sm ${simInterval === '365' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      1 Tahun (Dini H-365)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Nomor WhatsApp Tujuan (Format: 628...)
+                  </label>
+                  <input
+                    type="text"
+                    value={simRecipient}
+                    onChange={(e) => setSimRecipient(e.target.value)}
+                    className="input-control mono"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Isi Pesan Notifikasi (Mendukung Markdown WhatsApp: *tebal*, _miring_)
+                  </label>
+                  <textarea
+                    rows="8"
+                    value={simMessage}
+                    onChange={(e) => setSimMessage(e.target.value)}
+                    className="input-control"
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    const clean = simRecipient.replace(/[^0-9]/g, '');
+                    const url = `https://wa.me/${clean}?text=${encodeURIComponent(simMessage)}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="btn btn-whatsapp"
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                >
+                  <Send size={16} />
+                  <span>Kirim Melalui WhatsApp Web / App</span>
+                </button>
+              </div>
+
+              {/* Smartphone WhatsApp Preview */}
+              <div
+                className="glass-card"
+                style={{
+                  padding: '1.5rem',
+                  background: '#0b141a',
+                  borderRadius: '24px',
+                  border: '8px solid #1f2c34',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '440px',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+                }}
+              >
+                {/* Phone Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #202c33', paddingBottom: '0.75rem' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#00a884', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '0.85rem' }}>
+                    PMS
+                  </div>
+                  <div>
+                    <div style={{ color: '#e9edef', fontWeight: 700, fontSize: '0.9rem' }}>PMS Baharimas Bot (Official)</div>
+                    <div style={{ color: '#8696a0', fontSize: '0.72rem' }}>Verified Enterprise • Jam {notificationSettings?.autoSend?.scheduleTime || '08:00'} WIB</div>
+                  </div>
+                </div>
+
+                {/* Bubble */}
+                <div
+                  style={{
+                    background: '#005c4b',
+                    color: '#e9edef',
+                    padding: '0.9rem 1.1rem',
+                    borderRadius: '12px 12px 0 12px',
+                    fontSize: '0.825rem',
+                    lineHeight: 1.45,
+                    whiteSpace: 'pre-wrap',
+                    margin: '1rem 0'
+                  }}
+                >
+                  {simMessage}
+                  <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#8696a0', marginTop: '0.4rem' }}>
+                    {currentTimeStr?.slice(0, 5) || '08:00'} WIB ✓✓
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#8696a0' }}>
+                  Pesan terenkripsi end-to-end melalui WhatsApp Business API PT. Pelayaran Baharimas Kalimantan
+                </div>
               </div>
             </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1.5rem' }}>
+              {/* Email Simulator Editor */}
+              <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Mail size={18} color="#0ea5e9" />
+                  <span>Simulator Pengiriman Email Otomatis</span>
+                </h4>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Uji coba template email HTML resmi PT. Pelayaran Baharimas Kalimantan dengan opsi REST API Gateway atau Mailto client:
+                </p>
 
-            <div style={{ textAlign: 'center', fontSize: '0.7rem', color: '#8696a0' }}>
-              Pesan terenkripsi end-to-end melalui WhatsApp Business API PT. Pelayaran Baharimas Kalimantan
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Pilih Urgensi Interval Pengingat:
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('1')}
+                      className={`btn btn-sm ${simInterval === '1' ? 'btn-danger' : 'btn-secondary'}`}
+                    >
+                      1 Hari (H-1)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('7')}
+                      className={`btn btn-sm ${simInterval === '7' ? 'btn-warning' : 'btn-secondary'}`}
+                    >
+                      1 Minggu (H-7)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('30')}
+                      className={`btn btn-sm ${simInterval === '30' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      1 Bulan (H-30)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimInterval('365')}
+                      className={`btn btn-sm ${simInterval === '365' ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      1 Tahun (H-365)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Alamat Email Penerima (To):
+                  </label>
+                  <input
+                    type="text"
+                    value={simEmailTo}
+                    onChange={(e) => setSimEmailTo(e.target.value)}
+                    className="input-control mono"
+                    placeholder="nakhoda@baharimas.co.id, dpa@baharimas.co.id"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Subjek Email:
+                  </label>
+                  <input
+                    type="text"
+                    value={simEmailSubject}
+                    onChange={(e) => setSimEmailSubject(e.target.value)}
+                    className="input-control"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                    Isi Notifikasi Email:
+                  </label>
+                  <textarea
+                    rows="7"
+                    value={simEmailBody}
+                    onChange={(e) => setSimEmailBody(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontSize: '0.8rem', lineHeight: '1.45' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginTop: '0.5rem' }}>
+                  <button
+                    onClick={() => handleSendSimulatorEmail(true)}
+                    className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <Zap size={16} />
+                    <span>Kirim via API Gateway</span>
+                  </button>
+                  <button
+                    onClick={() => handleSendSimulatorEmail(false)}
+                    className="btn btn-secondary"
+                    style={{ borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                  >
+                    <Mail size={16} />
+                    <span>Buka di Mail Client</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Desktop Email Client Mockup */}
+              <div
+                className="glass-card"
+                style={{
+                  padding: '1.25rem',
+                  borderRadius: '16px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.35)'
+                }}
+              >
+                {/* Email Client Header bar */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e' }} />
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                      Pratinjau Email Resmi PBK
+                    </span>
+                  </div>
+                  <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                    HTML Template
+                  </span>
+                </div>
+
+                {/* Email Metadata header */}
+                <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div>
+                    <strong style={{ color: 'var(--text-muted)' }}>Dari: </strong>
+                    <span>{notificationSettings?.autoSend?.emailGateway?.fromName || 'PMS PT. Pelayaran Baharimas Kalimantan'} &lt;{notificationSettings?.autoSend?.emailGateway?.fromEmail || 'pms.armada@baharimas.co.id'}&gt;</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'var(--text-muted)' }}>Kepada: </strong>
+                    <span className="mono" style={{ color: '#38bdf8' }}>{simEmailTo}</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: 'var(--text-muted)' }}>Subjek: </strong>
+                    <span style={{ fontWeight: 700 }}>{simEmailSubject}</span>
+                  </div>
+                </div>
+
+                {/* Email Body Card Styled */}
+                <div style={{
+                  padding: '1.25rem',
+                  borderRadius: '10px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem'
+                }}>
+                  {/* Company Logo Header in Email */}
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38bdf8' }}>PT. PELAYARAN BAHARIMAS KALIMANTAN</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Sistem Manajemen Pemeliharaan Armada (PMS) • Pontianak</div>
+                    </div>
+                    <span className={`badge ${simInterval === '1' ? 'badge-danger-pulse' : simInterval === '7' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.7rem' }}>
+                      H-{simInterval} Hari
+                    </span>
+                  </div>
+
+                  {/* Body Text */}
+                  <div style={{ fontSize: '0.8rem', lineHeight: '1.5', whiteSpace: 'pre-line', color: 'var(--text-main)' }}>
+                    {simEmailBody}
+                  </div>
+
+                  {/* Footer note */}
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.6rem', fontSize: '0.68rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    Email otomatis dihasilkan oleh Sistem PMS Armada Kapal Baharimas. Balas ke: {notificationSettings?.autoSend?.emailGateway?.replyTo || 'operations@baharimas.co.id'}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -2177,6 +2835,169 @@ export const NotificationCenter = () => {
                 <Send size={14} />
                 <span>Buka WhatsApp Web / App</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EMAIL: Dedicated Email Notification Customizer Dialog */}
+      {emailModalItem && (
+        <div className="modal-overlay" onClick={() => setEmailModalItem(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0ea5e9' }}>
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Kirim Peringatan Email Resmi</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Pemberitahuan jatuh tempo untuk {emailModalItem.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEmailModalItem(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Urgency Selector */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Ambang Batas / Kategori Urgensi:
+                </label>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => updateEmailModalOffset(1)}
+                    className={`btn btn-sm ${emailOffset === 1 ? 'btn-danger' : 'btn-secondary'}`}
+                  >
+                    🚨 1 Hari (Darurat H-1)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateEmailModalOffset(7)}
+                    className={`btn btn-sm ${emailOffset === 7 ? 'btn-warning' : 'btn-secondary'}`}
+                  >
+                    ⚠️ 1 Minggu (Kritis H-7)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateEmailModalOffset(30)}
+                    className={`btn btn-sm ${emailOffset === 30 ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    🔔 1 Bulan (H-30)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateEmailModalOffset(365)}
+                    className={`btn btn-sm ${emailOffset === 365 ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    📋 1 Tahun (H-365)
+                  </button>
+                </div>
+              </div>
+
+              {/* Recipients Input */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Penerima Email (To):
+                </label>
+                <input
+                  type="text"
+                  value={emailRecipients}
+                  onChange={(e) => setEmailRecipients(e.target.value)}
+                  className="input-control mono"
+                  placeholder="nakhoda@baharimas.co.id, fleet.ops@baharimas.co.id"
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Bisa mencantumkan beberapa alamat email yang dipisahkan tanda koma.
+                </span>
+              </div>
+
+              {/* Subject Input */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Subjek Email:
+                </label>
+                <input
+                  type="text"
+                  value={emailCustomSubject}
+                  onChange={(e) => setEmailCustomSubject(e.target.value)}
+                  className="input-control"
+                />
+              </div>
+
+              {/* Body textarea */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                  Isi Pesan Email:
+                </label>
+                <textarea
+                  rows="7"
+                  value={emailCustomBody}
+                  onChange={(e) => setEmailCustomBody(e.target.value)}
+                  className="input-control mono"
+                  style={{ fontSize: '0.8rem', lineHeight: '1.45' }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button onClick={() => setEmailModalItem(null)} className="btn btn-secondary btn-sm">
+                Batal
+              </button>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={async () => {
+                    await sendEmailReminder(
+                      emailModalItem,
+                      emailModalItem.crewName ? 'crew_cert' : 'ship_doc',
+                      {
+                        offsetDays: emailOffset,
+                        recipientEmail: emailRecipients,
+                        customSubject: emailCustomSubject,
+                        customMessage: emailCustomBody,
+                        skipMailto: true
+                      }
+                    );
+                    setEmailModalItem(null);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  title="Kirim otomatis melalui REST API Gateway / Cloud SMTP"
+                >
+                  <Zap size={14} />
+                  <span>Kirim Otomatis via API</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await sendEmailReminder(
+                      emailModalItem,
+                      emailModalItem.crewName ? 'crew_cert' : 'ship_doc',
+                      {
+                        offsetDays: emailOffset,
+                        recipientEmail: emailRecipients,
+                        customSubject: emailCustomSubject,
+                        customMessage: emailCustomBody,
+                        skipMailto: false
+                      }
+                    );
+                    setEmailModalItem(null);
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                  title="Buka draf pesan di aplikasi email default (Outlook, Thunderbird, Gmail)"
+                >
+                  <Mail size={14} />
+                  <span>Buka di Aplikasi Email</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

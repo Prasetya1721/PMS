@@ -3,6 +3,7 @@ import { usePMS } from '../../context/PMSContext';
 import {
   MessageSquare,
   Send,
+  Mail,
   X,
   Copy,
   Clock,
@@ -12,12 +13,13 @@ import {
   Phone,
   Ship,
   Building2,
-  Check
+  Check,
+  Zap
 } from 'lucide-react';
 import { calculateNCRange, formatIndoDate } from '../../utils/auditTimeUtils';
 
 export const AuditNotificationModal = ({ finding, onClose }) => {
-  const { vessels, sendAuditWhatsAppNotification, showToast, theme } = usePMS();
+  const { vessels, sendAuditWhatsAppNotification, sendAuditEmailNotification, showToast, theme } = usePMS();
 
   if (!finding) return null;
 
@@ -29,42 +31,49 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
   const vessel = vessels.find(v => v.id === finding.vesselId);
   const vesselName = finding.targetName || vessel?.name || 'Kantor Pusat PT. PBK';
 
-  // Available maritime recipients
+  // Available maritime recipients with both phone and email
   const recipientPresets = useMemo(() => [
     {
       id: 'nakhoda',
       label: `Nakhoda (${vessel?.masterCaptain || 'Capt. Nakhoda'})`,
       role: 'Nakhoda Kapal',
-      phone: '6281234567890'
+      phone: '6281234567890',
+      email: 'nakhoda@baharimas.co.id'
     },
     {
       id: 'kkm',
       label: `KKM / Chief Engineer (${vessel?.chiefEngineer || 'KKM Mesin'})`,
       role: 'Kepala Kamar Mesin (KKM)',
-      phone: '6281298765432'
+      phone: '6281298765432',
+      email: 'kkm@baharimas.co.id'
     },
     {
       id: 'dpa',
       label: 'DPA & Marine Superintendent (Pontianak)',
       role: 'Designated Person Ashore (DPA)',
-      phone: '6281288991122'
+      phone: '6281288991122',
+      email: 'dpa.baharimas@gmail.com'
     },
     {
       id: 'pic',
       label: `PIC Penanggung Jawab (${finding.assignedTo || 'PIC Terkait'})`,
       role: finding.assignedTo || 'PIC Penanggung Jawab',
-      phone: '6281344556677'
+      phone: '6281344556677',
+      email: 'operations@baharimas.co.id'
     },
     {
       id: 'custom',
-      label: 'Nomor WhatsApp Kustom...',
+      label: 'Penerima Kustom...',
       role: 'Penerima Kustom',
-      phone: ''
+      phone: '',
+      email: ''
     }
   ], [vessel, finding]);
 
+  const [selectedChannel, setSelectedChannel] = useState('whatsapp'); // 'whatsapp' | 'email'
   const [selectedRecipientId, setSelectedRecipientId] = useState(isClosed ? 'dpa' : 'nakhoda');
   const [customPhone, setCustomPhone] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
   const [customRecipientName, setCustomRecipientName] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -72,12 +81,13 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
     if (selectedRecipientId === 'custom') {
       return {
         role: customRecipientName.trim() || 'Penerima Khusus',
-        phone: customPhone.trim() || '6281200000000'
+        phone: customPhone.trim() || '6281200000000',
+        email: customEmail.trim() || 'fleet.ops@baharimas.co.id'
       };
     }
     const found = recipientPresets.find(p => p.id === selectedRecipientId);
     return found || recipientPresets[0];
-  }, [selectedRecipientId, recipientPresets, customPhone, customRecipientName]);
+  }, [selectedRecipientId, recipientPresets, customPhone, customEmail, customRecipientName]);
 
   // Formatted WhatsApp Message with full Rentang Waktu
   const generatedMessage = useMemo(() => {
@@ -123,10 +133,66 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
     }
   }, [isClosed, isSubmitted, activeRecipient, vesselName, finding, ncRange]);
 
+  // Formatted Email Subject & Message for ISM NC
+  const generatedEmailSubject = useMemo(() => {
+    if (isClosed) {
+      return `[ISM NC CLOSE] Penyelesaian Temuan Audit ${finding.findingNo} — ${vesselName} (TUNTAS)`;
+    }
+    return `[ISM NC OPEN] Temuan Audit ISM Code ${finding.findingNo} — ${vesselName} (${finding.category})`;
+  }, [isClosed, finding, vesselName]);
+
+  const generatedEmailMessage = useMemo(() => {
+    if (isClosed) {
+      return `Kepada Yth: ${activeRecipient.role}\n` +
+        `PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS\n\n` +
+        `Dengan hormat,\n\n` +
+        `Bersama surat elektronik ini, diberitahukan bahwa temuan audit ISM Code berikut telah dinyatakan NC CLOSE (TUNTAS):\n\n` +
+        `• No. Temuan: ${finding.findingNo} [${finding.category}]\n` +
+        `• Kapal / Entitas: ${vesselName}\n` +
+        `• Klausul ISM: ${finding.clauseCode} - ${finding.clauseName}\n` +
+        `• Standar Audit: ${finding.standard} (ISM Code & BKI)\n` +
+        `• Tanggal Audit Dibuka: ${ncRange?.openDateStr || finding.dateIdentified}\n` +
+        `• Target Batas Awal: ${ncRange?.dueDateStr || finding.dueDate}\n` +
+        `• Tanggal Ditutup Resmi: ${ncRange?.closedDateStr || 'Hari ini'}\n` +
+        `• Durasi Penyelesaian: ${ncRange?.resolutionDays || 1} Hari (${ncRange?.varianceText || 'Tepat Waktu'})\n\n` +
+        `HASIL VERIFIKASI & CLOSING:\n` +
+        `Tindakan koreksi dan dokumen eviden perbaikan telah diverifikasi efektif oleh Lead Auditor DPA / Surveyor BKI. Status temuan resmi dinyatakan NC CLOSE.\n\n` +
+        `Status Kepatuhan: 100% COMPLIANT (IMO ISM CODE & BKI)\n\n` +
+        `Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan\n` +
+        `Jl. Husin Hamzah / Komp. Ruko Bahari Mas, Pontianak, Kalimantan Barat`;
+    } else {
+      const lateInfo = ncRange?.isOverdue
+        ? `STATUS: MELEWATI BATAS WAKTU (${Math.abs(ncRange.remainingDays)} Hari Overdue)!`
+        : `STATUS: NC TERBUKA (Berjalan ${ncRange?.activeDays} hari, sisa ${ncRange?.remainingDays} hari lagi)`;
+
+      const subStatus = isSubmitted ? '(Eviden Perbaikan Sedang Ditinjau Auditor)' : '(Wajib Pengajuan CAP & Eviden)';
+
+      return `Kepada Yth: ${activeRecipient.role}\n` +
+        `PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS\n\n` +
+        `Dengan hormat,\n\n` +
+        `Diberitahukan bahwa terdapat temuan audit ISM Code (Non-Conformity) yang memerlukan tindakan korektif (CAP):\n\n` +
+        `• No. Temuan: ${finding.findingNo} [${finding.category}] ${subStatus}\n` +
+        `• Kapal / Entitas: ${vesselName}\n` +
+        `• Klausul ISM: ${finding.clauseCode} - ${finding.clauseName}\n` +
+        `• Standar Audit: ${finding.standard} (ISM Code)\n\n` +
+        `DESKRIPSI TEMUAN:\n` +
+        `"${finding.description}"\n\n` +
+        `RENTANG WAKTU TINDAKAN KOREKTIF (CAP):\n` +
+        `• Tanggal Audit Dibuka: ${ncRange?.openDateStr || finding.dateIdentified}\n` +
+        `• Target Batas Akhir: ${ncRange?.dueDateStr || finding.dueDate}\n` +
+        `• ${lateInfo}\n\n` +
+        `TINDAKAN DIPERLUKAN:\n` +
+        `Nakhoda & KKM wajib memastikan tindakan korektif dilaksanakan dan dokumen/foto eviden diunggah ke Portal PMS Baharimas sebelum batas waktu berakhir.\n\n` +
+        `Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan\n` +
+        `Jl. Husin Hamzah / Komp. Ruko Bahari Mas, Pontianak, Kalimantan Barat`;
+    }
+  }, [isClosed, isSubmitted, activeRecipient, vesselName, finding, ncRange]);
+
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedMessage);
+    const textToCopy = selectedChannel === 'whatsapp' ? generatedMessage : `${generatedEmailSubject}\n\n${generatedEmailMessage}`;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
-    showToast('Teks notifikasi WhatsApp berhasil disalin!', 'success');
+    showToast(`Teks notifikasi ${selectedChannel === 'whatsapp' ? 'WhatsApp' : 'Email'} berhasil disalin!`, 'success');
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -135,6 +201,17 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
       phone: activeRecipient.phone,
       recipientName: activeRecipient.role,
       customMessage: generatedMessage
+    });
+    onClose();
+  };
+
+  const handleSendEmail = async (skipMailto = false) => {
+    await sendAuditEmailNotification(finding, isClosed ? 'close' : 'open', {
+      email: activeRecipient.email,
+      recipientName: activeRecipient.role,
+      customSubject: generatedEmailSubject,
+      customMessage: generatedEmailMessage,
+      skipMailto
     });
     onClose();
   };
@@ -179,11 +256,13 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
               justifyContent: 'center',
               boxShadow: isClosed ? '0 4px 12px rgba(16, 185, 129, 0.35)' : '0 4px 12px rgba(239, 68, 68, 0.35)'
             }}>
-              <MessageSquare size={20} />
+              {selectedChannel === 'email' ? <Mail size={20} /> : <MessageSquare size={20} />}
             </div>
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>
-                {isClosed ? 'Kirim Notifikasi NC Close (WhatsApp)' : 'Kirim Notifikasi NC Open (WhatsApp)'}
+                {isClosed
+                  ? `Kirim Notifikasi NC Close (${selectedChannel === 'email' ? 'Email' : 'WhatsApp'})`
+                  : `Kirim Notifikasi NC Open (${selectedChannel === 'email' ? 'Email' : 'WhatsApp'})`}
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                 {finding.findingNo} • {vesselName} ({finding.category})
@@ -198,6 +277,28 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
 
         {/* Modal Body */}
         <div style={{ padding: '1.25rem 1.4rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Channel Selector Toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-surface-elevated)', padding: '0.4rem', borderRadius: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setSelectedChannel('whatsapp')}
+              className={`btn btn-sm ${selectedChannel === 'whatsapp' ? 'btn-whatsapp' : 'btn-secondary'}`}
+              style={{ flex: 1, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
+            >
+              <MessageSquare size={14} />
+              <span>Kanal WhatsApp</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedChannel('email')}
+              className={`btn btn-sm ${selectedChannel === 'email' ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ flex: 1, fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', color: selectedChannel === 'email' ? '#fff' : '#38bdf8' }}
+            >
+              <Mail size={14} />
+              <span>Kanal Email (Resmi)</span>
+            </button>
+          </div>
+
           {/* Rentang Waktu Quick Info */}
           {ncRange && (
             <div style={{
@@ -232,6 +333,7 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
               {recipientPresets.map(preset => {
                 const isSelected = selectedRecipientId === preset.id;
+                const contactInfo = selectedChannel === 'email' ? preset.email : preset.phone;
                 return (
                   <button
                     key={preset.id}
@@ -250,9 +352,9 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isSelected ? '#0284c7' : 'var(--text-main)' }}>
                       {preset.label}
                     </div>
-                    {preset.phone && (
-                      <div className="mono" style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                        {preset.phone}
+                    {contactInfo && (
+                      <div className="mono" style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {contactInfo}
                       </div>
                     )}
                   </button>
@@ -270,23 +372,34 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
                   className="input-control"
                   style={{ fontSize: '0.78rem' }}
                 />
-                <input
-                  type="text"
-                  placeholder="Nomor WA (cth: 6281234567890)"
-                  value={customPhone}
-                  onChange={(e) => setCustomPhone(e.target.value)}
-                  className="input-control mono"
-                  style={{ fontSize: '0.78rem' }}
-                />
+                {selectedChannel === 'email' ? (
+                  <input
+                    type="email"
+                    placeholder="Email (cth: superintendent@baharimas.co.id)"
+                    value={customEmail}
+                    onChange={(e) => setCustomEmail(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontSize: '0.78rem' }}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Nomor WA (cth: 6281234567890)"
+                    value={customPhone}
+                    onChange={(e) => setCustomPhone(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontSize: '0.78rem' }}
+                  />
+                )}
               </div>
             )}
           </div>
 
-          {/* Message Preview (WhatsApp Chat Style) */}
+          {/* Message Preview (WhatsApp / Email Style) */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                Pratinjau Pesan WhatsApp Otomatis:
+                {selectedChannel === 'email' ? 'Pratinjau Subjek & Pesan Email:' : 'Pratinjau Pesan WhatsApp Otomatis:'}
               </span>
               <button
                 onClick={handleCopy}
@@ -298,23 +411,49 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
               </button>
             </div>
 
-            <div
-              style={{
-                padding: '1rem',
-                borderRadius: '10px',
-                background: theme === 'light' ? '#efeae2' : 'rgba(15, 23, 42, 0.85)',
-                border: '1px solid var(--border-subtle)',
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                fontSize: '0.8rem',
-                lineHeight: '1.5',
-                color: theme === 'light' ? '#111827' : '#f8fafc',
-                whiteSpace: 'pre-line',
-                maxHeight: '260px',
-                overflowY: 'auto'
-              }}
-            >
-              {generatedMessage}
-            </div>
+            {selectedChannel === 'email' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', fontSize: '0.78rem' }}>
+                  <strong style={{ color: 'var(--text-muted)' }}>Subjek: </strong>
+                  <span style={{ fontWeight: 700, color: '#38bdf8' }}>{generatedEmailSubject}</span>
+                </div>
+                <div
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '10px',
+                    background: theme === 'light' ? '#f8fafc' : 'rgba(15, 23, 42, 0.85)',
+                    border: '1px solid var(--border-subtle)',
+                    fontFamily: 'monospace, system-ui',
+                    fontSize: '0.78rem',
+                    lineHeight: '1.5',
+                    color: theme === 'light' ? '#111827' : '#f8fafc',
+                    whiteSpace: 'pre-line',
+                    maxHeight: '220px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {generatedEmailMessage}
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '10px',
+                  background: theme === 'light' ? '#efeae2' : 'rgba(15, 23, 42, 0.85)',
+                  border: '1px solid var(--border-subtle)',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontSize: '0.8rem',
+                  lineHeight: '1.5',
+                  color: theme === 'light' ? '#111827' : '#f8fafc',
+                  whiteSpace: 'pre-line',
+                  maxHeight: '260px',
+                  overflowY: 'auto'
+                }}
+              >
+                {generatedMessage}
+              </div>
+            )}
           </div>
         </div>
 
@@ -327,7 +466,8 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '0.75rem'
+            gap: '0.75rem',
+            flexWrap: 'wrap'
           }}
         >
           <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ fontWeight: 600 }}>
@@ -343,20 +483,44 @@ export const AuditNotificationModal = ({ finding, onClose }) => {
               <Copy size={14} />
               <span>Salin Teks</span>
             </button>
-            <button
-              onClick={handleSendWhatsApp}
-              className="btn btn-whatsapp btn-sm"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontWeight: 700,
-                padding: '0.45rem 1rem'
-              }}
-            >
-              <Send size={15} />
-              <span>Kirim via WhatsApp</span>
-            </button>
+
+            {selectedChannel === 'email' ? (
+              <>
+                <button
+                  onClick={() => handleSendEmail(true)}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                  title="Kirim via REST API Gateway / Cloud SMTP"
+                >
+                  <Zap size={14} />
+                  <span>Kirim via Email API</span>
+                </button>
+                <button
+                  onClick={() => handleSendEmail(false)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+                  title="Buka draf di aplikasi email default"
+                >
+                  <Mail size={14} />
+                  <span>Buka Aplikasi Email</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleSendWhatsApp}
+                className="btn btn-whatsapp btn-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontWeight: 700,
+                  padding: '0.45rem 1rem'
+                }}
+              >
+                <Send size={15} />
+                <span>Kirim via WhatsApp</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
