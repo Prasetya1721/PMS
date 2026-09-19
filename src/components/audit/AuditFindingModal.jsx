@@ -18,7 +18,7 @@ import {
   Minimize2
 } from 'lucide-react';
 
-export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
+export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, onClose }) => {
   const {
     audits,
     allAudits,
@@ -36,9 +36,14 @@ export const AuditFindingModal = ({ finding, defaultAuditId, onClose }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const availableAudits = audits.length > 0 ? audits : allAudits;
+  const vesselMatchedAudit = defaultVesselId && defaultVesselId !== 'office'
+    ? availableAudits.find(a => a.vesselId === defaultVesselId)
+    : defaultVesselId === 'office'
+    ? availableAudits.find(a => a.standard === 'DOC')
+    : null;
 
   const [auditId, setAuditId] = useState(
-    finding?.auditId || defaultAuditId || availableAudits[0]?.id || ''
+    finding?.auditId || defaultAuditId || vesselMatchedAudit?.id || availableAudits[0]?.id || ''
   );
 
   const currentAudit = availableAudits.find(a => a.id === auditId) || availableAudits[0];

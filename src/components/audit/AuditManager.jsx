@@ -22,10 +22,15 @@ import {
   Check,
   ChevronRight,
   Eye,
-  BookOpen,
   SlidersHorizontal,
   ChevronDown,
-  Info
+  Info,
+  ArrowLeft,
+  RefreshCw,
+  Sparkles,
+  Award,
+  Radio,
+  FileSpreadsheet
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
@@ -49,8 +54,27 @@ export const AuditManager = () => {
     ISM_SMC_ELEMENTS,
     openNCCount,
     closedNCCount,
-    currentUser
+    currentUser,
+    showToast
   } = usePMS();
+
+  // Selected Target in Audit Gateway:
+  // null = Layar Pemilihan Kapal (Gateway)
+  // 'office' = Kantor Pusat PT. PBK (Audit DOC)
+  // 'v-xxx' = Kapal Armada tertentu (Audit SMC)
+  const [activeTargetId, setActiveTargetId] = useState(null);
+
+  // Gateway filters
+  const [gatewaySearch, setGatewaySearch] = useState('');
+  const [gatewayFilter, setGatewayFilter] = useState('ALL'); // ALL, HAS_OPEN_NC, HAS_SUBMITTED, CLEAN, OWNER, OPERATOR, OFFICE
+
+  // In-Vessel View Tab: 'findings' | 'sessions' | 'checklist' | 'integrations'
+  const [vesselTab, setVesselTab] = useState('findings');
+
+  // In-Vessel Filters
+  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, NC Open, Eviden Submitted, NC Close
+  const [severityFilter, setSeverityFilter] = useState('ALL'); // ALL, Major NC, Minor NC, Observation
+  const [inVesselSearch, setInVesselSearch] = useState('');
 
   // Modals state
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -63,802 +87,1564 @@ export const AuditManager = () => {
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [evidenceTargetFinding, setEvidenceTargetFinding] = useState(null);
 
-  // Active view tab: 'findings' | 'sessions' | 'checklist'
-  const [activeView, setActiveView] = useState('findings');
+  // Manual checklist state per vessel
+  const [customChecklistItems, setCustomChecklistItems] = useState([]);
+  const [showManualCodeForm, setShowManualCodeForm] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+  const [manualName, setManualName] = useState('');
+  const [manualCriteria, setManualCriteria] = useState('');
+  const [manualStatus, setManualStatus] = useState('Complied');
+  const [manualNotes, setManualNotes] = useState('');
 
-  // Filters
-  const [typeFilter, setTypeFilter] = useState('ALL'); // ALL, Internal, External, DOC, SMC
-  const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, NC Open, Eviden Submitted, NC Close
-  const [severityFilter, setSeverityFilter] = useState('ALL'); // ALL, Major NC, Minor NC, Observation
-  const [searchQuery, setSearchQuery] = useState('');
+  // =========================================================================
+  // TARGET DATA PREPARATION (PER VESSEL & OFFICE)
+  // =========================================================================
+  const allFleetTargets = useMemo(() => {
+    // 1. Office Target
+    const officeFindings = (allAuditFindings || []).filter(f => f.standard === 'DOC' || !f.vesselId);
+    const officeAudits = (allAudits || []).filter(a => a.standard === 'DOC' || a.targetType === 'Office' || !a.vesselId);
+    const officeOpenNC = officeFindings.filter(f => f.status === 'NC Open').length;
+    const officeSubmittedNC = officeFindings.filter(f => f.status === 'Eviden Submitted').length;
+    const officeClosedNC = officeFindings.filter(f => f.status === 'NC Close').length;
+    const officeMajorNC = officeFindings.filter(f => f.category === 'Major NC' && f.status === 'NC Open').length;
+    const officeMinorNC = officeFindings.filter(f => f.category === 'Minor NC' && f.status === 'NC Open').length;
 
-  // Source findings based on vessel selection
-  const rawFindings = selectedVesselId === 'all' ? allAuditFindings : auditFindings;
-  const rawAudits = selectedVesselId === 'all' ? allAudits : audits;
+    const officeTarget = {
+      id: 'office',
+      type: 'office',
+      name: 'Kantor Pusat PT. PBK Samarinda',
+      subtitle: 'Audit Kepatuhan Perusahaan (DOC Standar Kantor)',
+      standard: 'DOC',
+      ownership: 'Head Office',
+      callSign: 'DOC-PBK',
+      imo: 'DOC-BKI-2026',
+      gt: '-',
+      portOfRegistry: 'Samarinda, Kalimantan Timur',
+      nakhoda: 'Direktur Utama PT. PBK',
+      kkm: 'DPA & Marine Superintendent',
+      photo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
+      findings: officeFindings,
+      audits: officeAudits,
+      openNC: officeOpenNC,
+      submittedNC: officeSubmittedNC,
+      closedNC: officeClosedNC,
+      majorNC: officeMajorNC,
+      minorNC: officeMinorNC,
+      lastAudit: officeAudits[0] || null
+    };
 
-  // Filtered Findings
-  const filteredFindings = useMemo(() => {
-    return (rawFindings || []).filter(finding => {
-      // Type / Standard filter
-      if (typeFilter === 'Internal' && finding.auditType !== 'Internal') return false;
-      if (typeFilter === 'External' && finding.auditType !== 'External') return false;
-      if (typeFilter === 'DOC' && finding.standard !== 'DOC') return false;
-      if (typeFilter === 'SMC' && finding.standard !== 'SMC') return false;
+    // 2. Ships Targets (28 vessels)
+    const vesselTargets = (vessels || []).map(v => {
+      const shipFindings = (allAuditFindings || []).filter(f =>
+        f.vesselId === v.id || (f.targetName && f.targetName.toLowerCase().includes(v.name.toLowerCase()))
+      );
+      const shipAudits = (allAudits || []).filter(a =>
+        a.vesselId === v.id || (a.targetName && a.targetName.toLowerCase().includes(v.name.toLowerCase()))
+      );
+      const openNC = shipFindings.filter(f => f.status === 'NC Open').length;
+      const submittedNC = shipFindings.filter(f => f.status === 'Eviden Submitted').length;
+      const closedNC = shipFindings.filter(f => f.status === 'NC Close').length;
+      const majorNC = shipFindings.filter(f => f.category === 'Major NC' && f.status === 'NC Open').length;
+      const minorNC = shipFindings.filter(f => f.category === 'Minor NC' && f.status === 'NC Open').length;
 
-      // Status filter
+      return {
+        id: v.id,
+        type: 'vessel',
+        name: v.name,
+        subtitle: v.type,
+        standard: 'SMC',
+        ownership: v.ownershipStatus || 'As Owner',
+        callSign: v.callSign || 'YDB-PBK',
+        imo: v.imo || v.regNo || '-',
+        gt: v.gt || 250,
+        portOfRegistry: v.portOfRegistry || 'Samarinda',
+        nakhoda: v.masterCaptain || 'Capt. Nakhoda PBK',
+        kkm: v.chiefEngineer || 'KKM Masinis PBK',
+        photo: v.photo || 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80',
+        findings: shipFindings,
+        audits: shipAudits,
+        openNC,
+        submittedNC,
+        closedNC,
+        majorNC,
+        minorNC,
+        lastAudit: shipAudits[0] || null
+      };
+    });
+
+    return [officeTarget, ...vesselTargets];
+  }, [allAuditFindings, allAudits, vessels]);
+
+  // Active target object when selected
+  const currentTarget = useMemo(() => {
+    if (!activeTargetId) return null;
+    return allFleetTargets.find(t => t.id === activeTargetId) || allFleetTargets[0];
+  }, [activeTargetId, allFleetTargets]);
+
+  // Global fleet KPI stats
+  const fleetStats = useMemo(() => {
+    const totalTargets = allFleetTargets.length;
+    const totalOpen = allFleetTargets.reduce((acc, t) => acc + t.openNC, 0);
+    const totalSubmitted = allFleetTargets.reduce((acc, t) => acc + t.submittedNC, 0);
+    const totalClosed = allFleetTargets.reduce((acc, t) => acc + t.closedNC, 0);
+    const totalSessions = (allAudits || []).length;
+    const cleanTargets = allFleetTargets.filter(t => t.openNC === 0).length;
+    const complianceRate = totalTargets > 0 ? Math.round((cleanTargets / totalTargets) * 100) : 100;
+
+    return {
+      totalTargets,
+      totalOpen,
+      totalSubmitted,
+      totalClosed,
+      totalSessions,
+      cleanTargets,
+      complianceRate
+    };
+  }, [allFleetTargets, allAudits]);
+
+  // Filtered targets for the gateway grid
+  const filteredGatewayTargets = useMemo(() => {
+    return allFleetTargets.filter(target => {
+      // Category filter
+      if (gatewayFilter === 'HAS_OPEN_NC' && target.openNC === 0) return false;
+      if (gatewayFilter === 'HAS_SUBMITTED' && target.submittedNC === 0) return false;
+      if (gatewayFilter === 'CLEAN' && target.openNC > 0) return false;
+      if (gatewayFilter === 'OWNER' && target.ownership !== 'As Owner') return false;
+      if (gatewayFilter === 'OPERATOR' && target.ownership !== 'As Operator') return false;
+      if (gatewayFilter === 'OFFICE' && target.id !== 'office') return false;
+
+      // Search query
+      if (gatewaySearch.trim()) {
+        const q = gatewaySearch.toLowerCase();
+        const matchName = target.name.toLowerCase().includes(q);
+        const matchSub = target.subtitle.toLowerCase().includes(q);
+        const matchCall = target.callSign.toLowerCase().includes(q);
+        const matchImo = String(target.imo).toLowerCase().includes(q);
+        const matchPort = target.portOfRegistry.toLowerCase().includes(q);
+        return matchName || matchSub || matchCall || matchImo || matchPort;
+      }
+
+      return true;
+    });
+  }, [allFleetTargets, gatewayFilter, gatewaySearch]);
+
+  // Filtered findings for the active target view
+  const currentTargetFilteredFindings = useMemo(() => {
+    if (!currentTarget) return [];
+    return (currentTarget.findings || []).filter(finding => {
       if (statusFilter === 'NC Open' && finding.status !== 'NC Open') return false;
       if (statusFilter === 'Eviden Submitted' && finding.status !== 'Eviden Submitted') return false;
       if (statusFilter === 'NC Close' && finding.status !== 'NC Close') return false;
 
-      // Severity filter
       if (severityFilter !== 'ALL' && finding.category !== severityFilter) return false;
 
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchNo = finding.findingNo?.toLowerCase().includes(q);
-        const matchCode = finding.clauseCode?.toLowerCase().includes(q);
-        const matchName = finding.clauseName?.toLowerCase().includes(q);
-        const matchDesc = finding.description?.toLowerCase().includes(q);
-        const matchTarget = finding.targetName?.toLowerCase().includes(q);
-        const matchAuditor = finding.auditor?.toLowerCase().includes(q);
-        const matchPIC = finding.assignedTo?.toLowerCase().includes(q);
-        return matchNo || matchCode || matchName || matchDesc || matchTarget || matchAuditor || matchPIC;
+      if (inVesselSearch.trim()) {
+        const q = inVesselSearch.toLowerCase();
+        return (
+          finding.findingNo?.toLowerCase().includes(q) ||
+          finding.clauseCode?.toLowerCase().includes(q) ||
+          finding.clauseName?.toLowerCase().includes(q) ||
+          finding.description?.toLowerCase().includes(q) ||
+          finding.assignedTo?.toLowerCase().includes(q)
+        );
       }
-
       return true;
     });
-  }, [rawFindings, typeFilter, statusFilter, severityFilter, searchQuery]);
+  }, [currentTarget, statusFilter, severityFilter, inVesselSearch]);
 
-  // Filtered Sessions
-  const filteredSessions = useMemo(() => {
-    return (rawAudits || []).filter(session => {
-      if (typeFilter === 'Internal' && session.auditType !== 'Internal') return false;
-      if (typeFilter === 'External' && session.auditType !== 'External') return false;
-      if (typeFilter === 'DOC' && session.standard !== 'DOC') return false;
-      if (typeFilter === 'SMC' && session.standard !== 'SMC') return false;
+  // Relevant certificates for current target
+  const currentTargetCertificates = useMemo(() => {
+    if (!currentTarget) return [];
+    if (currentTarget.id === 'office') {
+      return (shipDocuments || []).filter(d => d.type?.toLowerCase().includes('doc') || d.category === 'Statutory' || d.vesselId === 'all');
+    }
+    return (shipDocuments || []).filter(d => d.vesselId === currentTarget.id);
+  }, [shipDocuments, currentTarget]);
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchNo = session.auditNo?.toLowerCase().includes(q);
-        const matchAuditor = session.leadAuditor?.toLowerCase().includes(q);
-        const matchTarget = session.targetName?.toLowerCase().includes(q);
-        const matchScope = session.scope?.toLowerCase().includes(q);
-        return matchNo || matchAuditor || matchTarget || matchScope;
-      }
+  // Relevant requisitions for current target
+  const currentTargetRequisitions = useMemo(() => {
+    if (!currentTarget) return [];
+    if (currentTarget.id === 'office') {
+      return requisitions || [];
+    }
+    return (requisitions || []).filter(r => r.vesselId === currentTarget.id);
+  }, [requisitions, currentTarget]);
 
-      return true;
-    });
-  }, [rawAudits, typeFilter, searchQuery]);
-
-  // Overall statistics
-  const stats = useMemo(() => {
-    const totalFindings = (rawFindings || []).length;
-    const majorCount = (rawFindings || []).filter(f => f.category === 'Major NC').length;
-    const minorCount = (rawFindings || []).filter(f => f.category === 'Minor NC').length;
-    const obsCount = (rawFindings || []).filter(f => f.category === 'Observation').length;
-
-    const openCount = (rawFindings || []).filter(f => f.status === 'NC Open').length;
-    const submittedCount = (rawFindings || []).filter(f => f.status === 'Eviden Submitted').length;
-    const closedCount = (rawFindings || []).filter(f => f.status === 'NC Close').length;
-
-    const totalSessions = (rawAudits || []).length;
-    const intSessions = (rawAudits || []).filter(a => a.auditType === 'Internal').length;
-    const extSessions = (rawAudits || []).filter(a => a.auditType === 'External').length;
-    const docSessions = (rawAudits || []).filter(a => a.standard === 'DOC').length;
-    const smcSessions = (rawAudits || []).filter(a => a.standard === 'SMC').length;
-
-    return {
-      totalFindings,
-      majorCount,
-      minorCount,
-      obsCount,
-      openCount,
-      submittedCount,
-      closedCount,
-      totalSessions,
-      intSessions,
-      extSessions,
-      docSessions,
-      smcSessions
-    };
-  }, [rawFindings, rawAudits]);
-
-  const handleOpenAddFindingForAudit = (auditId) => {
-    setFindingDefaultAuditId(auditId);
-    setEditingFinding(null);
-    setFindingModalOpen(true);
+  // Handle select target
+  const handleSelectTarget = (targetId) => {
+    setActiveTargetId(targetId);
+    setVesselTab('findings');
+    setStatusFilter('ALL');
+    setSeverityFilter('ALL');
+    setInVesselSearch('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleQuickFindingFromChecklist = (standardType, elem) => {
-    setEditingFinding({
-      standard: standardType,
-      clauseCode: elem.code,
-      clauseName: elem.name,
-      description: `Temuan ketidaksesuaian pada pemeriksaan checklist: ${elem.name}`,
-      category: 'Minor NC'
-    });
-    setFindingDefaultAuditId(null);
-    setFindingModalOpen(true);
+  // Handle Add Manual Checklist item for current vessel
+  const handleAddManualChecklistItem = (e) => {
+    e.preventDefault();
+    if (!manualCode.trim() || !manualName.trim()) {
+      showToast('Harap masukkan kode klausul dan nama pemeriksaan!', 'warning');
+      return;
+    }
+
+    const newItem = {
+      id: `custom-${Date.now()}`,
+      code: manualCode.trim().toUpperCase(),
+      name: manualName.trim(),
+      checkPoint: manualCriteria.trim() || 'Kriteria pemeriksaan keselamatan kapal',
+      result: manualStatus,
+      notes: manualNotes.trim(),
+      isManual: true,
+      vesselId: currentTarget?.id
+    };
+
+    setCustomChecklistItems(prev => [newItem, ...prev]);
+    setManualCode('');
+    setManualName('');
+    setManualCriteria('');
+    setManualNotes('');
+    setShowManualCodeForm(false);
+    showToast(`✓ Item audit manual "${newItem.code}" berhasil ditambahkan ke ${currentTarget?.name}!`, 'success');
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
-      {/* Hero Header Banner */}
-      <div className="audit-hero-banner glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{
-            padding: '0.85rem',
-            borderRadius: '14px',
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
-          }}>
-            <ShieldCheck size={32} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Audit & Kepatuhan ISM Code</h2>
-              <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
-                DOC Kantor & SMC 28 Kapal
-              </span>
+
+      {/* ========================================================================= */}
+      {/* 1. LAYAR PEMILIHAN KAPAL / FLEET SELECTION GATEWAY (activeTargetId === null) */}
+      {/* ========================================================================= */}
+      {!activeTargetId && (
+        <>
+          {/* Hero Banner Gateway */}
+          <div className="audit-hero-banner glass-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{
+                padding: '0.85rem',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+              }}>
+                <ShieldCheck size={32} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: '1.55rem', fontWeight: 800 }}>Portal Audit ISM Code Per Armada Kapal</h2>
+                  <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
+                    28 Kapal & Kantor Pusat PBK
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '780px', lineHeight: '1.5' }}>
+                  Silakan <strong>pilih kapal terlebih dahulu</strong> di bawah ini untuk mengakses ruang audit dan menu audit khusus masing-masing kapal.
+                  Setiap kapal memiliki pencatatan temuan, eviden perbaikan, dan notis status <strong>NC Open / NC Close</strong> mandiri.
+                </p>
+              </div>
             </div>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '750px', lineHeight: '1.5' }}>
-              Manajemen Audit Keselamatan Maritim (Internal DPA PT. PBK & Eksternal BKI / Ditjen Hubla) sesuai Standar IMO ISM Code Resolusi A.741(18).
-              Pantau status <strong>NC Open</strong>, <strong>Eviden Perbaikan</strong>, dan <strong>NC Close</strong> secara terintegrasi dengan sertifikat kapal & logistik gudang.
-            </p>
-          </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            onClick={() => {
-              setEditingSession(null);
-              setSessionModalOpen(true);
-            }}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
-          >
-            <Plus size={15} color="#38bdf8" />
-            <span>Sesi Audit Baru</span>
-          </button>
-          <button
-            onClick={() => {
-              setEditingFinding(null);
-              setFindingDefaultAuditId(null);
-              setFindingModalOpen(true);
-            }}
-            className="btn btn-primary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
-          >
-            <AlertTriangle size={15} />
-            <span>Catat Temuan NC Manual</span>
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Metrics Scorecard */}
-      <div className="audit-kpi-grid">
-        {/* Card 1: Sesi Audit */}
-        <div className="audit-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Sesi Audit ISM</span>
-            <ShieldCheck size={18} color="#38bdf8" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem' }}>
-            {stats.totalSessions}
-          </div>
-          <div style={{ display: 'flex', gap: '0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
-            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{stats.intSessions} Internal</span>
-            <span>•</span>
-            <span style={{ color: '#a78bfa', fontWeight: 700 }}>{stats.extSessions} Eksternal</span>
-          </div>
-        </div>
-
-        {/* Card 2: Total Temuan */}
-        <div className="audit-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Temuan</span>
-            <FileText size={18} color="#f59e0b" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '0.35rem' }}>
-            {stats.totalFindings}
-          </div>
-          <div style={{ display: 'flex', gap: '0.35rem', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.4rem' }}>
-            <span style={{ color: '#f87171', fontWeight: 700 }}>{stats.majorCount} Major</span>
-            <span>•</span>
-            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{stats.minorCount} Minor</span>
-            <span>•</span>
-            <span style={{ color: '#60a5fa', fontWeight: 700 }}>{stats.obsCount} Obs</span>
-          </div>
-        </div>
-
-        {/* Card 3: NC OPEN */}
-        <div className="audit-card audit-card-danger">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
-              NC OPEN
-            </span>
-            <AlertTriangle size={18} color="#ef4444" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#ef4444', marginTop: '0.35rem' }}>
-            {stats.openCount}
-          </div>
-          <p style={{ fontSize: '0.72rem', color: '#fca5a5', marginTop: '0.4rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)', paddingTop: '0.4rem' }}>
-            Perlu tindakan perbaikan & bukti eviden
-          </p>
-        </div>
-
-        {/* Card 4: EVIDEN SUBMITTED */}
-        <div className="audit-card audit-card-warning">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 800 }}>EVIDEN DIAJUKAN</span>
-            <Upload size={18} color="#f59e0b" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#f59e0b', marginTop: '0.35rem' }}>
-            {stats.submittedCount}
-          </div>
-          <p style={{ fontSize: '0.72rem', color: '#fde68a', marginTop: '0.4rem', borderTop: '1px solid rgba(245, 158, 11, 0.2)', paddingTop: '0.4rem' }}>
-            Menunggu verifikasi Lead Auditor / DPA
-          </p>
-        </div>
-
-        {/* Card 5: NC CLOSE */}
-        <div className="audit-card audit-card-success">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.78rem', color: '#34d399', fontWeight: 800 }}>NC CLOSE</span>
-            <CheckCircle2 size={18} color="#10b981" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#10b981', marginTop: '0.35rem' }}>
-            {stats.closedCount}
-          </div>
-          <p style={{ fontSize: '0.72rem', color: '#a7f3d0', marginTop: '0.4rem', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '0.4rem' }}>
-            Selesai diverifikasi & resmi ditutup
-          </p>
-        </div>
-      </div>
-
-      {/* Main View Mode Selector & Filters Bar */}
-      <div className="glass-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Row 1: View Navigation Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setActiveView('findings')}
-              className={`btn btn-sm ${activeView === 'findings' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-            >
-              <AlertTriangle size={14} />
-              <span>Daftar Temuan NC & Eviden ({filteredFindings.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveView('sessions')}
-              className={`btn btn-sm ${activeView === 'sessions' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-            >
-              <ShieldCheck size={14} />
-              <span>Sesi Audit ISM ({filteredSessions.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveView('checklist')}
-              className={`btn btn-sm ${activeView === 'checklist' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-            >
-              <BookOpen size={14} />
-              <span>Checklist Standar DOC & SMC</span>
-            </button>
-          </div>
-
-          {/* Quick Vessel Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Filter Kapal:</span>
-            <select
-              value={selectedVesselId}
-              onChange={(e) => setSelectedVesselId(e.target.value)}
-              className="select-control"
-              style={{ width: '230px', fontSize: '0.8rem', padding: '0.4rem 2rem 0.4rem 0.75rem' }}
-            >
-              <option value="all">🌐 Semua Armada & Kantor (Fleet-wide)</option>
-              {vessels.map(v => (
-                <option key={v.id} value={v.id}>🚢 {v.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Row 2: Secondary Filter Pills & Search */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem', marginRight: '0.25rem' }}>
-              <Filter size={13} />
-              <span>Standar:</span>
-            </span>
-            {[
-              { id: 'ALL', label: 'Semua Standar' },
-              { id: 'Internal', label: 'Internal PBK' },
-              { id: 'External', label: 'Eksternal (BKI/Gov)' },
-              { id: 'DOC', label: 'DOC (Kantor)' },
-              { id: 'SMC', label: 'SMC (Kapal)' }
-            ].map(tab => (
+            {/* Quick Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
-                key={tab.id}
-                onClick={() => setTypeFilter(tab.id)}
-                className={`btn btn-sm ${typeFilter === tab.id ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                onClick={() => {
+                  setEditingSession(null);
+                  setSessionModalOpen(true);
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
-                {tab.label}
+                <Plus size={15} color="#38bdf8" />
+                <span>+ Sesi Audit Baru</span>
               </button>
-            ))}
+              <button
+                onClick={() => {
+                  setEditingFinding(null);
+                  setFindingDefaultAuditId(null);
+                  setFindingModalOpen(true);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+              >
+                <AlertTriangle size={15} />
+                <span>+ Catat Temuan NC</span>
+              </button>
+            </div>
+          </div>
 
-            {activeView === 'findings' && (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: '0.5rem', paddingLeft: '0.5rem', borderLeft: '1px solid var(--border-subtle)' }}>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="select-control"
-                  style={{ width: '175px', fontSize: '0.75rem', padding: '0.35rem 1.8rem 0.35rem 0.65rem' }}
-                >
-                  <option value="ALL">Semua Status NC</option>
-                  <option value="NC Open">🔴 NC Open</option>
-                  <option value="Eviden Submitted">🟡 Eviden Submitted</option>
-                  <option value="NC Close">🟢 NC Close</option>
-                </select>
+          {/* Fleet Statistics KPI Bar */}
+          <div className="audit-kpi-grid">
+            <div className="audit-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Entitas Armada</span>
+                <Ship size={18} color="#38bdf8" />
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#38bdf8' }}>
+                28 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal + 1 DOC</span>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                17 As Owner • 11 As Operator PBK
+              </p>
+            </div>
 
-                <select
-                  value={severityFilter}
-                  onChange={(e) => setSeverityFilter(e.target.value)}
-                  className="select-control"
-                  style={{ width: '165px', fontSize: '0.75rem', padding: '0.35rem 1.8rem 0.35rem 0.65rem' }}
+            <div className="audit-card audit-card-danger">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700 }}>Total NC Open Armada</span>
+                <span className="badge badge-danger-pulse" style={{ fontSize: '0.65rem' }}>Open</span>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#ef4444' }}>
+                {fleetStats.totalOpen} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Temuan Terbuka</span>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Memerlukan tindakan koreksi & upload eviden
+              </p>
+            </div>
+
+            <div className="audit-card audit-card-warning">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', color: '#f59e0b', fontWeight: 700 }}>Menunggu Verifikasi</span>
+                <Clock size={18} color="#f59e0b" />
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#f59e0b' }}>
+                {fleetStats.totalSubmitted} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Eviden Masuk</span>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Sedang ditinjau oleh Lead Auditor DPA / BKI
+              </p>
+            </div>
+
+            <div className="audit-card audit-card-success">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: 700 }}>Total NC Close Selesai</span>
+                <CheckCircle2 size={18} color="#10b981" />
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#10b981' }}>
+                {fleetStats.totalClosed} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Temuan Selesai</span>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                Kepatuhan terverifikasi dan ditutup resmi
+              </p>
+            </div>
+          </div>
+
+          {/* Search & Filter Toolbar */}
+          <div className="glass-card" style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Filter size={17} color="#38bdf8" />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Filter Pilihan Kapal Armada:</span>
+              </div>
+              <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
+                <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  value={gatewaySearch}
+                  onChange={(e) => setGatewaySearch(e.target.value)}
+                  placeholder="Cari nama kapal, call sign, IMO..."
+                  className="input-control"
+                  style={{ paddingLeft: '2.5rem', fontSize: '0.825rem' }}
+                />
+              </div>
+            </div>
+
+            {/* Filter Buttons */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { id: 'ALL', label: `Semua Armada (${allFleetTargets.length})`, icon: Ship },
+                { id: 'HAS_OPEN_NC', label: `🚨 Ada NC Open (${allFleetTargets.filter(t => t.openNC > 0).length})`, icon: AlertTriangle, highlight: true },
+                { id: 'HAS_SUBMITTED', label: `⏳ Menunggu Eviden (${allFleetTargets.filter(t => t.submittedNC > 0).length})`, icon: Clock },
+                { id: 'CLEAN', label: `✅ Bebas NC Open (${allFleetTargets.filter(t => t.openNC === 0).length})`, icon: CheckCircle2 },
+                { id: 'OWNER', label: `⚓ As Owner (17)`, icon: Ship },
+                { id: 'OPERATOR', label: `⚙️ As Operator (11)`, icon: Ship },
+                { id: 'OFFICE', label: `🏢 Kantor Pusat DOC`, icon: Building2 }
+              ].map(f => {
+                const isActive = gatewayFilter === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setGatewayFilter(f.id)}
+                    className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      fontSize: '0.76rem',
+                      padding: '0.35rem 0.75rem',
+                      fontWeight: isActive ? 700 : 500,
+                      border: f.highlight && !isActive ? '1px solid rgba(239, 68, 68, 0.4)' : undefined,
+                      color: f.highlight && !isActive ? '#ef4444' : undefined
+                    }}
+                  >
+                    <span>{f.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Grid of Vessel Cards (Interactive Gateway Cards) */}
+          <div className="audit-vessel-grid">
+            {filteredGatewayTargets.map(target => {
+              const hasOpen = target.openNC > 0;
+              const hasSubmitted = target.submittedNC > 0;
+              const isClean = target.openNC === 0;
+
+              return (
+                <div
+                  key={target.id}
+                  className={`audit-vessel-card ${hasOpen ? 'has-open-nc' : isClean ? 'is-clean' : ''}`}
                 >
-                  <option value="ALL">Semua Tingkat Keparahan</option>
-                  <option value="Major NC">Major NC</option>
-                  <option value="Minor NC">Minor NC</option>
-                  <option value="Observation">Observasi</option>
-                </select>
+                  {/* Card Header: Photo / Badge & Name */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '10px',
+                          background: target.type === 'office' ? 'rgba(2, 132, 199, 0.15)' : 'rgba(56, 189, 248, 0.15)',
+                          color: target.type === 'office' ? '#0284c7' : '#38bdf8',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          {target.type === 'office' ? <Building2 size={24} /> : <Ship size={24} />}
+                        </div>
+                        <div>
+                          <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                            {target.name}
+                          </h4>
+                          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                            {target.subtitle}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className={`badge ${target.ownership === 'As Owner' ? 'badge-primary' : target.ownership === 'Head Office' ? 'badge-info' : 'badge-neutral'}`} style={{ fontSize: '0.65rem' }}>
+                        {target.ownership}
+                      </span>
+                    </div>
+
+                    {/* Technical Snapshot */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '0.4rem',
+                      padding: '0.6rem 0.75rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-surface-elevated)',
+                      fontSize: '0.72rem',
+                      marginBottom: '0.85rem'
+                    }}>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Call Sign: </span>
+                        <strong className="mono">{target.callSign}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>IMO / Reg: </span>
+                        <strong className="mono">{target.imo}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Tonase: </span>
+                        <strong>{target.gt !== '-' ? `${target.gt} GT` : 'Kantor'}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Pelabuhan: </span>
+                        <span>{target.portOfRegistry?.split(',')[0]}</span>
+                      </div>
+                    </div>
+
+                    {/* PROMINENT NOTIS STATUS NC OPEN / NC CLOSE */}
+                    <div style={{ marginBottom: '0.5rem' }}>
+                      {hasOpen ? (
+                        <div style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem'
+                        }}>
+                          <AlertTriangle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>🚨 NOTIS: {target.openNC} NC OPEN</span>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.35rem', background: '#ef4444', color: '#fff', borderRadius: '4px' }}>
+                                Perlu Tindakan
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              {target.majorNC > 0 && <span style={{ color: '#ef4444', fontWeight: 700 }}>{target.majorNC} Major NC • </span>}
+                              {target.minorNC > 0 && <span>{target.minorNC} Minor NC • </span>}
+                              Wajib pengajuan eviden perbaikan
+                            </p>
+                          </div>
+                        </div>
+                      ) : hasSubmitted ? (
+                        <div style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          border: '1px solid rgba(245, 158, 11, 0.35)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem'
+                        }}>
+                          <Clock size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f59e0b' }}>
+                              ⏳ {target.submittedNC} Eviden Menunggu Verifikasi
+                            </div>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              Dokumen perbaikan telah dikirim ke Lead Auditor
+                            </p>
+                          </div>
+                        </div>
+                      ) : target.closedNC > 0 ? (
+                        <div style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem'
+                        }}>
+                          <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#10b981' }}>
+                              ✅ NOTIS: SELURUH NC CLOSE ({target.closedNC} Selesai)
+                            </div>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              Standar SMS & ISM Code telah terpenuhi tuntas
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'rgba(2, 132, 199, 0.08)',
+                          border: '1px solid rgba(2, 132, 199, 0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem'
+                        }}>
+                          <ShieldCheck size={18} color="#38bdf8" style={{ flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#38bdf8' }}>
+                              🛡️ STATUS AMAN: Bebas NC Open
+                            </div>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              Belum ada temuan ketidaksesuaian terbuka
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer: Sesi Audit & Action Button */}
+                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      <div>Sesi Terakhir:</div>
+                      <strong style={{ color: 'var(--text-main)' }}>
+                        {target.lastAudit ? target.lastAudit.auditNo : 'Siap Dijadwalkan'}
+                      </strong>
+                    </div>
+
+                    <button
+                      onClick={() => handleSelectTarget(target.id)}
+                      className={`btn btn-sm ${hasOpen ? 'btn-danger' : 'btn-primary'}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        padding: '0.45rem 0.85rem'
+                      }}
+                    >
+                      <span>Masuk Menu Audit</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {filteredGatewayTargets.length === 0 && (
+            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+              <Ship size={40} color="var(--text-muted)" style={{ margin: '0 auto 0.75rem' }} />
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Tidak ada kapal yang sesuai filter</h4>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                Coba sesuaikan kata kunci pencarian atau ganti filter kategori.
+              </p>
+              <button
+                onClick={() => {
+                  setGatewayFilter('ALL');
+                  setGatewaySearch('');
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: '1rem' }}
+              >
+                Reset Filter
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. MENU AUDIT MANDIRI KHUSUS KAPAL / ENTITAS (activeTargetId !== null)    */}
+      {/* ========================================================================= */}
+      {activeTargetId && currentTarget && (
+        <>
+          {/* Navigation Bar: Back Button & Target Switcher */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            paddingBottom: '0.25rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                onClick={() => setActiveTargetId(null)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+              >
+                <ArrowLeft size={15} />
+                <span>← Kembali ke Pemilihan Armada</span>
+              </button>
+              <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                Portal Audit ISM <span style={{ opacity: 0.5 }}>/</span> <strong style={{ color: 'var(--text-main)' }}>{currentTarget.name}</strong>
+              </div>
+            </div>
+
+            {/* Quick Switcher Dropdown */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ganti Kapal:</span>
+              <select
+                value={activeTargetId}
+                onChange={(e) => handleSelectTarget(e.target.value)}
+                className="select-control"
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', width: '250px' }}
+              >
+                {allFleetTargets.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.openNC > 0 ? `🚨 [${t.openNC} NC] ` : t.submittedNC > 0 ? `⏳ [Eviden] ` : `✅ `}
+                    {t.name} ({t.ownership})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Dedicated Vessel Hero Header */}
+          <div className="glass-card" style={{
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
+            background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-elevated) 100%)',
+            border: '1px solid var(--border-subtle)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                background: currentTarget.type === 'office' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'linear-gradient(135deg, #0284c7 0%, #0284c7 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
+                flexShrink: 0
+              }}>
+                {currentTarget.type === 'office' ? <Building2 size={30} /> : <Ship size={30} />}
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 800 }}>{currentTarget.name}</h2>
+                  <span className={`badge ${currentTarget.ownership === 'As Owner' ? 'badge-primary' : currentTarget.ownership === 'Head Office' ? 'badge-info' : 'badge-neutral'}`}>
+                    {currentTarget.ownership}
+                  </span>
+                  <span className={`badge ${currentTarget.standard === 'DOC' ? 'badge-success' : 'badge-warning'}`}>
+                    Standar {currentTarget.standard}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginTop: '0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                  <span>Call Sign: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentTarget.callSign}</strong></span>
+                  <span>IMO / Reg: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentTarget.imo}</strong></span>
+                  <span>Tonase: <strong>{currentTarget.gt !== '-' ? `${currentTarget.gt} GT` : 'Kantor Pusat'}</strong></span>
+                  <span>Nakhoda: <strong>{currentTarget.nakhoda}</strong></span>
+                  <span>KKM: <strong>{currentTarget.kkm}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vessel Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <button
+                onClick={() => {
+                  setEditingSession(null);
+                  setSessionModalOpen(true);
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <Plus size={15} color="#38bdf8" />
+                <span>+ Sesi Audit {currentTarget.name.split(' ')[0]}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingFinding(null);
+                  setFindingDefaultAuditId(currentTarget.lastAudit?.id || null);
+                  setFindingModalOpen(true);
+                }}
+                className="btn btn-primary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+              >
+                <AlertTriangle size={15} />
+                <span>+ Catat Temuan NC Kapal Ini</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ========================================================================= */}
+          {/* HIGH-VISIBILITY NOTIS NC OPEN / NC CLOSE BANNER                           */}
+          {/* ========================================================================= */}
+          <div>
+            {currentTarget.openNC > 0 ? (
+              <div className="audit-notice-banner audit-notice-open">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    padding: '0.65rem',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    <AlertTriangle size={26} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ef4444' }}>
+                        🚨 NOTIS NC OPEN: Ditemukan {currentTarget.openNC} Ketidaksesuaian Terbuka pada {currentTarget.name}!
+                      </h4>
+                      <span className="badge badge-danger-pulse" style={{ fontSize: '0.68rem' }}>
+                        Wajib Tindak Lanjut
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
+                      Terdapat <strong>{currentTarget.openNC} temuan audit berstatus NC OPEN</strong> ({currentTarget.majorNC} Major NC, {currentTarget.minorNC} Minor NC).
+                      Nakhoda, KKM, atau PIC terkait wajib segera mengajukan rencana perbaikan (Corrective Action Plan) dan mengunggah dokumen eviden sebelum batas waktu!
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    onClick={() => {
+                      setVesselTab('findings');
+                      setStatusFilter('NC Open');
+                    }}
+                    className="btn btn-danger btn-sm"
+                    style={{ fontWeight: 700 }}
+                  >
+                    Lihat Temuan NC Open ({currentTarget.openNC})
+                  </button>
+                </div>
+              </div>
+            ) : currentTarget.submittedNC > 0 ? (
+              <div className="audit-notice-banner audit-notice-submitted">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    padding: '0.65rem',
+                    borderRadius: '50%',
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#f59e0b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Clock size={26} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b' }}>
+                      ⏳ NOTIS VERIFIKASI: {currentTarget.submittedNC} Dokumen Eviden Menunggu Tinjauan Auditor!
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
+                      Pihak auditee kapal telah mengunggah eviden perbaikan tindakan korektif. Lead Auditor wajib memverifikasi keabsahan bukti untuk mengubah status menjadi <strong>NC CLOSE</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setVesselTab('findings');
+                    setStatusFilter('Eviden Submitted');
+                  }}
+                  className="btn btn-warning btn-sm"
+                  style={{ fontWeight: 700 }}
+                >
+                  Tinjau Eviden Masuk
+                </button>
+              </div>
+            ) : currentTarget.closedNC > 0 ? (
+              <div className="audit-notice-banner audit-notice-closed">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    padding: '0.65rem',
+                    borderRadius: '50%',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <CheckCircle2 size={26} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10b981' }}>
+                      ✅ NOTIS NC CLOSE: Seluruh Temuan Audit Telah Diverifikasi & Berstatus CLOSED!
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
+                      Seluruh temuan audit pada <strong>{currentTarget.name}</strong> ({currentTarget.closedNC} NC Close) telah dinyatakan efektif dan memenuhi ketentuan ISM Code IMO & regulasi BKI.
+                    </p>
+                  </div>
+                </div>
+
+                <span className="badge badge-success" style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}>
+                  100% Compliant
+                </span>
+              </div>
+            ) : (
+              <div className="audit-notice-banner audit-notice-info">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    padding: '0.65rem',
+                    borderRadius: '50%',
+                    background: 'rgba(2, 132, 199, 0.2)',
+                    color: '#0284c7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <ShieldCheck size={26} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0284c7' }}>
+                      🛡️ NOTIS KEPATUHAN: Status Kelaikan & Safety Management System Aman!
+                    </h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
+                      Tidak ditemukan ketidaksesuaian terbuka pada <strong>{currentTarget.name}</strong>. Anda dapat menjadwalkan audit periodik atau memasukkan checklist manual.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setVesselTab('checklist')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700 }}
+                >
+                  Periksa Checklist Kapal
+                </button>
               </div>
             )}
           </div>
 
-          {/* Search Box */}
-          <div style={{ position: 'relative', minWidth: '240px' }}>
-            <Search size={14} color="var(--text-subtle)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari klausul, no temuan, auditor..."
-              className="input-control"
-              style={{ paddingLeft: '2.2rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem 0.45rem 2.2rem' }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* VIEW 1: DAFTAR TEMUAN & EVIDEN */}
-      {/* ========================================================================= */}
-      {activeView === 'findings' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {filteredFindings.length === 0 ? (
-            <div className="glass-card" style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
-              <ShieldCheck size={48} color="#10b981" style={{ margin: '0 auto 0.75rem' }} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Tidak Ada Temuan Ketidaksesuaian Ditemukan</h3>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '440px', margin: '0.3rem auto 1.25rem' }}>
-                Semua item audit sesuai kriteria filter atau belum ada temuan yang dicatat. Anda dapat mencatat temuan manual kapan saja.
-              </p>
-              <button
-                onClick={() => {
-                  setEditingFinding(null);
-                  setFindingModalOpen(true);
-                }}
-                className="btn btn-primary btn-sm"
-              >
-                + Catat Temuan Baru Sekarang
-              </button>
-            </div>
-          ) : (
-            filteredFindings.map(finding => {
-              const isClosed = finding.status === 'NC Close';
-              const isSubmitted = finding.status === 'Eviden Submitted';
-              const isOpen = finding.status === 'NC Open';
-
-              const linkedDoc = finding.linkedCertificateId
-                ? shipDocuments.find(d => d.id === finding.linkedCertificateId)
-                : null;
-
-              const linkedReq = finding.linkedRequisitionId
-                ? requisitions.find(r => r.id === finding.linkedRequisitionId)
-                : null;
-
-              const statusClass = isClosed ? 'status-closed' : isSubmitted ? 'status-submitted' : 'status-open';
-
+          {/* Subtabs for this Vessel's Dedicated Menu */}
+          <div style={{
+            display: 'flex',
+            gap: '0.5rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            paddingBottom: '0.5rem',
+            overflowX: 'auto'
+          }}>
+            {[
+              { id: 'findings', label: `1. Temuan NC Kapal (${currentTarget.findings.length})`, icon: AlertTriangle, badge: currentTarget.openNC > 0 ? `${currentTarget.openNC} Open` : null, alert: currentTarget.openNC > 0 },
+              { id: 'sessions', label: `2. Sesi Audit Kapal (${currentTarget.audits.length})`, icon: ShieldCheck, badge: null },
+              { id: 'checklist', label: '3. Checklist ISM & Input Manual', icon: FileCheck, badge: null },
+              { id: 'integrations', label: `4. Sertifikat & Logistik (${currentTargetCertificates.length + currentTargetRequisitions.length})`, icon: Package, badge: null }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = vesselTab === tab.id;
               return (
-                <div key={finding.id} className={`audit-finding-item ${statusClass}`}>
-                  {/* Top Bar: Finding No, Status, Category, Standard */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                      <span className="mono" style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                        {finding.findingNo}
-                      </span>
-
-                      {/* Status Badge */}
-                      <span className={`badge ${
-                        isClosed ? 'badge-success' : isSubmitted ? 'badge-warning' : 'badge-danger-pulse'
-                      }`}>
-                        {finding.status}
-                      </span>
-
-                      {/* Category Badge */}
-                      <span className={`badge ${
-                        finding.category === 'Major NC' ? 'badge-danger' :
-                        finding.category === 'Minor NC' ? 'badge-warning' : 'badge-info'
-                      }`}>
-                        {finding.category}
-                      </span>
-
-                      {/* Standard & Type Badge */}
-                      <span className="badge badge-neutral">
-                        {finding.auditType} {finding.standard}
-                      </span>
-                    </div>
-
-                    {/* Right side: Due Date & Action Icons */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <Calendar size={13} color="var(--text-subtle)" />
-                        <span>Batas Waktu: <strong className="mono" style={{ color: '#f59e0b' }}>{finding.dueDate}</strong></span>
-                      </span>
-
-                      <button
-                        onClick={() => {
-                          setEditingFinding(finding);
-                          setFindingModalOpen(true);
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '0.3rem 0.55rem' }}
-                        title="Edit Temuan"
-                      >
-                        <Edit size={13} />
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          if (confirm(`Hapus temuan ${finding.findingNo}?`)) {
-                            deleteAuditFinding(finding.id);
-                          }
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '0.3rem 0.55rem', color: '#ef4444' }}
-                        title="Hapus Temuan"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Middle Content: Clause, Target, Description */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', fontSize: '0.825rem' }}>
-                      <span className="mono" style={{ fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px' }}>
-                        {finding.clauseCode}
-                      </span>
-                      <strong style={{ color: 'var(--text-main)' }}>{finding.clauseName}</strong>
-                      <span style={{ color: 'var(--text-subtle)' }}>•</span>
-                      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        {finding.standard === 'DOC' ? <Building2 size={14} color="#10b981" /> : <Ship size={14} color="#38bdf8" />}
-                        <span>Target: <strong style={{ color: 'var(--text-main)' }}>{finding.targetName}</strong></span>
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
-                      {finding.description}
-                    </p>
-
-                    {finding.objectiveEvidence && (
-                      <div style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.78rem' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600, marginBottom: '0.2rem' }}>
-                          Bukti Objektif Auditor:
-                        </span>
-                        <span className="mono" style={{ color: 'var(--text-main)' }}>{finding.objectiveEvidence}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Linked Data Badges (Ship Certificate & Warehouse Requisition) */}
-                  {(linkedDoc || linkedReq || finding.linkedCertificateTitle || finding.linkedRequisitionTitle) && (
-                    <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
-                      {(linkedDoc || finding.linkedCertificateTitle) && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', fontSize: '0.75rem', color: '#10b981' }}>
-                          <FileCheck size={14} />
-                          <span>Sertifikat Terkait: <strong style={{ color: 'var(--text-main)' }}>{linkedDoc?.name || linkedDoc?.type || finding.linkedCertificateTitle}</strong></span>
-                        </div>
-                      )}
-
-                      {(linkedReq || finding.linkedRequisitionTitle) && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', fontSize: '0.75rem', color: '#f59e0b' }}>
-                          <Package size={14} />
-                          <span>Permintaan Gudang: <strong style={{ color: 'var(--text-main)' }}>{linkedReq?.requisitionNumber || linkedReq?.id || finding.linkedRequisitionTitle}</strong></span>
-                        </div>
-                      )}
-                    </div>
+                <button
+                  key={tab.id}
+                  onClick={() => setVesselTab(tab.id)}
+                  className={`tab-btn ${isActive ? 'active' : ''}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.55rem 1rem',
+                    fontSize: '0.825rem',
+                    fontWeight: isActive ? 700 : 500,
+                    borderRadius: '8px',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <Icon size={15} color={isActive ? '#38bdf8' : 'var(--text-subtle)'} />
+                  <span>{tab.label}</span>
+                  {tab.badge && (
+                    <span className={`badge ${tab.alert ? 'badge-danger-pulse' : 'badge-neutral'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                      {tab.badge}
+                    </span>
                   )}
-
-                  {/* Bottom Bar: Action Buttons for Evidence Submission & Close */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <User size={13} color="var(--text-subtle)" />
-                      <span>Auditor: <strong style={{ color: 'var(--text-main)' }}>{finding.auditor}</strong></span>
-                      <span>•</span>
-                      <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{finding.assignedTo}</strong></span>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <button
-                        onClick={() => {
-                          setEvidenceTargetFinding(finding);
-                          setEvidenceModalOpen(true);
-                        }}
-                        className={`btn btn-sm ${isClosed ? 'btn-secondary' : 'btn-primary'}`}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-                      >
-                        <Upload size={14} />
-                        <span>{isClosed ? 'Lihat Bukti Eviden' : isSubmitted ? 'Verifikasi / Update Eviden' : 'Submit Bukti Eviden'}</span>
-                      </button>
-
-                      {!isClosed && (
-                        <button
-                          onClick={() => closeAuditFinding(finding.id)}
-                          className="btn btn-success btn-sm"
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-                        >
-                          <CheckCircle2 size={14} />
-                          <span>Close NC</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                </button>
               );
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
 
-      {/* ========================================================================= */}
-      {/* VIEW 2: SESI AUDIT ISM */}
-      {/* ========================================================================= */}
-      {activeView === 'sessions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
-          {filteredSessions.map(session => {
-            const isInt = session.auditType === 'Internal';
-            const isDoc = session.standard === 'DOC';
-
-            const sessionFindings = (allAuditFindings || []).filter(f => f.auditId === session.id);
-            const openCount = sessionFindings.filter(f => f.status !== 'NC Close').length;
-            const closedCount = sessionFindings.filter(f => f.status === 'NC Close').length;
-
-            return (
-              <div key={session.id} className="glass-card" style={{ padding: '1.35rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  {/* Top Bar */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span className="mono" style={{ fontWeight: 800, fontSize: '0.95rem' }}>{session.auditNo}</span>
-                        <span className={`badge ${isInt ? 'badge-info' : 'badge-neutral'}`}>{session.auditType}</span>
-                        <span className={`badge ${isDoc ? 'badge-success' : 'badge-warning'}`}>{session.standard}</span>
-                      </div>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginTop: '0.35rem' }}>{session.targetName}</h4>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button
-                        onClick={() => {
-                          setEditingSession(session);
-                          setSessionModalOpen(true);
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '0.3rem 0.5rem' }}
-                        title="Edit Sesi"
-                      >
-                        <Edit size={13} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Hapus sesi audit ${session.auditNo} beserta semua temuannya?`)) {
-                            deleteAuditSession(session.id);
-                          }
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
-                        title="Hapus Sesi"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    {session.scope}
-                  </p>
-
-                  {/* Details Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', fontSize: '0.75rem' }}>
-                    <div>
-                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Lead Auditor:</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{session.leadAuditor}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Auditee:</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{session.auditee}</strong>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Tanggal Audit:</span>
-                      <span className="mono" style={{ color: 'var(--text-muted)' }}>{session.auditDate}</span>
-                    </div>
-                    <div>
-                      <span style={{ color: 'var(--text-subtle)', display: 'block', fontSize: '0.7rem' }}>Target Close:</span>
-                      <span className="mono" style={{ color: '#f59e0b', fontWeight: 700 }}>{session.targetCloseDate}</span>
-                    </div>
-                  </div>
-
-                  {/* Summary Counters */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Status Temuan Sesi Ini:</span>
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}>{openCount} Open</span>
-                      <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>{closedCount} Close</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
-                  <span className={`badge ${session.status === 'Completed' ? 'badge-success' : 'badge-info'}`}>
-                    {session.status}
-                  </span>
-
+          {/* ===================================================================== */}
+          {/* TAB 1: TEMUAN NC KAPAL INI                                            */}
+          {/* ===================================================================== */}
+          {vesselTab === 'findings' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Filter Row inside findings */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
-                    onClick={() => handleOpenAddFindingForAudit(session.id)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                    onClick={() => setStatusFilter('ALL')}
+                    className={`btn btn-sm ${statusFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem' }}
                   >
-                    <Plus size={13} color="#38bdf8" />
-                    <span>Tambah Temuan</span>
+                    Semua ({currentTarget.findings.length})
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('NC Open')}
+                    className={`btn btn-sm ${statusFilter === 'NC Open' ? 'btn-danger' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                  >
+                    🚨 NC Open ({currentTarget.openNC})
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('Eviden Submitted')}
+                    className={`btn btn-sm ${statusFilter === 'Eviden Submitted' ? 'btn-warning' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    ⏳ Menunggu Eviden ({currentTarget.submittedNC})
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('NC Close')}
+                    className={`btn btn-sm ${statusFilter === 'NC Close' ? 'btn-success' : 'btn-secondary'}`}
+                    style={{ fontSize: '0.75rem' }}
+                  >
+                    ✅ NC Close ({currentTarget.closedNC})
                   </button>
                 </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <select
+                    value={severityFilter}
+                    onChange={(e) => setSeverityFilter(e.target.value)}
+                    className="select-control"
+                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
+                  >
+                    <option value="ALL">Semua Severity</option>
+                    <option value="Major NC">Major NC</option>
+                    <option value="Minor NC">Minor NC</option>
+                    <option value="Observation">Observasi</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    value={inVesselSearch}
+                    onChange={(e) => setInVesselSearch(e.target.value)}
+                    placeholder="Cari klausul / temuan..."
+                    className="input-control"
+                    style={{ width: '200px', fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
+                  />
+                </div>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Findings List */}
+              {currentTargetFilteredFindings.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {currentTargetFilteredFindings.map(f => {
+                    const isOpen = f.status === 'NC Open';
+                    const isSubmitted = f.status === 'Eviden Submitted';
+                    const isClosed = f.status === 'NC Close';
+
+                    return (
+                      <div
+                        key={f.id}
+                        className={`audit-finding-item ${isOpen ? 'status-open' : isSubmitted ? 'status-submitted' : 'status-closed'}`}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span className="mono" style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                              {f.findingNo}
+                            </span>
+                            <span className={`badge ${
+                              f.category === 'Major NC' ? 'badge-danger' : f.category === 'Minor NC' ? 'badge-warning' : 'badge-info'
+                            }`}>
+                              {f.category}
+                            </span>
+                            <span className={`badge ${
+                              isOpen ? 'badge-danger-pulse' : isSubmitted ? 'badge-warning' : 'badge-success'
+                            }`}>
+                              {f.status}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {/* Evidence / Action Button */}
+                            <button
+                              onClick={() => {
+                                setEvidenceTargetFinding(f);
+                                setEvidenceModalOpen(true);
+                              }}
+                              className={`btn btn-sm ${isOpen ? 'btn-primary' : isSubmitted ? 'btn-warning' : 'btn-secondary'}`}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700 }}
+                            >
+                              <Upload size={13} />
+                              <span>{isClosed ? 'Lihat Eviden Closing' : isSubmitted ? 'Tinjau Eviden' : 'Ajukan Eviden (CAP)'}</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setEditingFinding(f);
+                                setFindingModalOpen(true);
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              title="Edit Temuan"
+                              style={{ padding: '0.35rem 0.5rem' }}
+                            >
+                              <Edit size={14} />
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Hapus catatan temuan ${f.findingNo}?`)) {
+                                  deleteAuditFinding(f.id);
+                                }
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              title="Hapus Temuan"
+                              style={{ padding: '0.35rem 0.5rem', color: '#ef4444' }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Finding Content */}
+                        <div>
+                          <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700, marginBottom: '0.25rem' }}>
+                            Klausul {f.clauseCode}: {f.clauseName}
+                          </div>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
+                            {f.description}
+                          </p>
+                          {f.objectiveEvidence && (
+                            <div style={{
+                              marginTop: '0.45rem',
+                              padding: '0.45rem 0.75rem',
+                              borderRadius: '6px',
+                              background: 'var(--bg-surface-elevated)',
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)'
+                            }}>
+                              <strong>Bukti Objektif: </strong>{f.objectiveEvidence}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Finding Footer Metas */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '0.75rem',
+                          paddingTop: '0.5rem',
+                          borderTop: '1px solid var(--border-subtle)',
+                          fontSize: '0.72rem',
+                          color: 'var(--text-muted)'
+                        }}>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{f.assignedTo || 'PIC Kapal'}</strong></span>
+                            <span>Auditor: <strong>{f.auditor}</strong></span>
+                            <span>Tgl Audit: {f.dateIdentified}</span>
+                            <span>Batas Waktu: <strong style={{ color: isOpen ? '#ef4444' : 'inherit' }}>{f.dueDate}</strong></span>
+                          </div>
+                          {f.linkedCertificateTitle && (
+                            <span className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
+                              📄 {f.linkedCertificateTitle}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="glass-card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                  <CheckCircle2 size={36} color="#10b981" style={{ margin: '0 auto 0.65rem' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Tidak ada temuan ketidaksesuaian</h4>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    {statusFilter !== 'ALL'
+                      ? `Tidak ada temuan dengan status "${statusFilter}".`
+                      : `Seluruh parameter kepatuhan pada ${currentTarget.name} terpenuhi.`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* TAB 2: SESI AUDIT KAPAL INI                                           */}
+          {/* ===================================================================== */}
+          {vesselTab === 'sessions' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Riwayat Sesi Audit Resmi: {currentTarget.name}</h4>
+                <button
+                  onClick={() => {
+                    setEditingSession(null);
+                    setSessionModalOpen(true);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <Plus size={14} />
+                  <span>+ Buat Sesi Audit Baru</span>
+                </button>
+              </div>
+
+              {currentTarget.audits.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+                  {currentTarget.audits.map(s => (
+                    <div key={s.id} className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                          <span className="mono" style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0284c7' }}>
+                            {s.auditNo}
+                          </span>
+                          <span className={`badge ${s.status === 'Completed' ? 'badge-success' : 'badge-warning'}`}>
+                            {s.status}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.6rem' }}>
+                          <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                            {s.auditType} PBK
+                          </span>
+                          <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>
+                            Standar {s.standard}
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '0.6rem' }}>
+                          {s.scope || 'Evaluasi kepatuhan operasional kapal sesuai IMO ISM Code.'}
+                        </p>
+
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <div>Lead Auditor: <strong style={{ color: 'var(--text-main)' }}>{s.leadAuditor}</strong></div>
+                          <div>Auditee: <strong>{s.auditee}</strong></div>
+                          <div>Pelaksanaan: {s.auditDate} • Target Close: {s.targetCloseDate}</div>
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.75rem' }}>
+                          Kepatuhan: <strong style={{ color: '#10b981' }}>{s.totalItemsChecked ? Math.round((s.itemsComplied / s.totalItemsChecked) * 100) : 100}%</strong>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          <button
+                            onClick={() => {
+                              setEditingSession(s);
+                              setSessionModalOpen(true);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem' }}
+                          >
+                            Edit Formulir (5 Tab)
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Hapus sesi audit ${s.auditNo}?`)) {
+                                deleteAuditSession(s.id);
+                              }
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="glass-card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                  <ShieldCheck size={36} color="var(--text-muted)" style={{ margin: '0 auto 0.65rem' }} />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Belum ada sesi audit tercatat untuk kapal ini</h4>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                    Klik tombol di bawah untuk membuat sesi audit baru dengan formulir lengkap 5 tab dan mode fullscreen.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setEditingSession(null);
+                      setSessionModalOpen(true);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: '0.85rem' }}
+                  >
+                    + Buat Sesi Audit Baru
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* TAB 3: CHECKLIST ISM & INPUT MANUAL                                  */}
+          {/* ===================================================================== */}
+          {vesselTab === 'checklist' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Checklist Standar ISM Code & Item Manual</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Pemeriksaan klausul standar permesinan, keselamatan, navigasi, serta penambahan item checklist manual dengan kode kustom.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowManualCodeForm(!showManualCodeForm)}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <Plus size={14} />
+                  <span>{showManualCodeForm ? 'Tutup Form Manual' : '+ Tambah Item Checklist Manual'}</span>
+                </button>
+              </div>
+
+              {/* Form Input Item Audit Manual */}
+              {showManualCodeForm && (
+                <form onSubmit={handleAddManualChecklistItem} className="glass-card" style={{ padding: '1.25rem', border: '1px solid #0284c7', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Plus size={16} />
+                    <span>Input Item Audit Manual untuk {currentTarget.name}:</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Kode Klausul Kustom *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={manualCode}
+                        onChange={(e) => setManualCode(e.target.value)}
+                        placeholder="cth: SMC-KAPAL-01 / ISM-10.5"
+                        className="input-control mono"
+                        style={{ fontWeight: 700 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Nama Klausul / Area Inspeksi *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        placeholder="cth: Pemeriksaan Generator Darurat & Quick Closing Valve"
+                        className="input-control"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Hasil Evaluasi
+                      </label>
+                      <select
+                        value={manualStatus}
+                        onChange={(e) => setManualStatus(e.target.value)}
+                        className="select-control"
+                      >
+                        <option value="Complied">Complied (Sesuai)</option>
+                        <option value="Observation">Observasi</option>
+                        <option value="Minor NC">Minor NC</option>
+                        <option value="Major NC">Major NC</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Kriteria Pemeriksaan
+                      </label>
+                      <input
+                        type="text"
+                        value={manualCriteria}
+                        onChange={(e) => setManualCriteria(e.target.value)}
+                        placeholder="Indikator fisik atau prosedur yang diverifikasi..."
+                        className="input-control"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Catatan Auditor
+                      </label>
+                      <input
+                        type="text"
+                        value={manualNotes}
+                        onChange={(e) => setManualNotes(e.target.value)}
+                        placeholder="Catatan hasil temuan fisik..."
+                        className="input-control"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                    <button type="button" onClick={() => setShowManualCodeForm(false)} className="btn btn-secondary btn-sm">
+                      Batal
+                    </button>
+                    <button type="submit" className="btn btn-primary btn-sm">
+                      Simpan Item Checklist
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Standard + Custom Elements Table */}
+              <div className="glass-card" style={{ padding: '0.75rem', overflowX: 'auto' }}>
+                <table className="pms-table" style={{ width: '100%', fontSize: '0.78rem' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '120px' }}>Kode Klausul</th>
+                      <th>Area Pemeriksaan ISM Code</th>
+                      <th>Kriteria / Check Point</th>
+                      <th style={{ width: '130px' }}>Status Evaluasi</th>
+                      <th style={{ width: '100px' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Custom items */}
+                    {customChecklistItems.map(item => (
+                      <tr key={item.id} style={{ background: 'rgba(2, 132, 199, 0.04)' }}>
+                        <td>
+                          <span className="badge badge-info mono" style={{ fontWeight: 800 }}>
+                            {item.code}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{item.name}</strong>
+                          <span className="badge badge-neutral" style={{ marginLeft: '0.4rem', fontSize: '0.62rem' }}>Manual</span>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>{item.checkPoint}</td>
+                        <td>
+                          <span className={`badge ${
+                            item.result === 'Complied' ? 'badge-success' : item.result === 'Major NC' ? 'badge-danger' : 'badge-warning'
+                          }`}>
+                            {item.result}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              setCustomChecklistItems(prev => prev.filter(i => i.id !== item.id));
+                              showToast('Item manual dihapus', 'info');
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.2rem 0.4rem', color: '#ef4444' }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {/* Master Elements */}
+                    {(currentTarget.standard === 'DOC' ? ISM_DOC_ELEMENTS : ISM_SMC_ELEMENTS).map(el => (
+                      <tr key={el.code}>
+                        <td>
+                          <span className="badge badge-neutral mono" style={{ fontWeight: 800 }}>
+                            {el.code}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{el.name}</strong>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>
+                          {el.checkPoints?.[0] || el.description}
+                        </td>
+                        <td>
+                          <span className="badge badge-success">
+                            Complied
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => {
+                              setEditingFinding({
+                                standard: currentTarget.standard,
+                                clauseCode: el.code,
+                                clauseName: el.name,
+                                description: `Catatan pemeriksaan pada ${el.name} (${currentTarget.name})`,
+                                category: 'Minor NC'
+                              });
+                              setFindingDefaultAuditId(currentTarget.lastAudit?.id || null);
+                              setFindingModalOpen(true);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            + Jadikan NC
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* TAB 4: SERTIFIKAT & LOGISTIK KAPAL                                    */}
+          {/* ===================================================================== */}
+          {vesselTab === 'integrations' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.25rem' }}>
+              {/* Box 1: Sertifikat Kapal */}
+              <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <FileCheck size={16} color="#38bdf8" />
+                    <span>Sertifikat Statutori {currentTarget.name}:</span>
+                  </h4>
+                  <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                    {currentTargetCertificates.length} Sertifikat
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '420px', overflowY: 'auto' }}>
+                  {currentTargetCertificates.map(doc => (
+                    <div
+                      key={doc.id}
+                      style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      <div>
+                        <strong style={{ color: 'var(--text-main)' }}>{doc.name || doc.type}</strong>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.1rem' }}>
+                          No: {doc.documentNumber || 'BKI/REG-PBK'} • Surveyor: {doc.mandatoryAuditor || 'BKI Samarinda'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className={`badge ${
+                          doc.status === 'Expired' ? 'badge-danger' : doc.status === 'Due Soon' ? 'badge-warning' : 'badge-success'
+                        }`} style={{ fontSize: '0.65rem' }}>
+                          {doc.status || 'Active'}
+                        </span>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          Exp: {doc.expiryDate}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {currentTargetCertificates.length === 0 && (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>
+                      Belum ada sertifikat terhubung untuk entitas ini.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Box 2: Permintaan Barang ke Gudang */}
+              <div className="glass-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Package size={16} color="#f59e0b" />
+                    <span>Permintaan Barang ke Gudang (Requisitions):</span>
+                  </h4>
+                  <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                    {currentTargetRequisitions.length} Surat
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '420px', overflowY: 'auto' }}>
+                  {currentTargetRequisitions.map(req => (
+                    <div
+                      key={req.id}
+                      style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-surface-elevated)',
+                        border: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      <div>
+                        <strong className="mono" style={{ color: '#0284c7' }}>{req.requisitionNumber || req.id}</strong>
+                        <div style={{ color: 'var(--text-main)', marginTop: '0.1rem', fontWeight: 600 }}>
+                          {req.title || req.department || 'Permintaan Material Rutin'}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>
+                          Pemohon: {req.requestedBy || 'Chief Engineer'} • {req.dateSubmitted}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span className={`badge ${
+                          req.status === 'Completed' || req.status === 'Approved' ? 'badge-success' : 'badge-warning'
+                        }`} style={{ fontSize: '0.65rem' }}>
+                          {req.status}
+                        </span>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          {req.items?.length || 1} Item Barang
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {currentTargetRequisitions.length === 0 && (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textAlign: 'center', padding: '1.5rem' }}>
+                      Belum ada surat permintaan barang ke gudang untuk entitas ini.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ========================================================================= */}
-      {/* VIEW 3: CHECKLIST STANDAR ISM */}
+      {/* MODAL AUDIT SESSIONS                                                     */}
       {/* ========================================================================= */}
-      {activeView === 'checklist' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* DOC Elements */}
-          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ padding: '0.65rem', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
-                  <Building2 size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Checklist Standar DOC (Document of Compliance - Kantor Pusat)</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Klausul 1 s/d 12 ISM Code IMO Res. A.741(18) untuk Sistem Manajemen Keselamatan Operasional Darat
-                  </p>
-                </div>
-              </div>
-              <span className="badge badge-success">12 Elemen Standar</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1rem' }}>
-              {ISM_DOC_ELEMENTS.map(elem => (
-                <div key={elem.code} style={{ padding: '1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                    <div>
-                      <span className="mono" style={{ fontWeight: 800, color: '#10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem' }}>
-                        {elem.code}
-                      </span>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.35rem' }}>{elem.name}</h4>
-                    </div>
-                    <button
-                      onClick={() => handleQuickFindingFromChecklist('DOC', elem)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                    >
-                      <Plus size={12} color="#38bdf8" />
-                      <span>Temuan</span>
-                    </button>
-                  </div>
-
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    {elem.description}
-                  </p>
-
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', fontWeight: 700 }}>Poin Verifikasi Auditor:</span>
-                    {elem.checkPoints?.map((cp, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-main)' }}>
-                        <Check size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
-                        <span>{cp}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* SMC Elements */}
-          <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ padding: '0.65rem', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
-                  <Ship size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Checklist Standar SMC (Safety Management Certificate - Armada Kapal)</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Pemeriksaan kepatuhan implementasi ISM Code di atas kapal (Sertifikat, PMS Mesin, Gudang, Drill, Navigasi)
-                  </p>
-                </div>
-              </div>
-              <span className="badge badge-info">6 Area Verifikasi Kapal</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1rem' }}>
-              {ISM_SMC_ELEMENTS.map(elem => (
-                <div key={elem.code} style={{ padding: '1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                    <div>
-                      <span className="mono" style={{ fontWeight: 800, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '0.15rem 0.5rem', borderRadius: '6px', fontSize: '0.75rem' }}>
-                        {elem.code}
-                      </span>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '0.35rem' }}>{elem.name}</h4>
-                    </div>
-                    <button
-                      onClick={() => handleQuickFindingFromChecklist('SMC', elem)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.55rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                    >
-                      <Plus size={12} color="#38bdf8" />
-                      <span>Temuan</span>
-                    </button>
-                  </div>
-
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    {elem.description}
-                  </p>
-
-                  <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', fontWeight: 700 }}>Poin Verifikasi Auditor:</span>
-                    {elem.checkPoints?.map((cp, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-main)' }}>
-                        <Check size={13} color="#38bdf8" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
-                        <span>{cp}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODALS */}
       {sessionModalOpen && (
         <AuditSessionModal
           session={editingSession}
+          defaultVesselId={activeTargetId}
+          defaultStandard={currentTarget?.standard || 'DOC'}
           onClose={() => {
             setSessionModalOpen(false);
             setEditingSession(null);
@@ -866,10 +1652,14 @@ export const AuditManager = () => {
         />
       )}
 
+      {/* ========================================================================= */}
+      {/* MODAL AUDIT FINDINGS (CATAT TEMUAN NC)                                    */}
+      {/* ========================================================================= */}
       {findingModalOpen && (
         <AuditFindingModal
           finding={editingFinding}
           defaultAuditId={findingDefaultAuditId}
+          defaultVesselId={activeTargetId}
           onClose={() => {
             setFindingModalOpen(false);
             setEditingFinding(null);
@@ -878,6 +1668,9 @@ export const AuditManager = () => {
         />
       )}
 
+      {/* ========================================================================= */}
+      {/* MODAL SUBMIT EVIDEN PERBAIKAN                                             */}
+      {/* ========================================================================= */}
       {evidenceModalOpen && evidenceTargetFinding && (
         <SubmitEvidenceModal
           finding={evidenceTargetFinding}

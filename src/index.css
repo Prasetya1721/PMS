@@ -913,3 +913,85 @@ h1, h2, h3, h4, h5 {
   max-width: 860px;
 }
 
+/* ========================================================================= */
+/* AUDIT VESSEL PORTAL & NOTICES STYLING                                    */
+/* ========================================================================= */
+.audit-vessel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.audit-vessel-card {
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.audit-vessel-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.4);
+}
+
+.audit-vessel-card.has-open-nc {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-surface-card) 60%);
+}
+
+.audit-vessel-card.has-open-nc:hover {
+  border-color: #ef4444;
+  box-shadow: 0 12px 28px -6px rgba(239, 68, 68, 0.25);
+}
+
+.audit-vessel-card.is-clean {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.audit-vessel-card.is-clean:hover {
+  border-color: #10b981;
+}
+
+.audit-notice-banner {
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  transition: all var(--transition-normal);
+}
+
+.audit-notice-open {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.06) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: var(--text-main);
+}
+
+.audit-notice-submitted {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.06) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--text-main);
+}
+
+.audit-notice-closed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--text-main);
+}
+
+.audit-notice-info {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(3, 105, 161, 0.05) 100%);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  color: var(--text-main);
+}
+

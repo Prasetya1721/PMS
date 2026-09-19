@@ -28,7 +28,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 
-export const AuditSessionModal = ({ session, onClose }) => {
+export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultStandard }) => {
   const {
     vessels,
     selectedVesselId,
@@ -54,13 +54,14 @@ export const AuditSessionModal = ({ session, onClose }) => {
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'integrations' | 'checklist' | 'findings' | 'signoff'
 
   // Tab 1: General Info
+  const initialStandard = session?.standard || defaultStandard || (defaultVesselId && defaultVesselId !== 'office' ? 'SMC' : 'DOC');
+  const initialTargetType = session?.targetType || (defaultVesselId && defaultVesselId !== 'office' ? 'Vessel' : (initialStandard === 'SMC' ? 'Vessel' : 'Office'));
+  const initialVesselId = session?.vesselId || (defaultVesselId && defaultVesselId !== 'office' ? defaultVesselId : (selectedVesselId && selectedVesselId !== 'all' ? selectedVesselId : vessels[0]?.id || ''));
+
   const [auditType, setAuditType] = useState(session?.auditType || 'Internal');
-  const [standard, setStandard] = useState(session?.standard || 'DOC');
-  const [targetType, setTargetType] = useState(session?.targetType || (session?.standard === 'SMC' ? 'Vessel' : 'Office'));
-  const [vesselId, setVesselId] = useState(
-    session?.vesselId ||
-    (selectedVesselId && selectedVesselId !== 'all' ? selectedVesselId : vessels[0]?.id || '')
-  );
+  const [standard, setStandard] = useState(initialStandard);
+  const [targetType, setTargetType] = useState(initialTargetType);
+  const [vesselId, setVesselId] = useState(initialVesselId);
   const [auditNo, setAuditNo] = useState(session?.auditNo || '');
   const [leadAuditor, setLeadAuditor] = useState(session?.leadAuditor || '');
   const [auditTeam, setAuditTeam] = useState(
