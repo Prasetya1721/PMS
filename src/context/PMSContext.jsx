@@ -25,6 +25,7 @@ import {
   ISM_DOC_ELEMENTS,
   ISM_SMC_ELEMENTS
 } from '../data/auditMasterData';
+import { calculateNCRange } from '../utils/auditTimeUtils';
 
 const PMSContext = createContext();
 
@@ -1333,6 +1334,12 @@ export const PMSProvider = ({ children }) => {
     } else if (type === 'work_order') {
       recipientName = item.assignedTo || 'Teknisi / Chief Engineer';
       phone = '6281288991122';
+    } else if (type === 'audit_nc_open') {
+      recipientName = options.recipientName || item.assignedTo || `Nakhoda & KKM ${item.targetName || vesselName}`;
+      phone = options.phone || '6281288991122';
+    } else if (type === 'audit_nc_close') {
+      recipientName = options.recipientName || 'DPA & Marine Superintendent PBK';
+      phone = options.phone || '6281288991122';
     }
 
     let headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO DOKUMEN*';
@@ -1356,7 +1363,48 @@ export const PMSProvider = ({ children }) => {
 
     let msg = options.customMessage;
     if (!msg) {
-      if (type === 'crew_cert') {
+      if (type === 'audit_nc_open') {
+        const range = calculateNCRange(item);
+        const lateInfo = range?.isOverdue
+          ? `🚨 STATUS: MELEWATI BATAS WAKTU (${Math.abs(range.remainingDays)} Hari Overdue)!`
+          : `⏳ STATUS: NC TERBUKA (Berjalan ${range?.activeDays} hari, sisa ${range?.remainingDays} hari)`;
+
+        msg = `*🚨 NOTIFIKASI TEMUAN AUDIT ISM CODE (NC OPEN)*\n` +
+          `_PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS_\n\n` +
+          `Kepada Yth: *${recipientName}*\n` +
+          `Kapal / Entitas: *${item.targetName || vesselName}*\n` +
+          `No. Temuan: *${item.findingNo}* [${item.category}]\n` +
+          `Klausul ISM: *${item.clauseCode} - ${item.clauseName}*\n` +
+          `Standar Audit: *${item.standard} (ISM Code)*\n\n` +
+          `*Deskripsi Ketidaksesuaian:*\n"${item.description}"\n\n` +
+          `*📅 RENTANG WAKTU TINDAKAN KOREKTIF (CAP):*\n` +
+          `• Tanggal Audit Terbuka: *${range?.openDateStr || item.dateIdentified}*\n` +
+          `• Target Batas Close: *${range?.dueDateStr || item.dueDate}*\n` +
+          `• ${lateInfo}\n\n` +
+          `*INSTRUKSI AUDITEE KAPAL:*\n` +
+          `Harap segera mengajukan rencana tindakan korektif (CAP) dan mengunggah dokumen/foto eviden perbaikan di Portal PMS Baharimas sebelum batas waktu berakhir.\n\n` +
+          `_Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan_`;
+        urgencyBadge = range?.isOverdue ? 'NC Overdue' : 'NC Open';
+      } else if (type === 'audit_nc_close') {
+        const range = calculateNCRange(item);
+        msg = `*✅ NOTIFIKASI PENUTUPAN TEMUAN AUDIT (NC CLOSE)*\n` +
+          `_PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS_\n\n` +
+          `Kepada Yth: *${recipientName}*\n` +
+          `Kapal / Entitas: *${item.targetName || vesselName}*\n` +
+          `No. Temuan: *${item.findingNo}* [${item.category}]\n` +
+          `Klausul ISM: *${item.clauseCode} - ${item.clauseName}*\n` +
+          `Standar Audit: *${item.standard} (ISM Code)*\n\n` +
+          `*HASIL VERIFIKASI & CLOSING:*\n` +
+          `Tindakan koreksi dan dokumen eviden perbaikan telah diverifikasi efektif oleh Lead Auditor DPA / Surveyor BKI. Status temuan resmi dinyatakan *NC CLOSE (TUNTAS)*.\n\n` +
+          `*⏱️ LAPORAN EFISIENSI RENTANG WAKTU (LEAD TIME):*\n` +
+          `• Tanggal Dibuka: *${range?.openDateStr || item.dateIdentified}*\n` +
+          `• Target Awal: *${range?.dueDateStr || item.dueDate}*\n` +
+          `• Tanggal Ditutup Resmi: *${range?.closedDateStr || 'Selesai'}*\n` +
+          `• Durasi Penyelesaian: *${range?.resolutionDays || 1} Hari* (${range?.varianceText || 'Sesuai Target'})\n\n` +
+          `Status Kepatuhan: *100% COMPLIANT (IMO ISM CODE & BKI)*\n\n` +
+          `_Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan_`;
+        urgencyBadge = 'NC Close Tuntas';
+      } else if (type === 'crew_cert') {
         msg = `${headerPrefix} - SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN\n\n` +
           `Yth. *${recipientName}*,\n` +
           `Sertifikat Anda: *${item.name}* (No: ${item.certificateNo})\n` +
@@ -1420,8 +1468,12 @@ export const PMSProvider = ({ children }) => {
       timestamp: new Date().toLocaleString('id-ID'),
       channel: channelLabel,
       target: `${recipientName} (${phone})`,
-      vesselName,
-      subject: `Reminder ${urgencyBadge}: ${item.name || item.title}`,
+      vesselName: item.targetName || vesselName,
+      subject: type === 'audit_nc_open'
+        ? `Notifikasi NC Open: ${item.findingNo} (${item.targetName || vesselName})`
+        : type === 'audit_nc_close'
+        ? `Notifikasi NC Close: ${item.findingNo} (${item.targetName || vesselName})`
+        : `Reminder ${urgencyBadge}: ${item.name || item.title}`,
       message: msg,
       status: deliveryStatus,
       thresholdTriggered: urgencyBadge
@@ -1437,6 +1489,12 @@ export const PMSProvider = ({ children }) => {
     }
 
     return newLog;
+  };
+
+  // Helper specifically for sending Audit NC Open / Close WhatsApp notifications
+  const sendAuditWhatsAppNotification = async (finding, notificationType = 'open', options = {}) => {
+    const type = notificationType === 'open' ? 'audit_nc_open' : 'audit_nc_close';
+    return await sendWhatsAppReminder(finding, type, options);
   };
 
   // Google Calendar URL Generator with custom offset days and scheduled hour
@@ -2002,6 +2060,7 @@ export const PMSProvider = ({ children }) => {
         submitLeave,
         addDrill,
         sendWhatsAppReminder,
+        sendAuditWhatsAppNotification,
         escalateNotification,
         openGoogleCalendar,
         getGoogleCalendarUrl,

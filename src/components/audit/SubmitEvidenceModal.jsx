@@ -20,8 +20,10 @@ import {
   Eye,
   Camera,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Clock
 } from 'lucide-react';
+import { calculateNCRange } from '../../utils/auditTimeUtils';
 
 export const SubmitEvidenceModal = ({ finding, onClose }) => {
   const {
@@ -186,19 +188,61 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
         {/* Modal Body */}
         <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Finding Context Card */}
-          <div style={{ padding: '1rem 1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                {finding.standard === 'DOC' ? <Building2 size={13} color="#10b981" /> : <Ship size={13} color="#38bdf8" />}
-                <span>Target: <strong style={{ color: 'var(--text-main)' }}>{finding.targetName}</strong></span>
-              </div>
-              <div>
-                <span>Batas Waktu: <strong className="mono" style={{ color: '#f59e0b' }}>{finding.dueDate}</strong></span>
-              </div>
-              <div>
-                <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{finding.assignedTo}</strong></span>
-              </div>
-            </div>
+          {(() => {
+            const range = calculateNCRange(finding);
+            return (
+              <div style={{ padding: '1rem 1.15rem', borderRadius: '10px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid var(--border-glass)', paddingBottom: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {finding.standard === 'DOC' ? <Building2 size={13} color="#10b981" /> : <Ship size={13} color="#38bdf8" />}
+                    <span>Target: <strong style={{ color: 'var(--text-main)' }}>{finding.targetName}</strong></span>
+                  </div>
+                  <div>
+                    <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{finding.assignedTo}</strong></span>
+                  </div>
+                </div>
+
+                {/* Timeline Rentang Waktu Box */}
+                {range && (
+                  <div style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    background: range.bgLight,
+                    border: `1px solid ${range.borderColor}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 700, color: range.color }}>
+                        <Clock size={14} />
+                        <span>{range.isClosed ? 'Rentang Waktu Penutupan (Lead Time Close):' : 'Rentang Waktu Penyelesaian (Open to Due Date):'}</span>
+                      </div>
+                      <span className={`badge ${range.badgeClass}`} style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+                        {range.badgeText}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.72rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Open: <strong style={{ color: 'var(--text-main)' }}>{range.openDateStr}</strong></span>
+                      <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${range.percentUsed}%`,
+                          background: range.isClosed ? '#10b981' : range.isOverdue ? '#ef4444' : '#f59e0b',
+                          borderRadius: '3px'
+                        }} />
+                      </div>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {range.isClosed ? `Close: ${range.closedDateStr}` : `Due: ${range.dueDateStr}`}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {range.timelineSummary}
+                    </div>
+                  </div>
+                )}
 
             <div>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', fontWeight: 700, display: 'block' }}>Deskripsi Ketidaksesuaian:</span>
@@ -229,7 +273,9 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                 )}
               </div>
             )}
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Form: Submisi Bukti Eviden Perbaikan */}
           <form onSubmit={handleSubmitEvidence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

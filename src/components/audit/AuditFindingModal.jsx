@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
   X,
@@ -15,7 +15,8 @@ import {
   FileText,
   Link,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Clock
 } from 'lucide-react';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, onClose }) => {
@@ -68,6 +69,25 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
   const [dateIdentified, setDateIdentified] = useState(
     finding?.dateIdentified || new Date().toISOString().split('T')[0]
   );
+
+  const setPresetDueDate = (days) => {
+    try {
+      const start = dateIdentified ? new Date(dateIdentified) : new Date();
+      const next = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+      setDueDate(next.toISOString().split('T')[0]);
+    } catch {}
+  };
+
+  const allocatedDays = useMemo(() => {
+    try {
+      const start = new Date(dateIdentified);
+      const end = new Date(dueDate);
+      const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+      return isNaN(diff) ? 30 : diff;
+    } catch {
+      return 30;
+    }
+  }, [dateIdentified, dueDate]);
 
   const [linkedCertificateId, setLinkedCertificateId] = useState(finding?.linkedCertificateId || '');
   const [linkedRequisitionId, setLinkedRequisitionId] = useState(finding?.linkedRequisitionId || '');
@@ -408,48 +428,129 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
               </div>
             </div>
 
-            {/* Row 6: PIC, Auditor, Dates */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                  PIC Penanggung Jawab
-                </label>
-                <input
-                  type="text"
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
-                  placeholder="cth: KKM / Masinis"
-                  className="input-control"
-                  style={{ fontSize: '0.8rem' }}
-                />
+            {/* Row 6: PIC, Auditor, Dates & Rentang Waktu Calculator */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    PIC Penanggung Jawab
+                  </label>
+                  <input
+                    type="text"
+                    value={assignedTo}
+                    onChange={(e) => setAssignedTo(e.target.value)}
+                    placeholder="cth: KKM / Masinis"
+                    className="input-control"
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    Auditor ISM
+                  </label>
+                  <input
+                    type="text"
+                    value={auditor}
+                    onChange={(e) => setAuditor(e.target.value)}
+                    placeholder="Nama Auditor"
+                    className="input-control"
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    Tgl Identifikasi (Open) *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={dateIdentified}
+                    onChange={(e) => setDateIdentified(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontSize: '0.8rem' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                    Target Batas Close *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontSize: '0.8rem', borderColor: '#0284c7' }}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                  Auditor ISM
-                </label>
-                <input
-                  type="text"
-                  value={auditor}
-                  onChange={(e) => setAuditor(e.target.value)}
-                  placeholder="Nama Auditor"
-                  className="input-control"
-                  style={{ fontSize: '0.8rem' }}
-                />
-              </div>
+              {/* Kalkulator Rentang Waktu NC */}
+              <div style={{
+                padding: '0.75rem 1rem',
+                borderRadius: '8px',
+                background: 'rgba(2, 132, 199, 0.08)',
+                border: '1px solid rgba(2, 132, 199, 0.25)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '0.65rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Clock size={16} color="#0284c7" />
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7' }}>
+                      Alokasi Rentang Waktu Penyelesaian:
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', marginLeft: '0.35rem' }}>
+                      {allocatedDays} Hari
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.4rem' }}>
+                      ({dateIdentified} s/d {dueDate})
+                    </span>
+                  </div>
+                </div>
 
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                  Batas Waktu Close *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="input-control mono"
-                  style={{ fontSize: '0.8rem' }}
-                />
+                {/* Preset Rentang Waktu Cepat */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginRight: '0.2rem' }}>Pilihan Cepat:</span>
+                  <button
+                    type="button"
+                    onClick={() => setPresetDueDate(7)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem' }}
+                  >
+                    +7 Hari (Darurat)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetDueDate(14)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem' }}
+                  >
+                    +14 Hari
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetDueDate(30)}
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem' }}
+                  >
+                    +30 Hari (Standar)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPresetDueDate(60)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem' }}
+                  >
+                    +60 Hari (Mayor)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -3,9 +3,9 @@ import { usePMS } from '../../context/PMSContext';
 import { AlertTriangle, ArrowRight, ShieldAlert } from 'lucide-react';
 
 export const UrgencyBanner = () => {
-  const { overdueWOCount, expiredDocsCount, dueSoonDocsCount, setActiveTab } = usePMS();
+  const { overdueWOCount, expiredDocsCount, dueSoonDocsCount, openNCCount, setActiveTab } = usePMS();
 
-  if (overdueWOCount === 0 && expiredDocsCount === 0 && dueSoonDocsCount === 0) {
+  if (overdueWOCount === 0 && expiredDocsCount === 0 && dueSoonDocsCount === 0 && openNCCount === 0) {
     return null;
   }
 
@@ -15,6 +15,11 @@ export const UrgencyBanner = () => {
         <ShieldAlert size={18} color="#ef4444" />
         <div>
           <span style={{ fontWeight: 700, color: '#fecaca' }}>Peringatan Operasional:</span>{' '}
+          {openNCCount > 0 && (
+            <span style={{ color: '#fca5a5', fontWeight: 700 }}>
+              🚨 {openNCCount} Temuan Audit NC OPEN!{' '}
+            </span>
+          )}
           {expiredDocsCount > 0 && (
             <span style={{ color: '#f87171', fontWeight: 600 }}>
               {expiredDocsCount} dokumen/sertifikat EXPIRED!{' '}
@@ -33,7 +38,24 @@ export const UrgencyBanner = () => {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {openNCCount > 0 && (
+          <button
+            onClick={() => setActiveTab('audit')}
+            className="btn btn-sm"
+            style={{
+              padding: '0.25rem 0.65rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none'
+            }}
+          >
+            <span>Tinjau Audit NC ({openNCCount})</span>
+            <ArrowRight size={13} />
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('notifications')}
           className="btn btn-sm btn-danger"

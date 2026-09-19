@@ -23,13 +23,14 @@ export const Header = () => {
     setSearchQuery,
     overdueWOCount,
     expiredDocsCount,
+    openNCCount,
     resetToSeedData,
     setActiveTab,
     theme,
     toggleTheme
   } = usePMS();
 
-  const totalUrgent = overdueWOCount + expiredDocsCount;
+  const totalUrgent = overdueWOCount + expiredDocsCount + openNCCount;
 
   return (
     <header style={{

@@ -30,11 +30,14 @@ import {
   Sparkles,
   Award,
   Radio,
-  FileSpreadsheet
+  FileSpreadsheet,
+  MessageSquare
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
 import { SubmitEvidenceModal } from './SubmitEvidenceModal';
+import { AuditNotificationModal } from './AuditNotificationModal';
+import { calculateNCRange, calculateFleetTargetTimeStats, formatIndoDate } from '../../utils/auditTimeUtils';
 
 export const AuditManager = () => {
   const {
@@ -87,6 +90,8 @@ export const AuditManager = () => {
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [evidenceTargetFinding, setEvidenceTargetFinding] = useState(null);
 
+  const [notificationModalFinding, setNotificationModalFinding] = useState(null);
+
   // Manual checklist state per vessel
   const [customChecklistItems, setCustomChecklistItems] = useState([]);
   const [showManualCodeForm, setShowManualCodeForm] = useState(false);
@@ -108,6 +113,7 @@ export const AuditManager = () => {
     const officeClosedNC = officeFindings.filter(f => f.status === 'NC Close').length;
     const officeMajorNC = officeFindings.filter(f => f.category === 'Major NC' && f.status === 'NC Open').length;
     const officeMinorNC = officeFindings.filter(f => f.category === 'Minor NC' && f.status === 'NC Open').length;
+    const officeTimeStats = calculateFleetTargetTimeStats(officeFindings);
 
     const officeTarget = {
       id: 'office',
@@ -130,6 +136,7 @@ export const AuditManager = () => {
       closedNC: officeClosedNC,
       majorNC: officeMajorNC,
       minorNC: officeMinorNC,
+      timeStats: officeTimeStats,
       lastAudit: officeAudits[0] || null
     };
 
@@ -146,6 +153,7 @@ export const AuditManager = () => {
       const closedNC = shipFindings.filter(f => f.status === 'NC Close').length;
       const majorNC = shipFindings.filter(f => f.category === 'Major NC' && f.status === 'NC Open').length;
       const minorNC = shipFindings.filter(f => f.category === 'Minor NC' && f.status === 'NC Open').length;
+      const shipTimeStats = calculateFleetTargetTimeStats(shipFindings);
 
       return {
         id: v.id,
@@ -168,6 +176,7 @@ export const AuditManager = () => {
         closedNC,
         majorNC,
         minorNC,
+        timeStats: shipTimeStats,
         lastAudit: shipAudits[0] || null
       };
     });
@@ -190,6 +199,19 @@ export const AuditManager = () => {
     const totalSessions = (allAudits || []).length;
     const cleanTargets = allFleetTargets.filter(t => t.openNC === 0).length;
     const complianceRate = totalTargets > 0 ? Math.round((cleanTargets / totalTargets) * 100) : 100;
+    const totalOverdue = allFleetTargets.reduce((acc, t) => acc + (t.timeStats?.overdueCount || 0), 0);
+
+    // Fleet-wide average resolution days for closed NC
+    let totalClosedDays = 0;
+    let closedCount = 0;
+    (allAuditFindings || []).filter(f => f.status === 'NC Close').forEach(f => {
+      const range = calculateNCRange(f);
+      if (range?.resolutionDays) {
+        totalClosedDays += range.resolutionDays;
+        closedCount++;
+      }
+    });
+    const avgCloseDays = closedCount > 0 ? Math.round(totalClosedDays / closedCount) : 0;
 
     return {
       totalTargets,
@@ -198,9 +220,11 @@ export const AuditManager = () => {
       totalClosed,
       totalSessions,
       cleanTargets,
-      complianceRate
+      complianceRate,
+      totalOverdue,
+      avgCloseDays
     };
-  }, [allFleetTargets, allAudits]);
+  }, [allFleetTargets, allAudits, allAuditFindings]);
 
   // Filtered targets for the gateway grid
   const filteredGatewayTargets = useMemo(() => {
@@ -397,7 +421,11 @@ export const AuditManager = () => {
                 {fleetStats.totalOpen} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Temuan Terbuka</span>
               </div>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                Memerlukan tindakan koreksi & upload eviden
+                {fleetStats.totalOverdue > 0 ? (
+                  <span style={{ color: '#ef4444', fontWeight: 700 }}>🚨 {fleetStats.totalOverdue} NC Melewati Batas Waktu!</span>
+                ) : (
+                  'Semua temuan dalam batas rentang aman'
+                )}
               </p>
             </div>
 
@@ -423,7 +451,11 @@ export const AuditManager = () => {
                 {fleetStats.totalClosed} <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Temuan Selesai</span>
               </div>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                Kepatuhan terverifikasi dan ditutup resmi
+                {fleetStats.avgCloseDays > 0 ? (
+                  <span>⏱️ Rata-rata Rentang Close: <strong style={{ color: '#10b981' }}>{fleetStats.avgCloseDays} Hari</strong></span>
+                ) : (
+                  'Kepatuhan terverifikasi dan ditutup resmi'
+                )}
               </p>
             </div>
           </div>
@@ -578,6 +610,33 @@ export const AuditManager = () => {
                               {target.minorNC > 0 && <span>{target.minorNC} Minor NC • </span>}
                               Wajib pengajuan eviden perbaikan
                             </p>
+
+                            {/* Rentang Waktu NC Open Terdekat */}
+                            {target.timeStats?.mostUrgent && (
+                              <div style={{
+                                marginTop: '0.4rem',
+                                paddingTop: '0.35rem',
+                                borderTop: '1px dashed rgba(239, 68, 68, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.69rem'
+                              }}>
+                                <span style={{
+                                  color: target.timeStats.mostUrgent.range.color,
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem'
+                                }}>
+                                  <Clock size={12} />
+                                  {target.timeStats.mostUrgent.range.badgeText}
+                                </span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
+                                  Target: {target.timeStats.mostUrgent.range.dueDateStr}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : hasSubmitted ? (
@@ -591,13 +650,35 @@ export const AuditManager = () => {
                           gap: '0.55rem'
                         }}>
                           <Clock size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
-                          <div>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f59e0b' }}>
-                              ⏳ {target.submittedNC} Eviden Menunggu Verifikasi
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>⏳ {target.submittedNC} Eviden Menunggu Verifikasi</span>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.35rem', background: '#f59e0b', color: '#000', borderRadius: '4px' }}>
+                                Tinjau
+                              </span>
                             </div>
                             <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                               Dokumen perbaikan telah dikirim ke Lead Auditor
                             </p>
+                            {target.timeStats?.mostUrgent && (
+                              <div style={{
+                                marginTop: '0.4rem',
+                                paddingTop: '0.35rem',
+                                borderTop: '1px dashed rgba(245, 158, 11, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.69rem'
+                              }}>
+                                <span style={{ color: '#f59e0b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <Clock size={12} />
+                                  {target.timeStats.mostUrgent.range.badgeText}
+                                </span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
+                                  Telah aktif {target.timeStats.mostUrgent.range.activeDays} hari
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : target.closedNC > 0 ? (
@@ -611,13 +692,34 @@ export const AuditManager = () => {
                           gap: '0.55rem'
                         }}>
                           <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0 }} />
-                          <div>
-                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#10b981' }}>
-                              ✅ NOTIS: SELURUH NC CLOSE ({target.closedNC} Selesai)
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>✅ NOTIS: SELURUH NC CLOSE ({target.closedNC} Selesai)</span>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.35rem', background: '#10b981', color: '#fff', borderRadius: '4px' }}>
+                                Aman
+                              </span>
                             </div>
                             <p style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                               Standar SMS & ISM Code telah terpenuhi tuntas
                             </p>
+                            {target.timeStats?.avgResolutionDays > 0 && (
+                              <div style={{
+                                marginTop: '0.4rem',
+                                paddingTop: '0.35rem',
+                                borderTop: '1px dashed rgba(16, 185, 129, 0.3)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '0.69rem'
+                              }}>
+                                <span style={{ color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  ✓ Rata-rata Penutupan: {target.timeStats.avgResolutionDays} Hari
+                                </span>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>
+                                  Tuntas Tepat Waktu
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -823,7 +925,7 @@ export const AuditManager = () => {
           <div>
             {currentTarget.openNC > 0 ? (
               <div className="audit-notice-banner audit-notice-open">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                   <div style={{
                     padding: '0.65rem',
                     borderRadius: '50%',
@@ -832,12 +934,13 @@ export const AuditManager = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    animation: 'pulse 2s infinite'
+                    animation: 'pulse 2s infinite',
+                    flexShrink: 0
                   }}>
                     <AlertTriangle size={26} />
                   </div>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                       <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ef4444' }}>
                         🚨 NOTIS NC OPEN: Ditemukan {currentTarget.openNC} Ketidaksesuaian Terbuka pada {currentTarget.name}!
                       </h4>
@@ -847,12 +950,52 @@ export const AuditManager = () => {
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
                       Terdapat <strong>{currentTarget.openNC} temuan audit berstatus NC OPEN</strong> ({currentTarget.majorNC} Major NC, {currentTarget.minorNC} Minor NC).
-                      Nakhoda, KKM, atau PIC terkait wajib segera mengajukan rencana perbaikan (Corrective Action Plan) dan mengunggah dokumen eviden sebelum batas waktu!
+                      Nakhoda, KKM, atau PIC terkait wajib segera mengajukan rencana perbaikan (CAP) dan mengunggah dokumen eviden sebelum batas waktu!
                     </p>
+
+                    {/* Rentang Waktu Highlight Banner */}
+                    {currentTarget.timeStats?.mostUrgent && (
+                      <div style={{
+                        marginTop: '0.65rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '8px',
+                        background: currentTarget.timeStats.mostUrgent.range.bgLight,
+                        border: `1px solid ${currentTarget.timeStats.mostUrgent.range.borderColor}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
+                        fontSize: '0.78rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Clock size={16} color={currentTarget.timeStats.mostUrgent.range.color} />
+                          <span>
+                            <strong>Batas Target Terdekat ({currentTarget.timeStats.mostUrgent.finding.findingNo}): </strong>
+                            Rentang {currentTarget.timeStats.mostUrgent.range.openDateStr} s/d {currentTarget.timeStats.mostUrgent.range.dueDateStr}
+                            {' '}(Telah aktif {currentTarget.timeStats.mostUrgent.range.activeDays} hari)
+                          </span>
+                        </div>
+                        <span className={`badge ${currentTarget.timeStats.mostUrgent.range.badgeClass}`} style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                          {currentTarget.timeStats.mostUrgent.range.badgeText}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      const targetFinding = currentTarget.timeStats?.mostUrgent?.finding || currentTarget.findings.find(f => f.status === 'NC Open');
+                      if (targetFinding) setNotificationModalFinding(targetFinding);
+                    }}
+                    className="btn btn-whatsapp btn-sm"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Kirim Notif WA</span>
+                  </button>
                   <button
                     onClick={() => {
                       setVesselTab('findings');
@@ -867,7 +1010,7 @@ export const AuditManager = () => {
               </div>
             ) : currentTarget.submittedNC > 0 ? (
               <div className="audit-notice-banner audit-notice-submitted">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                   <div style={{
                     padding: '0.65rem',
                     borderRadius: '50%',
@@ -875,34 +1018,75 @@ export const AuditManager = () => {
                     color: '#f59e0b',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}>
                     <Clock size={26} />
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b' }}>
                       ⏳ NOTIS VERIFIKASI: {currentTarget.submittedNC} Dokumen Eviden Menunggu Tinjauan Auditor!
                     </h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
                       Pihak auditee kapal telah mengunggah eviden perbaikan tindakan korektif. Lead Auditor wajib memverifikasi keabsahan bukti untuk mengubah status menjadi <strong>NC CLOSE</strong>.
                     </p>
+
+                    {currentTarget.timeStats?.mostUrgent && (
+                      <div style={{
+                        marginTop: '0.65rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'rgba(245, 158, 11, 0.12)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
+                        fontSize: '0.78rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <Clock size={16} color="#f59e0b" />
+                          <span>
+                            <strong>Eviden ({currentTarget.timeStats.mostUrgent.finding.findingNo}): </strong>
+                            Diajukan & menunggu verifikasi (Telah berjalan {currentTarget.timeStats.mostUrgent.range.activeDays} hari sejak audit)
+                          </span>
+                        </div>
+                        <span className="badge badge-warning" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                          Menunggu Tinjauan
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setVesselTab('findings');
-                    setStatusFilter('Eviden Submitted');
-                  }}
-                  className="btn btn-warning btn-sm"
-                  style={{ fontWeight: 700 }}
-                >
-                  Tinjau Eviden Masuk
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      const targetFinding = currentTarget.findings.find(f => f.status === 'Eviden Submitted');
+                      if (targetFinding) setNotificationModalFinding(targetFinding);
+                    }}
+                    className="btn btn-whatsapp btn-sm"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Kirim Notif WA</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setVesselTab('findings');
+                      setStatusFilter('Eviden Submitted');
+                    }}
+                    className="btn btn-warning btn-sm"
+                    style={{ fontWeight: 700 }}
+                  >
+                    Tinjau Eviden Masuk
+                  </button>
+                </div>
               </div>
             ) : currentTarget.closedNC > 0 ? (
               <div className="audit-notice-banner audit-notice-closed">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
                   <div style={{
                     padding: '0.65rem',
                     borderRadius: '50%',
@@ -910,23 +1094,65 @@ export const AuditManager = () => {
                     color: '#10b981',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    flexShrink: 0
                   }}>
                     <CheckCircle2 size={26} />
                   </div>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#10b981' }}>
                       ✅ NOTIS NC CLOSE: Seluruh Temuan Audit Telah Diverifikasi & Berstatus CLOSED!
                     </h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
                       Seluruh temuan audit pada <strong>{currentTarget.name}</strong> ({currentTarget.closedNC} NC Close) telah dinyatakan efektif dan memenuhi ketentuan ISM Code IMO & regulasi BKI.
                     </p>
+
+                    {/* Rentang Waktu Penutupan Summary */}
+                    {currentTarget.timeStats?.avgResolutionDays > 0 && (
+                      <div style={{
+                        marginTop: '0.65rem',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'rgba(16, 185, 129, 0.12)',
+                        border: '1px solid rgba(16, 185, 129, 0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem',
+                        fontSize: '0.78rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle2 size={16} color="#10b981" />
+                          <span>
+                            <strong>Rata-rata Rentang Waktu Penutupan (Lead Time Close): </strong>
+                            Seluruh temuan diselesaikan rata-rata dalam <strong>{currentTarget.timeStats.avgResolutionDays} Hari</strong> sejak tanggal audit dibuka.
+                          </span>
+                        </div>
+                        <span className="badge badge-success" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                          ✓ Kepatuhan Tuntas
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <span className="badge badge-success" style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}>
-                  100% Compliant
-                </span>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      const closedFinding = currentTarget.findings.find(f => f.status === 'NC Close');
+                      if (closedFinding) setNotificationModalFinding(closedFinding);
+                    }}
+                    className="btn btn-whatsapp btn-sm"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Laporan WA NC Close</span>
+                  </button>
+                  <span className="badge badge-success" style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem' }}>
+                    100% Compliant
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="audit-notice-banner audit-notice-info">
@@ -1113,6 +1339,25 @@ export const AuditManager = () => {
                               <span>{isClosed ? 'Lihat Eviden Closing' : isSubmitted ? 'Tinjau Eviden' : 'Ajukan Eviden (CAP)'}</span>
                             </button>
 
+                            {/* WhatsApp Notification Button */}
+                            <button
+                              onClick={() => setNotificationModalFinding(f)}
+                              className="btn btn-secondary btn-sm"
+                              title={isOpen ? 'Kirim Notifikasi WA (NC Open)' : 'Kirim Notifikasi WA (NC Close)'}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontSize: '0.72rem',
+                                color: '#16a34a',
+                                fontWeight: 700,
+                                padding: '0.35rem 0.55rem'
+                              }}
+                            >
+                              <MessageSquare size={13} color="#22c55e" />
+                              <span>Notif WA</span>
+                            </button>
+
                             <button
                               onClick={() => {
                                 setEditingFinding(f);
@@ -1162,6 +1407,107 @@ export const AuditManager = () => {
                           )}
                         </div>
 
+                        {/* TIMELINE RENTANG WAKTU NC OPEN / NC CLOSE */}
+                        {(() => {
+                          const ncRange = calculateNCRange(f);
+                          if (!ncRange) return null;
+
+                          return (
+                            <div style={{
+                              margin: '0.45rem 0',
+                              padding: '0.65rem 0.85rem',
+                              borderRadius: '8px',
+                              background: ncRange.bgLight,
+                              border: `1px solid ${ncRange.borderColor}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.45rem'
+                            }}>
+                              {/* Header Rentang */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.76rem', fontWeight: 700 }}>
+                                  {ncRange.isClosed ? (
+                                    <>
+                                      <CheckCircle2 size={15} color="#10b981" />
+                                      <span style={{ color: '#10b981' }}>RENTANG WAKTU PENUTUPAN (NC CLOSE)</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock size={15} color={ncRange.color} />
+                                      <span style={{ color: ncRange.color }}>
+                                        RENTANG WAKTU AKTIF ({ncRange.isSubmitted ? 'EVIDEN DITINJAU' : 'NC OPEN'})
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                <span className={`badge ${ncRange.badgeClass}`} style={{ fontSize: '0.7rem', fontWeight: 800 }}>
+                                  {ncRange.badgeText}
+                                </span>
+                              </div>
+
+                              {/* Progress Bar Timeline */}
+                              <div style={{
+                                width: '100%',
+                                height: '6px',
+                                borderRadius: '3px',
+                                background: 'rgba(255, 255, 255, 0.15)',
+                                overflow: 'hidden',
+                                position: 'relative'
+                              }}>
+                                <div style={{
+                                  width: `${ncRange.percentUsed}%`,
+                                  height: '100%',
+                                  background: ncRange.color,
+                                  borderRadius: '3px',
+                                  transition: 'width 0.3s ease'
+                                }} />
+                              </div>
+
+                              {/* Date markers & variance info */}
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '0.5rem',
+                                fontSize: '0.72rem',
+                                color: 'var(--text-muted)'
+                              }}>
+                                <div>
+                                  <span>Tgl Identifikasi (Open): </span>
+                                  <strong style={{ color: 'var(--text-main)' }}>{ncRange.openDateStr}</strong>
+                                </div>
+
+                                {ncRange.isClosed ? (
+                                  <>
+                                    <div>
+                                      <span>Tgl Penutupan Resmi (Close): </span>
+                                      <strong style={{ color: '#10b981' }}>{ncRange.closedDateStr}</strong>
+                                    </div>
+                                    <div style={{ color: ncRange.isAheadOfSchedule ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                                      ⚡ {ncRange.varianceText} (Total: {ncRange.resolutionDays} Hari)
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div>
+                                      <span>Target Batas Close (Due Date): </span>
+                                      <strong style={{ color: ncRange.isOverdue ? '#ef4444' : 'var(--text-main)' }}>
+                                        {ncRange.dueDateStr}
+                                      </strong>
+                                    </div>
+                                    <div style={{ color: ncRange.color, fontWeight: 700 }}>
+                                      {ncRange.isOverdue
+                                        ? `🚨 Terlambat ${Math.abs(ncRange.remainingDays)} hari dari target awal`
+                                        : `⏳ Telah berjalan ${ncRange.activeDays} dari alokasi ${ncRange.totalAllocatedDays} hari`}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {/* Finding Footer Metas */}
                         <div style={{
                           display: 'flex',
@@ -1177,8 +1523,8 @@ export const AuditManager = () => {
                           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             <span>PIC: <strong style={{ color: 'var(--text-main)' }}>{f.assignedTo || 'PIC Kapal'}</strong></span>
                             <span>Auditor: <strong>{f.auditor}</strong></span>
-                            <span>Tgl Audit: {f.dateIdentified}</span>
-                            <span>Batas Waktu: <strong style={{ color: isOpen ? '#ef4444' : 'inherit' }}>{f.dueDate}</strong></span>
+                            <span>Tgl Audit: {formatIndoDate(f.dateIdentified)}</span>
+                            <span>Batas Waktu: <strong style={{ color: isOpen ? '#ef4444' : 'inherit' }}>{formatIndoDate(f.dueDate)}</strong></span>
                           </div>
                           {f.linkedCertificateTitle && (
                             <span className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
@@ -1678,6 +2024,16 @@ export const AuditManager = () => {
             setEvidenceModalOpen(false);
             setEvidenceTargetFinding(null);
           }}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL NOTIFIKASI WHATSAPP NC OPEN / NC CLOSE                              */}
+      {/* ========================================================================= */}
+      {notificationModalFinding && (
+        <AuditNotificationModal
+          finding={notificationModalFinding}
+          onClose={() => setNotificationModalFinding(null)}
         />
       )}
     </div>
