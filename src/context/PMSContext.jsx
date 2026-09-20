@@ -173,6 +173,14 @@ export const PMSProvider = ({ children }) => {
     return DEFAULT_MASTER_CERTIFICATE_NAMES || [];
   });
   const [masterSurveyTypes, setMasterSurveyTypes] = useState(() => {
+    // Migration: user requested "master data jenis survey kosongkan dulu nanti akan di isi lagi"
+    // Pastikan jika ada data lama 40 item di browser pengguna langsung di-reset bersih ke []
+    const migrationKey = 'pms_survey_empty_v3';
+    if (!localStorage.getItem(migrationKey)) {
+      localStorage.setItem(migrationKey, 'true');
+      localStorage.setItem('pms_masterSurveyTypes', JSON.stringify([]));
+      return [];
+    }
     const stored = loadStored('masterSurveyTypes', null);
     if (Array.isArray(stored)) {
       return stored;

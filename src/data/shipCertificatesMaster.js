@@ -219,8 +219,12 @@ export const DEMO_STANDARD_CERTIFICATE_TEMPLATES = [
 export const CERTIFICATE_CATEGORIES = DEMO_CERTIFICATE_CATEGORIES;
 export const STANDARD_CERTIFICATE_TEMPLATES = [];
 
-// Master Data Default Jenis Survey / Siklus Pemeriksaan (Tanpa tanda kurung)
-export const DEFAULT_MASTER_SURVEY_TYPES = [
+// Master Data Jenis Survey dikosongkan secara default sesuai permintaan:
+// "master data jenis survey kosongkan dulu nanti akan di isi lagi"
+export const DEFAULT_MASTER_SURVEY_TYPES = [];
+
+// Preset standar maritim sebagai rujukan jika user ingin memuat kembali dengan tombol "Reset Standar Maritim"
+export const SAMPLE_MARITIME_SURVEY_PRESETS = [
   // BKI
   { id: 'st-bki-1', name: 'Annual Survey Lambung & Mesin', category: 'BKI', intervalYears: 1, description: 'Survei tahunan berkala lambung dan permesinan kelas BKI' },
   { id: 'st-bki-2', name: 'Intermediate Survey', category: 'BKI', intervalYears: 2.5, description: 'Survei antara pertengahan periode kelas BKI' },

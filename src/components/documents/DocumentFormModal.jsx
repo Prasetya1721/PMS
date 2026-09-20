@@ -1114,15 +1114,8 @@ export const DocumentFormModal = ({
       }
     });
 
-    // Fallback dari kategori profile jika master data belum memiliki entri khusus
-    if (list.length === 0 && currentProfile?.surveyTypes) {
-      currentProfile.surveyTypes.forEach(st => {
-        if (!list.includes(st)) list.push(st);
-      });
-    }
-
     return list;
-  }, [masterSurveyTypes, formData?.category, currentProfile]);
+  }, [masterSurveyTypes, formData?.category]);
 
   // Pilihan nama sertifikat yang sudah ada di master templates & dokumen kapal (difilter per kategori)
   const availableDocumentNames = useMemo(() => {

@@ -46,7 +46,8 @@ import { ParticularsModal } from '../vessels/ParticularsModal';
 import { MasterCombobox } from '../common/MasterCombobox';
 import {
   DEFAULT_MASTER_SURVEY_TYPES,
-  DEFAULT_MASTER_CERTIFICATE_NAMES
+  DEFAULT_MASTER_CERTIFICATE_NAMES,
+  SAMPLE_MARITIME_SURVEY_PRESETS
 } from '../../data/shipCertificatesMaster';
 
 export const MasterDataAdmin = () => {
@@ -99,6 +100,9 @@ export const MasterDataAdmin = () => {
   } = usePMS();
 
   const [activeTab, setActiveTab] = useState('audit'); // 'vessels' | 'crew' | 'documents' | 'categories' | 'surveyTypes' | 'certNames' | 'users' | 'audit'
+
+  // In-app Action Confirmation Modal State (No window.confirm!)
+  const [actionConfirmModal, setActionConfirmModal] = useState(null);
 
   // Modals state
   const [showDocModal, setShowDocModal] = useState(false);
@@ -517,26 +521,108 @@ export const MasterDataAdmin = () => {
     });
   };
 
-  // Reset Master Survey Types to standard defaults
+  // Reset Master Survey Types to standard defaults using in-app modal
   const handleResetSurveyTypes = () => {
-    if (window.confirm('Reset Master Jenis Survey ke daftar bawaan maritim resmi (BKI, KSOP, Statutory, Kesehatan, Asuransi)?')) {
-      clearMasterSurveyTypes();
-      (DEFAULT_MASTER_SURVEY_TYPES || []).forEach(st => {
-        addMasterSurveyType(st);
-      });
-      showToast('Master Jenis Survey berhasil direset ke data bawaan!', 'success');
-    }
+    setActionConfirmModal({
+      title: 'Muat Standar Maritim Jenis Survey?',
+      subtitle: 'Memuat daftar baku pemeriksaan periodik maritim resmi.',
+      message: 'Muat daftar jenis survey standar maritim resmi (BKI Annual, Intermediate, Special, Docking, KSOP Kelaiklautan, Statutory ISM, Sanitasi Pelabuhan) ke dalam master survey?',
+      confirmLabel: 'Ya, Muat Standar Survey',
+      confirmColor: '#38bdf8',
+      icon: RefreshCw,
+      onConfirm: () => {
+        clearMasterSurveyTypes();
+        (SAMPLE_MARITIME_SURVEY_PRESETS || []).forEach(st => {
+          addMasterSurveyType(st);
+        });
+        showToast('Master Jenis Survey berhasil diisi dengan data standar maritim!', 'success');
+        setActionConfirmModal(null);
+      }
+    });
   };
 
-  // Reset Master Certificate Names to standard defaults
+  const handleClearSurveyTypes = () => {
+    setActionConfirmModal({
+      title: 'Kosongkan Master Jenis Survey?',
+      subtitle: 'Seluruh jenis survey akan dikosongkan.',
+      message: 'Apakah Anda yakin ingin mengosongkan master jenis survey? Setelah dikosongkan, kolom input survey di form dokumen akan bersih tanpa preset survey sehingga Anda dapat mengisinya secara mandiri.',
+      confirmLabel: 'Ya, Kosongkan Master Survey',
+      confirmColor: '#ef4444',
+      icon: Trash2,
+      onConfirm: () => {
+        clearMasterSurveyTypes();
+        showToast('Master Jenis Survey berhasil dikosongkan (0 survey)!', 'info');
+        setActionConfirmModal(null);
+      }
+    });
+  };
+
+  // Reset Master Certificate Names to standard defaults using in-app modal
   const handleResetCertNames = () => {
-    if (window.confirm('Reset Master Nama Sertifikat ke daftar bawaan maritim resmi (BKI, KSOP, Statutory, Kesehatan, Asuransi)?')) {
-      clearDocumentTemplates();
-      (DEFAULT_MASTER_CERTIFICATE_NAMES || []).forEach(cn => {
-        addDocumentTemplate(cn);
-      });
-      showToast('Master Nama Sertifikat berhasil direset ke data bawaan!', 'success');
-    }
+    setActionConfirmModal({
+      title: 'Muat Standar Nama Sertifikat?',
+      subtitle: 'Memuat daftar baku sertifikat kapal maritim resmi.',
+      message: 'Muat daftar nama sertifikat resmi bawaan (BKI, KSOP, Statutory, Kesehatan, Asuransi) ke dalam master nama sertifikat?',
+      confirmLabel: 'Ya, Muat Standar Sertifikat',
+      confirmColor: '#38bdf8',
+      icon: RefreshCw,
+      onConfirm: () => {
+        clearDocumentTemplates();
+        (DEFAULT_MASTER_CERTIFICATE_NAMES || []).forEach(cn => {
+          addDocumentTemplate(cn);
+        });
+        showToast('Master Nama Sertifikat berhasil direset ke data bawaan!', 'success');
+        setActionConfirmModal(null);
+      }
+    });
+  };
+
+  const handleClearCertNames = () => {
+    setActionConfirmModal({
+      title: 'Kosongkan Master Nama Sertifikat?',
+      subtitle: 'Seluruh nama sertifikat akan dikosongkan.',
+      message: 'Apakah Anda yakin ingin mengosongkan semua master nama sertifikat? Setelah dikosongkan, kolom pilihan di form pengisian akan bersih tanpa opsi preset.',
+      confirmLabel: 'Ya, Kosongkan Master Sertifikat',
+      confirmColor: '#ef4444',
+      icon: Trash2,
+      onConfirm: () => {
+        clearDocumentTemplates();
+        showToast('Master Nama Sertifikat berhasil dikosongkan (0 sertifikat)!', 'info');
+        setActionConfirmModal(null);
+      }
+    });
+  };
+
+  const handleOpenClearAllModal = () => {
+    setActionConfirmModal({
+      title: 'Kosongkan Seluruh Data Sistem?',
+      subtitle: 'Tindakan ini akan mengosongkan seluruh data operasional & master.',
+      message: 'Apakah Anda yakin ingin MENGOSONGKAN seluruh basis data (Kapal, Dokumen, Kru, Kategori Sertifikat, Master Jenis Survey, Peralatan Mesin, Anggaran, Riwayat Biaya)? Seluruh data dummy akan dibersihkan ke status 0 untuk pengujian input data riil dari awal.',
+      confirmLabel: 'Ya, Kosongkan Semua Data',
+      confirmColor: '#ef4444',
+      icon: Trash2,
+      onConfirm: () => {
+        clearAllData();
+        showToast('Seluruh data operasional & master berhasil dikosongkan (0 data)!', 'info');
+        setActionConfirmModal(null);
+      }
+    });
+  };
+
+  const handleOpenLoadDemoModal = () => {
+    setActionConfirmModal({
+      title: 'Muat Data Contoh / Demo Maritim?',
+      subtitle: 'Memuat data lengkap armada kapal, sertifikat resmi, dan audit maritim.',
+      message: 'Muat data operasional perkapalan lengkap (Armada Kapal RP 2020, data permesinan PMS, kru bersertifikat STCW, sertifikat legalitas, dan audit ISM) ke dalam sistem?',
+      confirmLabel: 'Ya, Muat Data Demo',
+      confirmColor: '#10b981',
+      icon: Database,
+      onConfirm: () => {
+        loadDemoData();
+        showToast('Data contoh/demo armada maritim berhasil dimuat ke sistem!', 'success');
+        setActionConfirmModal(null);
+      }
+    });
   };
 
   // User Management filters and handlers
@@ -710,26 +796,20 @@ export const MasterDataAdmin = () => {
           {/* Quick Actions */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
-              onClick={() => {
-                if (window.confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN seluruh data operasional & master (kapal, dokumen, peralatan, kru, kategori)? Semua data dummy akan dihapus bersih untuk pengujian input dari nol.')) {
-                  clearAllData();
-                }
-              }}
+              type="button"
+              onClick={handleOpenClearAllModal}
               className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.35)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.35)', cursor: 'pointer' }}
               title="Kosongkan seluruh data untuk pengujian input manual"
             >
               <Trash2 size={14} />
               <span>Kosongkan Seluruh Data</span>
             </button>
             <button
-              onClick={() => {
-                if (window.confirm('Muat data contoh/demo (Armada 28 kapal, mesin, 29 sertifikat, dan audit ISM) ke dalam sistem?')) {
-                  loadDemoData();
-                }
-              }}
+              type="button"
+              onClick={handleOpenLoadDemoModal}
               className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)', cursor: 'pointer' }}
               title="Muat kembali data demo maritim lengkap"
             >
               <Database size={14} />
@@ -746,24 +826,24 @@ export const MasterDataAdmin = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Semua 8 Tab Terlihat Jelas & Responsif */}
         <div style={{
           display: 'flex',
-          gap: '0.35rem',
-          marginTop: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '0.45rem',
+          marginTop: '1.25rem',
           borderTop: '1px solid var(--border-subtle)',
-          paddingTop: '1rem',
-          overflowX: 'auto'
+          paddingTop: '0.85rem'
         }}>
           {[
-            { id: 'audit', label: '🔍 Cek Semua Data Web (Audit)', count: `${auditReport.score}% Sehat`, badgeColor: '#10b981' },
-            { id: 'vessels', label: '🚢 Master Data Kapal', count: vessels.length },
-            { id: 'crew', label: '👥 Master Data Crew', count: allCrewList.length },
-            { id: 'documents', label: '📜 Dokumen Kapal Armada', count: allDocList.length },
-            { id: 'categories', label: '🏷️ Master Kategori Sertifikat', count: (certificateCategories || []).length },
-            { id: 'surveyTypes', label: '📋 Master Jenis Survey', count: (masterSurveyTypes || []).length },
-            { id: 'certNames', label: '📜 Master Nama Sertifikat', count: (documentTemplates || []).length },
-            { id: 'users', label: '👤 Manajemen User', count: allUserList.length }
+            { id: 'audit', label: '🔍 Cek Audit Web', count: `${auditReport.score}% Sehat`, fullLabel: '🔍 Cek Semua Data Web (Audit)' },
+            { id: 'vessels', label: '🚢 Master Kapal', count: vessels.length, fullLabel: '🚢 Master Data Kapal' },
+            { id: 'crew', label: '👥 Master Crew', count: allCrewList.length, fullLabel: '👥 Master Data Crew' },
+            { id: 'documents', label: '📜 Dokumen Kapal', count: allDocList.length, fullLabel: '📜 Dokumen Kapal Armada' },
+            { id: 'categories', label: '🏷️ Kategori Sertifikat', count: (certificateCategories || []).length, fullLabel: '🏷️ Master Kategori Sertifikat' },
+            { id: 'surveyTypes', label: '📋 Jenis Survey', count: (masterSurveyTypes || []).length, fullLabel: '📋 Master Jenis Survey' },
+            { id: 'certNames', label: '📜 Nama Sertifikat', count: (documentTemplates || []).length, fullLabel: '📜 Master Nama Sertifikat' },
+            { id: 'users', label: '👤 Manajemen User', count: allUserList.length, fullLabel: '👤 Manajemen User' }
           ].map(tab => {
             const isActive = activeTab === tab.id;
             return (
@@ -771,14 +851,22 @@ export const MasterDataAdmin = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`tab-btn ${isActive ? 'active' : ''}`}
+                title={tab.fullLabel}
                 style={{
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.45rem',
-                  padding: '0.55rem 1rem',
-                  fontSize: '0.825rem',
+                  padding: '0.52rem 0.85rem',
+                  fontSize: '0.82rem',
                   fontWeight: isActive ? 700 : 500,
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: isActive ? '1px solid #38bdf8' : '1px solid var(--border-glass)',
+                  background: isActive ? 'rgba(56, 189, 248, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                  color: isActive ? '#38bdf8' : 'var(--text-main)',
+                  boxShadow: isActive ? '0 0 12px rgba(56, 189, 248, 0.22)' : 'none',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <span>{tab.label}</span>
@@ -786,9 +874,12 @@ export const MasterDataAdmin = () => {
                   className="badge"
                   style={{
                     fontSize: '0.68rem',
-                    background: isActive ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-                    color: isActive ? '#38bdf8' : 'var(--text-muted)',
-                    border: '1px solid var(--border-glass)'
+                    fontWeight: 700,
+                    background: isActive ? 'rgba(56, 189, 248, 0.35)' : 'rgba(255, 255, 255, 0.08)',
+                    color: isActive ? '#ffffff' : 'var(--text-muted)',
+                    border: '1px solid var(--border-glass)',
+                    padding: '0.12rem 0.45rem',
+                    borderRadius: '10px'
                   }}
                 >
                   {tab.count}
@@ -2065,13 +2156,9 @@ export const MasterDataAdmin = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm('Kosongkan semua data master jenis survey? Setelah dikosongkan, kolom input survey di form dokumen akan bersih tanpa opsi preset.')) {
-                    clearMasterSurveyTypes();
-                  }
-                }}
+                onClick={handleClearSurveyTypes}
                 className="btn btn-secondary btn-sm"
-                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
                 title="Kosongkan master survey"
               >
                 <Trash2 size={14} />
@@ -2346,13 +2433,9 @@ export const MasterDataAdmin = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm('Kosongkan semua data master nama sertifikat? Setelah dikosongkan, kolom input nama sertifikat di form pengisian akan kosong tanpa pilihan preset.')) {
-                    clearDocumentTemplates();
-                  }
-                }}
+                onClick={handleClearCertNames}
                 className="btn btn-secondary btn-sm"
-                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
                 title="Kosongkan master sertifikat"
               >
                 <Trash2 size={14} />
@@ -3638,6 +3721,107 @@ export const MasterDataAdmin = () => {
           document={previewDoc}
           onClose={() => setPreviewDoc(null)}
         />
+      )}
+
+      {/* In-app Action Confirmation Modal */}
+      {actionConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(2, 6, 23, 0.82)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.25rem',
+          zIndex: 99999
+        }}>
+          <div className="glass-card" style={{
+            maxWidth: '520px',
+            width: '100%',
+            background: 'var(--bg-card, #0f172a)',
+            border: '1px solid var(--border-glass)',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '1.5rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '1rem'
+            }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: `${actionConfirmModal.confirmColor}22`,
+                border: `1px solid ${actionConfirmModal.confirmColor}55`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: actionConfirmModal.confirmColor,
+                flexShrink: 0
+              }}>
+                {actionConfirmModal.icon ? <actionConfirmModal.icon size={22} /> : <AlertTriangle size={22} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                  {actionConfirmModal.title}
+                </h3>
+                {actionConfirmModal.subtitle && (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+                    {actionConfirmModal.subtitle}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ fontSize: '0.875rem', lineHeight: '1.55', color: 'var(--text-main)', margin: 0 }}>
+                {actionConfirmModal.message}
+              </p>
+            </div>
+
+            <div style={{
+              padding: '1rem 1.5rem',
+              background: 'rgba(0, 0, 0, 0.25)',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.75rem'
+            }}>
+              <button
+                type="button"
+                onClick={() => setActionConfirmModal(null)}
+                className="btn btn-secondary"
+                style={{ minWidth: '90px' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={actionConfirmModal.onConfirm}
+                className="btn"
+                style={{
+                  background: actionConfirmModal.confirmColor,
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.55rem 1.25rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                {actionConfirmModal.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
