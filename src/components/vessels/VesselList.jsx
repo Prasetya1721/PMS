@@ -45,11 +45,11 @@ export const VesselList = () => {
     regNo: '',
     imo: '',
     callSign: '',
-    type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
+    type: '',
     ownershipStatus: 'As Owner & Operator',
     status: 'Operasional (Berlayar)',
     flag: 'Indonesia (IDN)',
-    portOfRegistry: 'Pontianak, Kalimantan Barat',
+    portOfRegistry: '',
     gt: 320,
     dwt: 450,
     yearBuilt: new Date().getFullYear(),
@@ -60,6 +60,30 @@ export const VesselList = () => {
     chiefEngineer: '',
     photo: ''
   });
+
+  const handleOpenAddModal = () => {
+    setFormData({
+      name: '',
+      regNo: '',
+      imo: '',
+      callSign: '',
+      type: '',
+      ownershipStatus: 'As Owner & Operator',
+      status: 'Operasional (Berlayar)',
+      flag: 'Indonesia (IDN)',
+      portOfRegistry: '',
+      gt: 320,
+      dwt: 450,
+      yearBuilt: new Date().getFullYear(),
+      builder: 'PT Dok & Perkapalan Baharimas',
+      currentLocation: 'Sungai Kapuas, Pontianak',
+      speedKnots: 8.0,
+      masterCaptain: '',
+      chiefEngineer: '',
+      photo: ''
+    });
+    setShowAddModal(true);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -138,7 +162,7 @@ export const VesselList = () => {
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
             className="btn btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)' }}
           >
@@ -230,7 +254,7 @@ export const VesselList = () => {
             </p>
             {!search && (
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={handleOpenAddModal}
                 className="btn btn-primary"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
               >
@@ -527,25 +551,38 @@ export const VesselList = () => {
                   />
                 </div>
                 <div>
-                  <label className="field-label">Tipe / Jenis Kapal (Bisa Manual)</label>
+                  <label className="field-label">Tipe / Jenis Kapal *</label>
                   <input
                     type="text"
                     name="type"
-                    list="vessel-types-datalist"
-                    placeholder="Ketik manual atau pilih..."
+                    required
+                    placeholder="Ketik manual (cth: Tugboat, Tongkang 300ft, LCT, SPOB)..."
                     value={formData.type}
                     onChange={handleInputChange}
                     className="input-control"
+                    autoComplete="off"
                   />
-                  <datalist id="vessel-types-datalist">
-                    <option value="Tugboat (Kapal Tunda Twin Screw 3200 BHP)">Tugboat Twin Screw</option>
-                    <option value="Tugboat (Kapal Tunda Single Screw 1800 BHP)">Tugboat Single Screw</option>
-                    <option value="Tongkang (Barge Batubara 300 Feet)">Tongkang Batubara 300 Feet</option>
-                    <option value="Tongkang (Barge Batubara 330 Feet)">Tongkang Batubara 330 Feet</option>
-                    <option value="Kapal Kargo / SPOB">Kapal Kargo / SPOB</option>
-                    <option value="LCT (Landing Craft Tank)">LCT (Landing Craft Tank)</option>
-                    <option value="Speedboat Patroli">Speedboat Patroli</option>
-                  </datalist>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
+                    {['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT', 'Kapal Kargo / SPOB', 'Speedboat'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, type: t }))}
+                        className="badge"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          padding: '0.15rem 0.45rem',
+                          background: formData.type === t ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          border: `1px solid ${formData.type === t ? '#38bdf8' : 'var(--border-subtle)'}`,
+                          color: formData.type === t ? '#38bdf8' : 'var(--text-secondary)'
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="field-label">Status Kepemilikan</label>
@@ -564,30 +601,37 @@ export const VesselList = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div>
-                  <label className="field-label">Pelabuhan Pendaftaran (Bisa Manual)</label>
+                  <label className="field-label">Pelabuhan Pendaftaran</label>
                   <input
                     type="text"
                     name="portOfRegistry"
-                    list="ports-datalist"
-                    placeholder="Ketik manual nama pelabuhan..."
+                    placeholder="Ketik manual (cth: Pontianak, Banjarmasin, Jakarta)..."
                     value={formData.portOfRegistry}
                     onChange={handleInputChange}
                     className="input-control"
+                    autoComplete="off"
                   />
-                  <datalist id="ports-datalist">
-                    <option value="Pontianak, Kalimantan Barat" />
-                    <option value="Ketapang, Kalimantan Barat" />
-                    <option value="Kendawangan, Kalimantan Barat" />
-                    <option value="Singkawang, Kalimantan Barat" />
-                    <option value="Banjarmasin, Kalimantan Selatan" />
-                    <option value="Kumai, Kalimantan Tengah" />
-                    <option value="Sampit, Kalimantan Tengah" />
-                    <option value="Samarinda, Kalimantan Timur" />
-                    <option value="Balikpapan, Kalimantan Timur" />
-                    <option value="Surabaya, Jawa Timur" />
-                    <option value="Jakarta (Tanjung Priok)" />
-                    <option value="Batam, Kepulauan Riau" />
-                  </datalist>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
+                    {['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya'].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, portOfRegistry: p }))}
+                        className="badge"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          padding: '0.15rem 0.45rem',
+                          background: formData.portOfRegistry === p ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          border: `1px solid ${formData.portOfRegistry === p ? '#38bdf8' : 'var(--border-subtle)'}`,
+                          color: formData.portOfRegistry === p ? '#38bdf8' : 'var(--text-secondary)'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="field-label">Gross Tonnage (GT)</label>

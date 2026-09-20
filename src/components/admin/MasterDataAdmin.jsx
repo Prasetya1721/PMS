@@ -95,14 +95,14 @@ export const MasterDataAdmin = () => {
   const [editingVessel, setEditingVessel] = useState(null);
   const [vesselFormData, setVesselFormData] = useState({
     name: '',
-    type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
+    type: '',
     ownershipStatus: 'As Owner',
     regNo: '',
     imo: '',
     callSign: '',
     gt: 310,
     dwt: 450,
-    portOfRegistry: 'Pontianak, Kalimantan Barat',
+    portOfRegistry: '',
     builder: 'PT Dok & Perkapalan Baharimas Pontianak',
     yearBuilt: 2022,
     status: 'Operasional (Berlayar)'
@@ -958,16 +958,16 @@ export const MasterDataAdmin = () => {
                   setEditingVessel(null);
                   setVesselFormData({
                     name: '',
-                    type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
+                    type: '',
                     ownershipStatus: 'As Owner',
                     regNo: '',
                     imo: '',
                     callSign: '',
-                    gt: 310,
-                    dwt: 450,
-                    portOfRegistry: 'Pontianak, Kalimantan Barat',
-                    builder: 'PT Dok & Perkapalan Baharimas Pontianak',
-                    yearBuilt: 2022,
+                    gt: '',
+                    dwt: '',
+                    portOfRegistry: '',
+                    builder: '',
+                    yearBuilt: new Date().getFullYear(),
                     status: 'Operasional (Berlayar)'
                   });
                   setShowVesselModal(true);
@@ -2438,24 +2438,37 @@ export const MasterDataAdmin = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label className="field-label">Jenis / Tipe Kapal</label>
+                  <label className="field-label">Jenis / Tipe Kapal *</label>
                   <input
                     type="text"
-                    list="admin-vessel-types-datalist"
-                    placeholder="Contoh: Tugboat Twin Screw / Tongkang"
+                    required
+                    placeholder="Ketik manual (cth: Tugboat, Tongkang 300ft, LCT, SPOB)..."
                     value={vesselFormData.type}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, type: e.target.value }))}
                     className="input-control"
+                    autoComplete="off"
                   />
-                  <datalist id="admin-vessel-types-datalist">
-                    <option value="Tugboat (Kapal Tunda Twin Screw 3200 BHP)" />
-                    <option value="Tugboat (Kapal Tunda Single Screw 1800 BHP)" />
-                    <option value="Tongkang (Barge Batubara 300 Feet)" />
-                    <option value="Tongkang (Barge Batubara 330 Feet)" />
-                    <option value="Kapal Kargo / SPOB" />
-                    <option value="LCT (Landing Craft Tank)" />
-                    <option value="Speedboat Patroli" />
-                  </datalist>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
+                    {['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT', 'Kapal Kargo / SPOB', 'Speedboat'].map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setVesselFormData(prev => ({ ...prev, type: t }))}
+                        className="badge"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          padding: '0.15rem 0.45rem',
+                          background: vesselFormData.type === t ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          border: `1px solid ${vesselFormData.type === t ? '#38bdf8' : 'var(--border-subtle)'}`,
+                          color: vesselFormData.type === t ? '#38bdf8' : 'var(--text-secondary)'
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="field-label">No. Registrasi Kapal</label>
@@ -2515,26 +2528,33 @@ export const MasterDataAdmin = () => {
                   <label className="field-label">Pelabuhan Pendaftaran</label>
                   <input
                     type="text"
-                    list="admin-ports-datalist"
-                    placeholder="Contoh: Pontianak, Kalimantan Barat"
+                    placeholder="Ketik manual (cth: Pontianak, Banjarmasin, Jakarta)..."
                     value={vesselFormData.portOfRegistry}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, portOfRegistry: e.target.value }))}
                     className="input-control"
+                    autoComplete="off"
                   />
-                  <datalist id="admin-ports-datalist">
-                    <option value="Pontianak, Kalimantan Barat" />
-                    <option value="Ketapang, Kalimantan Barat" />
-                    <option value="Kendawangan, Kalimantan Barat" />
-                    <option value="Singkawang, Kalimantan Barat" />
-                    <option value="Banjarmasin, Kalimantan Selatan" />
-                    <option value="Kumai, Kalimantan Tengah" />
-                    <option value="Sampit, Kalimantan Tengah" />
-                    <option value="Samarinda, Kalimantan Timur" />
-                    <option value="Balikpapan, Kalimantan Timur" />
-                    <option value="Surabaya, Jawa Timur" />
-                    <option value="Jakarta (Tanjung Priok)" />
-                    <option value="Batam, Kepulauan Riau" />
-                  </datalist>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
+                    {['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya'].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setVesselFormData(prev => ({ ...prev, portOfRegistry: p }))}
+                        className="badge"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: '0.68rem',
+                          padding: '0.15rem 0.45rem',
+                          background: vesselFormData.portOfRegistry === p ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          border: `1px solid ${vesselFormData.portOfRegistry === p ? '#38bdf8' : 'var(--border-subtle)'}`,
+                          color: vesselFormData.portOfRegistry === p ? '#38bdf8' : 'var(--text-secondary)'
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="field-label">Status Operasional</label>

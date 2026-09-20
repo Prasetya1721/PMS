@@ -493,6 +493,14 @@ h1, h2, h3, h4, h5 {
   color: var(--text-subtle);
 }
 
+input::-webkit-calendar-picker-indicator {
+  display: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
 .select-control {
   width: 100%;
   padding: 0.6rem 2.2rem 0.6rem 0.9rem;
