@@ -41,6 +41,7 @@ import {
 import { DocumentFormModal } from '../documents/DocumentFormModal';
 import { DocumentPreviewModal } from '../documents/DocumentPreviewModal';
 import { ParticularsModal } from '../vessels/ParticularsModal';
+import { MasterCombobox } from '../common/MasterCombobox';
 
 export const MasterDataAdmin = () => {
   const {
@@ -66,6 +67,10 @@ export const MasterDataAdmin = () => {
     updateVessel,
     deleteVessel,
     updateVesselParticulars,
+    vesselTypes,
+    portLocations,
+    deleteMasterVesselType,
+    deleteMasterPort,
     addCrew,
     updateCrew,
     deleteCrew,
@@ -1114,6 +1119,101 @@ export const MasterDataAdmin = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Master Reference Badges: Tipe Kapal & Pelabuhan Pendaftaran */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.25rem' }}>
+            <div className="glass-card" style={{ padding: '1.15rem 1.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🏷️ Master Tipe / Jenis Kapal</span>
+                    <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>{vesselTypes.length} Tipe</span>
+                  </h4>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    Otomatis bertambah saat Anda mengetik tipe baru dan menyimpannya.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {vesselTypes.map(t => (
+                  <span
+                    key={t}
+                    className="badge"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.72rem',
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.35)',
+                      color: '#38bdf8'
+                    }}
+                  >
+                    <span>{t}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Hapus tipe kapal "${t}" dari master data?`)) {
+                          deleteMasterVesselType(t);
+                        }
+                      }}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.85rem' }}
+                      title="Hapus dari master data"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-card" style={{ padding: '1.15rem 1.35rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>⚓ Master Pelabuhan Pendaftaran</span>
+                    <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>{portLocations.length} Kota</span>
+                  </h4>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    Otomatis bertambah saat Anda mengetik pelabuhan baru dan menyimpannya.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {portLocations.map(p => (
+                  <span
+                    key={p}
+                    className="badge"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.72rem',
+                      padding: '0.25rem 0.6rem',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      color: '#10b981'
+                    }}
+                  >
+                    <span>{p}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Hapus pelabuhan "${p}" dari master data?`)) {
+                          deleteMasterPort(p);
+                        }
+                      }}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.85rem' }}
+                      title="Hapus dari master data"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -2439,36 +2539,14 @@ export const MasterDataAdmin = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label className="field-label">Jenis / Tipe Kapal *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ketik manual (cth: Tugboat, Tongkang 300ft, LCT, SPOB)..."
+                  <MasterCombobox
+                    name="type"
                     value={vesselFormData.type}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, type: e.target.value }))}
-                    className="input-control"
-                    autoComplete="off"
+                    options={vesselTypes}
+                    placeholder="Ketik manual jenis kapal atau pilih..."
+                    required
                   />
-                  <div style={{ marginTop: '0.35rem' }}>
-                    <select
-                      value={['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT (Landing Craft Tank)', 'Kapal Kargo / SPOB', 'Speedboat', 'Oil Barge'].includes(vesselFormData.type) ? vesselFormData.type : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setVesselFormData(prev => ({ ...prev, type: e.target.value }));
-                        }
-                      }}
-                      className="select-control"
-                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
-                    >
-                      <option value="" disabled>⚡ Pilihan Cepat Jenis Kapal (Dropdown) ▼</option>
-                      <option value="Tugboat">Tugboat (Kapal Tunda)</option>
-                      <option value="Tongkang 300 Feet">Tongkang 300 Feet</option>
-                      <option value="Tongkang 330 Feet">Tongkang 330 Feet</option>
-                      <option value="LCT (Landing Craft Tank)">LCT (Landing Craft Tank)</option>
-                      <option value="Kapal Kargo / SPOB">Kapal Kargo / SPOB</option>
-                      <option value="Speedboat">Speedboat Patroli</option>
-                      <option value="Oil Barge">Oil Barge (Tongkang Minyak)</option>
-                    </select>
-                  </div>
                 </div>
                 <div>
                   <label className="field-label">No. Registrasi Kapal</label>
@@ -2526,39 +2604,13 @@ export const MasterDataAdmin = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label className="field-label">Pelabuhan Pendaftaran</label>
-                  <input
-                    type="text"
-                    placeholder="Ketik manual (cth: Pontianak, Banjarmasin, Jakarta)..."
+                  <MasterCombobox
+                    name="portOfRegistry"
                     value={vesselFormData.portOfRegistry}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, portOfRegistry: e.target.value }))}
-                    className="input-control"
-                    autoComplete="off"
+                    options={portLocations}
+                    placeholder="Ketik manual nama pelabuhan atau pilih..."
                   />
-                  <div style={{ marginTop: '0.35rem' }}>
-                    <select
-                      value={['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya', 'Batam', 'Kumai', 'Sampit'].includes(vesselFormData.portOfRegistry) ? vesselFormData.portOfRegistry : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setVesselFormData(prev => ({ ...prev, portOfRegistry: e.target.value }));
-                        }
-                      }}
-                      className="select-control"
-                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
-                    >
-                      <option value="" disabled>⚡ Pilihan Cepat Pelabuhan (Dropdown) ▼</option>
-                      <option value="Pontianak">Pontianak</option>
-                      <option value="Ketapang">Ketapang</option>
-                      <option value="Kendawangan">Kendawangan</option>
-                      <option value="Banjarmasin">Banjarmasin</option>
-                      <option value="Samarinda">Samarinda</option>
-                      <option value="Balikpapan">Balikpapan</option>
-                      <option value="Jakarta">Jakarta</option>
-                      <option value="Surabaya">Surabaya</option>
-                      <option value="Batam">Batam</option>
-                      <option value="Kumai">Kumai</option>
-                      <option value="Sampit">Sampit</option>
-                    </select>
-                  </div>
                 </div>
                 <div>
                   <label className="field-label">Status Operasional</label>

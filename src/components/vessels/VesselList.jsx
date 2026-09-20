@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { ParticularsModal } from './ParticularsModal';
+import { MasterCombobox } from '../common/MasterCombobox';
 
 export const VesselList = () => {
   const {
@@ -31,6 +32,8 @@ export const VesselList = () => {
     setActiveTab,
     addVessel,
     updateVesselParticulars,
+    vesselTypes,
+    portLocations,
     showToast
   } = usePMS();
 
@@ -552,37 +555,14 @@ export const VesselList = () => {
                 </div>
                 <div>
                   <label className="field-label">Tipe / Jenis Kapal *</label>
-                  <input
-                    type="text"
+                  <MasterCombobox
                     name="type"
-                    required
-                    placeholder="Ketik manual (cth: Tugboat, Tongkang 300ft, LCT, SPOB)..."
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="input-control"
-                    autoComplete="off"
+                    options={vesselTypes}
+                    placeholder="Ketik manual jenis kapal atau pilih..."
+                    required
                   />
-                  <div style={{ marginTop: '0.35rem' }}>
-                    <select
-                      value={['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT (Landing Craft Tank)', 'Kapal Kargo / SPOB', 'Speedboat', 'Oil Barge'].includes(formData.type) ? formData.type : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setFormData(prev => ({ ...prev, type: e.target.value }));
-                        }
-                      }}
-                      className="select-control"
-                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
-                    >
-                      <option value="" disabled>⚡ Pilihan Cepat Jenis Kapal (Dropdown) ▼</option>
-                      <option value="Tugboat">Tugboat (Kapal Tunda)</option>
-                      <option value="Tongkang 300 Feet">Tongkang 300 Feet</option>
-                      <option value="Tongkang 330 Feet">Tongkang 330 Feet</option>
-                      <option value="LCT (Landing Craft Tank)">LCT (Landing Craft Tank)</option>
-                      <option value="Kapal Kargo / SPOB">Kapal Kargo / SPOB</option>
-                      <option value="Speedboat">Speedboat Patroli</option>
-                      <option value="Oil Barge">Oil Barge (Tongkang Minyak)</option>
-                    </select>
-                  </div>
                 </div>
                 <div>
                   <label className="field-label">Status Kepemilikan</label>
@@ -602,40 +582,13 @@ export const VesselList = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div>
                   <label className="field-label">Pelabuhan Pendaftaran</label>
-                  <input
-                    type="text"
+                  <MasterCombobox
                     name="portOfRegistry"
-                    placeholder="Ketik manual (cth: Pontianak, Banjarmasin, Jakarta)..."
                     value={formData.portOfRegistry}
                     onChange={handleInputChange}
-                    className="input-control"
-                    autoComplete="off"
+                    options={portLocations}
+                    placeholder="Ketik manual nama pelabuhan atau pilih..."
                   />
-                  <div style={{ marginTop: '0.35rem' }}>
-                    <select
-                      value={['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya', 'Batam', 'Kumai', 'Sampit'].includes(formData.portOfRegistry) ? formData.portOfRegistry : ''}
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          setFormData(prev => ({ ...prev, portOfRegistry: e.target.value }));
-                        }
-                      }}
-                      className="select-control"
-                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
-                    >
-                      <option value="" disabled>⚡ Pilihan Cepat Pelabuhan (Dropdown) ▼</option>
-                      <option value="Pontianak">Pontianak</option>
-                      <option value="Ketapang">Ketapang</option>
-                      <option value="Kendawangan">Kendawangan</option>
-                      <option value="Banjarmasin">Banjarmasin</option>
-                      <option value="Samarinda">Samarinda</option>
-                      <option value="Balikpapan">Balikpapan</option>
-                      <option value="Jakarta">Jakarta</option>
-                      <option value="Surabaya">Surabaya</option>
-                      <option value="Batam">Batam</option>
-                      <option value="Kumai">Kumai</option>
-                      <option value="Sampit">Sampit</option>
-                    </select>
-                  </div>
                 </div>
                 <div>
                   <label className="field-label">Gross Tonnage (GT)</label>

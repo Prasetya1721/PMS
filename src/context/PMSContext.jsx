@@ -154,6 +154,88 @@ export const PMSProvider = ({ children }) => {
   const [audits, setAudits] = useState(() => loadStored('audits', INITIAL_AUDITS));
   const [auditFindings, setAuditFindings] = useState(() => loadStored('auditFindings', INITIAL_AUDIT_FINDINGS));
 
+  // Master Data Tipe Kapal & Pelabuhan Pendaftaran (Bisa Ditambah Otomatis Saat Input Manual Disimpan)
+  const DEFAULT_VESSEL_TYPES = [
+    'Tugboat',
+    'Tongkang 300 Feet',
+    'Tongkang 330 Feet',
+    'LCT (Landing Craft Tank)',
+    'Kapal Kargo / SPOB',
+    'Speedboat Patroli',
+    'Oil Barge (Tongkang Minyak)'
+  ];
+
+  const DEFAULT_MASTER_PORTS = [
+    'Pontianak',
+    'Ketapang',
+    'Kendawangan',
+    'Banjarmasin',
+    'Samarinda',
+    'Balikpapan',
+    'Jakarta',
+    'Surabaya',
+    'Batam',
+    'Kumai',
+    'Sampit'
+  ];
+
+  const [vesselTypes, setVesselTypes] = useState(() => loadStored('vesselTypes', DEFAULT_VESSEL_TYPES));
+  const [portLocations, setPortLocations] = useState(() => loadStored('portLocations', DEFAULT_MASTER_PORTS));
+
+  useEffect(() => {
+    localStorage.setItem('pms_vesselTypes', JSON.stringify(vesselTypes));
+  }, [vesselTypes]);
+
+  useEffect(() => {
+    localStorage.setItem('pms_portLocations', JSON.stringify(portLocations));
+  }, [portLocations]);
+
+  const addMasterVesselType = (type) => {
+    if (!type || typeof type !== 'string') return;
+    const clean = type.trim();
+    if (!clean) return;
+    setVesselTypes(prev => {
+      const exists = (prev || []).some(t => t.toLowerCase() === clean.toLowerCase());
+      if (!exists) {
+        const updated = [clean, ...(prev || [])];
+        localStorage.setItem('pms_vesselTypes', JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+  };
+
+  const deleteMasterVesselType = (typeToDelete) => {
+    setVesselTypes(prev => {
+      const updated = (prev || []).filter(t => t.toLowerCase() !== typeToDelete.toLowerCase());
+      localStorage.setItem('pms_vesselTypes', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const addMasterPort = (port) => {
+    if (!port || typeof port !== 'string') return;
+    const clean = port.trim();
+    if (!clean) return;
+    setPortLocations(prev => {
+      const exists = (prev || []).some(p => p.toLowerCase() === clean.toLowerCase());
+      if (!exists) {
+        const updated = [clean, ...(prev || [])];
+        localStorage.setItem('pms_portLocations', JSON.stringify(updated));
+        return updated;
+      }
+      return prev;
+    });
+  };
+
+  const deleteMasterPort = (portToDelete) => {
+    setPortLocations(prev => {
+      const updated = (prev || []).filter(p => p.toLowerCase() !== portToDelete.toLowerCase());
+      localStorage.setItem('pms_portLocations', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Authentication state for PT. Pelayaran Baharimas Kalimantan
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -883,6 +965,10 @@ export const PMSProvider = ({ children }) => {
       };
 
       setVessels(prev => [newVessel, ...(prev || [])]);
+      // Simpan nilai baru ke Data Master jika belum ada
+      if (vesselData?.type) addMasterVesselType(vesselData.type);
+      if (vesselData?.portOfRegistry) addMasterPort(vesselData.portOfRegistry);
+
       showToast(`Kapal ${newVessel.name} berhasil didaftarkan ke sistem armada!`, 'success');
       return newVessel;
     } catch (err) {
@@ -924,6 +1010,9 @@ export const PMSProvider = ({ children }) => {
       return next;
     });
 
+    if (updatedParticulars?.vesselType) addMasterVesselType(updatedParticulars.vesselType);
+    if (updatedParticulars?.portOfRegistry) addMasterPort(updatedParticulars.portOfRegistry);
+
     try {
       confetti({ particleCount: 45, spread: 60, origin: { y: 0.65 } });
     } catch {}
@@ -948,6 +1037,10 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_vessels', JSON.stringify(next));
       return next;
     });
+
+    if (updatedFields?.type) addMasterVesselType(updatedFields.type);
+    if (updatedFields?.portOfRegistry) addMasterPort(updatedFields.portOfRegistry);
+
     showToast('Data Kapal berhasil diperbarui!', 'success');
   };
 
@@ -2441,6 +2534,14 @@ export const PMSProvider = ({ children }) => {
         deleteVessel,
         updateVesselParticulars,
         setVessels,
+        vesselTypes,
+        setVesselTypes,
+        addMasterVesselType,
+        deleteMasterVesselType,
+        portLocations,
+        setPortLocations,
+        addMasterPort,
+        deleteMasterPort,
         addShipDocument,
         updateShipDocument,
         deleteShipDocument,
