@@ -219,7 +219,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
               SPESIFIKASI TEKNIS KAPAL
             </span>
             <span className="mono" style={{ fontSize: '0.76rem', color: 'var(--text-main)', fontWeight: 800 }}>
-              DOC NO: PBK-PAR-{particulars.officialNo?.split(' ')[0] || vessel.regNo || '001'}
+              DOC NO: PBK-PAR-{(particulars.officialNo || vessel.regNo || '001').toString().split(' ')[0]}
             </span>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
               Klasifikasi: <strong>Biro Klasifikasi Indonesia (BKI)</strong>
@@ -282,7 +282,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                     Bendera: {particulars.flag || 'IDN'}
                   </span>
                   <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
-                    Port: {particulars.portOfRegistry?.split(',')[0]}
+                    Port: {(particulars.portOfRegistry || vessel.portOfRegistry || '-').split(',')[0]}
                   </span>
                   <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
                     Tahun: {particulars.yearBuilt}
@@ -317,7 +317,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
                 <div style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', display: 'block' }}>Daya Mesin / BHP</span>
                   <p style={{ fontSize: '0.825rem', fontWeight: 800, color: '#f59e0b', margin: '0.1rem 0 0 0' }}>
-                    {particulars.totalHorsepower?.split('(')[0] || particulars.totalHorsepower || '-'}
+                    {(particulars.totalHorsepower || '-').toString().split('(')[0] || particulars.totalHorsepower || '-'}
                   </p>
                 </div>
               </div>

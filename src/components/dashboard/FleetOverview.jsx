@@ -277,9 +277,9 @@ export const FleetOverview = () => {
                     flexWrap: 'wrap'
                   }}>
                     <span className={`badge ${
-                      ship.status.includes('Operasional') ? 'badge-success' : 'badge-warning'
+                      (ship.status || '').includes('Operasional') ? 'badge-success' : 'badge-warning'
                     }`}>
-                      {ship.status.split(' ')[0]}
+                      {(ship.status || 'Aktif').split(' ')[0]}
                     </span>
                     <span
                       className="badge"
@@ -312,16 +312,16 @@ export const FleetOverview = () => {
                 <div style={{ padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8rem' }}>
                     <div style={{ color: 'var(--text-muted)' }}>
-                      Tipe: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{ship.type.split('/')[0]}</span>
+                      Tipe: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{(ship.type || 'Kapal').split('/')[0]}</span>
                     </div>
                     <div style={{ color: 'var(--text-muted)' }}>
-                      Ukuran: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{ship.gt.toLocaleString()} GT</span>
+                      Ukuran: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{(ship.gt || 0).toLocaleString()} GT</span>
                     </div>
                     <div style={{ color: 'var(--text-muted)' }}>
-                      Lokasi: <span style={{ color: '#38bdf8', fontWeight: 500 }}>{ship.currentLocation.split('(')[0]}</span>
+                      Lokasi: <span style={{ color: '#38bdf8', fontWeight: 500 }}>{(ship.currentLocation || '-').split('(')[0]}</span>
                     </div>
                     <div style={{ color: 'var(--text-muted)' }}>
-                      Kecepatan: <span className="mono" style={{ color: '#fff', fontWeight: 600 }}>{ship.speedKnots} kts</span>
+                      Kecepatan: <span className="mono" style={{ color: '#fff', fontWeight: 600 }}>{ship.speedKnots || 0} kts</span>
                     </div>
                   </div>
 

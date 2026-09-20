@@ -360,7 +360,7 @@ export const VesselDashboard = () => {
                       <optgroup label={`⚓ AS OWNER (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal)`}>
                         {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
                           <option key={v.id} value={v.id}>
-                            🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
+                            🚢 {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Owner]
                           </option>
                         ))}
                       </optgroup>
@@ -369,7 +369,7 @@ export const VesselDashboard = () => {
                       <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal)`}>
                         {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
                           <option key={v.id} value={v.id}>
-                            ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
+                            ⚙️ {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Operator]
                           </option>
                         ))}
                       </optgroup>

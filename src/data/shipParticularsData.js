@@ -2,25 +2,28 @@
 // Comprehensive maritime technical specifications for Tugboats (Kapal Tunda) and Barges (Tongkang)
 
 export const createDefaultShipParticulars = (vessel = {}) => {
+  const typeStr = String(vessel.type || '');
   const isBarge =
-    vessel.type?.toLowerCase().includes('tongkang') ||
-    vessel.type?.toLowerCase().includes('barge');
+    typeStr.toLowerCase().includes('tongkang') ||
+    typeStr.toLowerCase().includes('barge');
 
   const isOperator =
-    vessel.id?.startsWith('v-op-') ||
+    String(vessel.id || '').startsWith('v-op-') ||
     vessel.ownershipStatus === 'As Operator';
 
-  const regNo = vessel.regNo || '-';
-  const name = vessel.name || 'RP 2020';
-  const yearBuilt = vessel.yearBuilt || 2020;
+  const regNo = String(vessel.regNo || '').trim() || '-';
+  const name = String(vessel.name || 'Kapal Niaga').trim();
+  const yearBuilt = Number(vessel.yearBuilt) || new Date().getFullYear();
   const builder = vessel.builder || 'PT Dok & Perkapalan Baharimas Pontianak';
   const port = vessel.portOfRegistry || 'Pontianak, Kalimantan Barat';
   const flag = vessel.flag || 'Indonesia (IDN)';
-  const callSign = vessel.callSign || (isBarge ? '-' : `YDB${regNo.slice(0, 4)}`);
+  const cleanReg = regNo !== '-' ? regNo.replace(/[^A-Za-z0-9]/g, '') : '';
+  const cleanDigits = regNo !== '-' ? regNo.replace(/[^0-9]/g, '') : '';
+  const callSign = vessel.callSign || (isBarge ? '-' : (cleanReg ? `YDB${cleanReg.slice(0, 4)}` : '-'));
 
   // Extract BHP if present in vessel type or name
   let bhp = 3200;
-  const bhpMatch = vessel.type?.match(/(\d+)\s*BHP/i);
+  const bhpMatch = typeStr.match(/(\d+)\s*BHP/i);
   if (bhpMatch) {
     bhp = parseInt(bhpMatch[1], 10);
   } else if (name.includes('2012')) {
@@ -63,7 +66,7 @@ export const createDefaultShipParticulars = (vessel = {}) => {
       officialNo: `${regNo} / Ba.${yearBuilt}`,
       callSign: '-',
       imoNumber: '-',
-      mmsi: `5259${regNo.slice(0, 5)}`,
+      mmsi: `5259${(cleanDigits || '99999').padEnd(5, '0').slice(0, 5)}`,
       classification: 'Biro Klasifikasi Indonesia (BKI)',
       classNotation: '+A100 (I) P Tongkang Geladak Baja, +SM',
       builder: builder,
@@ -183,7 +186,7 @@ export const createDefaultShipParticulars = (vessel = {}) => {
     officialNo: regNo !== '-' ? `${regNo} / Ba.${yearBuilt}` : '-',
     callSign: callSign,
     imoNumber: vessel.imo || '-',
-    mmsi: `5250${regNo.padEnd(5, '0').slice(0, 5)}`,
+    mmsi: `5250${(cleanDigits || '99999').padEnd(5, '0').slice(0, 5)}`,
     classification: 'Biro Klasifikasi Indonesia (BKI)',
     classNotation: singleScrew ? '+A100 (I) P Kapal Tunda, +SM' : '+A100 (I) P Kapal Tunda Twin Screw, +SM',
     builder: builder,

@@ -254,27 +254,31 @@ export const PMSProvider = ({ children }) => {
 
   // Sync to localStorage
   useEffect(() => {
-    localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-    localStorage.setItem('pms_vessels', JSON.stringify(vessels));
-    localStorage.setItem('pms_equipment', JSON.stringify(equipment));
-    localStorage.setItem('pms_schedules', JSON.stringify(schedules));
-    localStorage.setItem('pms_workOrders', JSON.stringify(workOrders));
-    localStorage.setItem('pms_spareparts', JSON.stringify(spareparts));
-    localStorage.setItem('pms_requisitions', JSON.stringify(requisitions));
-    localStorage.setItem('pms_costs', JSON.stringify(costs));
-    localStorage.setItem('pms_vessel_budgets', JSON.stringify(vesselBudgets));
-    localStorage.setItem('pms_crew', JSON.stringify(crew));
-    localStorage.setItem('pms_leaves', JSON.stringify(leaves));
-    localStorage.setItem('pms_drills', JSON.stringify(drills));
-    localStorage.setItem('pms_crewCertificates', JSON.stringify(crewCertificates));
-    localStorage.setItem('pms_shipDocuments', JSON.stringify(shipDocuments));
-    localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories));
-    localStorage.setItem('pms_documentTemplates', JSON.stringify(documentTemplates));
-    localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings));
-    localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs));
-    localStorage.setItem('pms_users', JSON.stringify(users));
-    localStorage.setItem('pms_audits', JSON.stringify(audits));
-    localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings));
+    try {
+      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
+      localStorage.setItem('pms_vessels', JSON.stringify(vessels || []));
+      localStorage.setItem('pms_equipment', JSON.stringify(equipment || []));
+      localStorage.setItem('pms_schedules', JSON.stringify(schedules || []));
+      localStorage.setItem('pms_workOrders', JSON.stringify(workOrders || []));
+      localStorage.setItem('pms_spareparts', JSON.stringify(spareparts || []));
+      localStorage.setItem('pms_requisitions', JSON.stringify(requisitions || []));
+      localStorage.setItem('pms_costs', JSON.stringify(costs || []));
+      localStorage.setItem('pms_vessel_budgets', JSON.stringify(vesselBudgets || []));
+      localStorage.setItem('pms_crew', JSON.stringify(crew || []));
+      localStorage.setItem('pms_leaves', JSON.stringify(leaves || []));
+      localStorage.setItem('pms_drills', JSON.stringify(drills || []));
+      localStorage.setItem('pms_crewCertificates', JSON.stringify(crewCertificates || []));
+      localStorage.setItem('pms_shipDocuments', JSON.stringify(shipDocuments || []));
+      localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories || []));
+      localStorage.setItem('pms_documentTemplates', JSON.stringify(documentTemplates || []));
+      localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings || {}));
+      localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs || []));
+      localStorage.setItem('pms_users', JSON.stringify(users || []));
+      localStorage.setItem('pms_audits', JSON.stringify(audits || []));
+      localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings || []));
+    } catch (err) {
+      console.error('[PMS] Failed to sync state to localStorage:', err);
+    }
   }, [
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
@@ -841,34 +845,51 @@ export const PMSProvider = ({ children }) => {
 
   // 4b. Vessel & Ship Document Actions
   const addVessel = (vesselData) => {
-    const newId = `v-${Date.now()}`;
-    const isBarge = vesselData.type?.toLowerCase().includes('tongkang') || vesselData.type?.toLowerCase().includes('barge');
-    const baseNewVessel = {
-      ...vesselData,
-      id: newId,
-      gt: Number(vesselData.gt) || (isBarge ? 3500 : 300),
-      dwt: Number(vesselData.dwt) || (isBarge ? 8500 : 450),
-      yearBuilt: Number(vesselData.yearBuilt) || new Date().getFullYear(),
-      speedKnots: Number(vesselData.speedKnots) || (isBarge ? 0 : 8.0),
-      flag: vesselData.flag || "Indonesia (IDN)",
-      portOfRegistry: vesselData.portOfRegistry || "Pontianak, Kalimantan Barat",
-      status: vesselData.status || "Operasional (Berlayar)",
-      ownershipStatus: vesselData.ownershipStatus || "As Owner & Operator",
-      photo: vesselData.photo || (
-        isBarge
-          ? "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80"
-          : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80"
-      )
-    };
+    try {
+      const newId = `v-${Date.now()}`;
+      const typeStr = String(vesselData?.type || 'Tugboat Twin Screw');
+      const isBarge = typeStr.toLowerCase().includes('tongkang') || typeStr.toLowerCase().includes('barge');
+      const cleanReg = String(vesselData?.regNo || '').trim();
+      const baseNewVessel = {
+        ...vesselData,
+        id: newId,
+        name: String(vesselData?.name || 'Kapal Baru').trim(),
+        type: typeStr,
+        regNo: cleanReg,
+        imo: String(vesselData?.imo || '').trim(),
+        callSign: String(vesselData?.callSign || '').trim() || (isBarge ? '-' : (cleanReg ? `YDB${cleanReg.replace(/[^A-Za-z0-9]/g, '').slice(0, 4)}` : '-')),
+        gt: Number(vesselData?.gt) || (isBarge ? 3500 : 300),
+        dwt: Number(vesselData?.dwt) || (isBarge ? 8500 : 450),
+        yearBuilt: Number(vesselData?.yearBuilt) || new Date().getFullYear(),
+        speedKnots: Number(vesselData?.speedKnots) || (isBarge ? 0 : 8.0),
+        flag: vesselData?.flag || "Indonesia (IDN)",
+        portOfRegistry: vesselData?.portOfRegistry || "Pontianak, Kalimantan Barat",
+        status: vesselData?.status || "Operasional (Berlayar)",
+        ownershipStatus: vesselData?.ownershipStatus || "As Owner & Operator",
+        currentLocation: vesselData?.currentLocation || "Sungai Kapuas, Pontianak",
+        builder: vesselData?.builder || "PT Dok & Perkapalan Baharimas",
+        masterCaptain: vesselData?.masterCaptain || "",
+        chiefEngineer: vesselData?.chiefEngineer || "",
+        photo: vesselData?.photo || (
+          isBarge
+            ? "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80"
+            : "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80"
+        )
+      };
 
-    const newVessel = {
-      ...baseNewVessel,
-      particulars: vesselData.particulars || createDefaultShipParticulars(baseNewVessel)
-    };
+      const newVessel = {
+        ...baseNewVessel,
+        particulars: vesselData?.particulars || createDefaultShipParticulars(baseNewVessel)
+      };
 
-    setVessels(prev => [newVessel, ...prev]);
-    showToast(`Kapal ${newVessel.name} berhasil didaftarkan ke sistem armada!`, 'success');
-    return newVessel;
+      setVessels(prev => [newVessel, ...(prev || [])]);
+      showToast(`Kapal ${newVessel.name} berhasil didaftarkan ke sistem armada!`, 'success');
+      return newVessel;
+    } catch (err) {
+      console.error('[PMS] Failed to add vessel:', err);
+      showToast('Gagal mendaftarkan kapal: ' + err.message, 'error');
+      return null;
+    }
   };
 
   const updateVesselParticulars = (vesselId, updatedParticulars) => {

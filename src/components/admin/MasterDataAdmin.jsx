@@ -366,29 +366,45 @@ export const MasterDataAdmin = () => {
   // Handle Save Vessel
   const handleSaveVessel = (e) => {
     e.preventDefault();
-    if (!vesselFormData.name.trim()) return;
-
-    if (editingVessel) {
-      updateVessel(editingVessel.id, vesselFormData);
-    } else {
-      addVessel(vesselFormData);
+    if (!vesselFormData.name?.trim()) {
+      showToast('Nama kapal resmi wajib diisi!', 'warning');
+      return;
     }
-    setShowVesselModal(false);
-    setEditingVessel(null);
+
+    try {
+      if (editingVessel) {
+        updateVessel(editingVessel.id, vesselFormData);
+      } else {
+        addVessel(vesselFormData);
+      }
+      setShowVesselModal(false);
+      setEditingVessel(null);
+    } catch (err) {
+      console.error('Error saving vessel in admin:', err);
+      showToast('Gagal menyimpan kapal: ' + err.message, 'error');
+    }
   };
 
   // Handle Save Crew
   const handleSaveCrew = (e) => {
     e.preventDefault();
-    if (!crewFormData.name.trim()) return;
-
-    if (editingCrew) {
-      updateCrew(editingCrew.id, crewFormData);
-    } else {
-      addCrew(crewFormData);
+    if (!crewFormData.name?.trim()) {
+      showToast('Nama personel kru wajib diisi!', 'warning');
+      return;
     }
-    setShowCrewModal(false);
-    setEditingCrew(null);
+
+    try {
+      if (editingCrew) {
+        updateCrew(editingCrew.id, crewFormData);
+      } else {
+        addCrew(crewFormData);
+      }
+      setShowCrewModal(false);
+      setEditingCrew(null);
+    } catch (err) {
+      console.error('Error saving crew in admin:', err);
+      showToast('Gagal menyimpan crew: ' + err.message, 'error');
+    }
   };
 
   // Handle Add Category
@@ -2450,10 +2466,21 @@ export const MasterDataAdmin = () => {
                   <label className="field-label">Jenis / Tipe Kapal</label>
                   <input
                     type="text"
+                    list="admin-vessel-types-datalist"
+                    placeholder="Contoh: Tugboat Twin Screw / Tongkang"
                     value={vesselFormData.type}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, type: e.target.value }))}
                     className="input-control"
                   />
+                  <datalist id="admin-vessel-types-datalist">
+                    <option value="Tugboat (Kapal Tunda Twin Screw 3200 BHP)" />
+                    <option value="Tugboat (Kapal Tunda Single Screw 1800 BHP)" />
+                    <option value="Tongkang (Barge Batubara 300 Feet)" />
+                    <option value="Tongkang (Barge Batubara 330 Feet)" />
+                    <option value="Kapal Kargo / SPOB" />
+                    <option value="LCT (Landing Craft Tank)" />
+                    <option value="Speedboat Patroli" />
+                  </datalist>
                 </div>
                 <div>
                   <label className="field-label">No. Registrasi Kapal</label>
@@ -2513,10 +2540,26 @@ export const MasterDataAdmin = () => {
                   <label className="field-label">Pelabuhan Pendaftaran</label>
                   <input
                     type="text"
+                    list="admin-ports-datalist"
+                    placeholder="Contoh: Pontianak, Kalimantan Barat"
                     value={vesselFormData.portOfRegistry}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, portOfRegistry: e.target.value }))}
                     className="input-control"
                   />
+                  <datalist id="admin-ports-datalist">
+                    <option value="Pontianak, Kalimantan Barat" />
+                    <option value="Ketapang, Kalimantan Barat" />
+                    <option value="Kendawangan, Kalimantan Barat" />
+                    <option value="Singkawang, Kalimantan Barat" />
+                    <option value="Banjarmasin, Kalimantan Selatan" />
+                    <option value="Kumai, Kalimantan Tengah" />
+                    <option value="Sampit, Kalimantan Tengah" />
+                    <option value="Samarinda, Kalimantan Timur" />
+                    <option value="Balikpapan, Kalimantan Timur" />
+                    <option value="Surabaya, Jawa Timur" />
+                    <option value="Jakarta (Tanjung Priok)" />
+                    <option value="Batam, Kepulauan Riau" />
+                  </datalist>
                 </div>
                 <div>
                   <label className="field-label">Status Operasional</label>

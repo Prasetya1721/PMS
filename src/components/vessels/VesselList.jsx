@@ -30,7 +30,8 @@ export const VesselList = () => {
     setSelectedVesselId,
     setActiveTab,
     addVessel,
-    updateVesselParticulars
+    updateVesselParticulars,
+    showToast
   } = usePMS();
 
   const [search, setSearch] = useState('');
@@ -67,19 +68,36 @@ export const VesselList = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    if (!formData.name?.trim()) {
+      showToast('Nama resmi kapal wajib diisi!', 'warning');
+      return;
+    }
 
-    const newShip = addVessel({
-      ...formData,
-      regNo: formData.regNo?.trim() || '',
-      imo: formData.imo?.trim() || '',
-      callSign: formData.callSign?.trim() || (formData.type?.toLowerCase().includes('tongkang') ? '-' : `YDB${(formData.regNo || '9999').substring(0, 4)}`)
-    });
+    try {
+      const cleanReg = formData.regNo?.trim() || '';
+      const cleanType = formData.type?.trim() || 'Tugboat Twin Screw';
+      const isBarge = cleanType.toLowerCase().includes('tongkang') || cleanType.toLowerCase().includes('barge');
 
-    setShowAddModal(false);
-    // Automatically select the new ship and switch to its dashboard!
-    setSelectedVesselId(newShip.id);
-    setActiveTab('dashboard');
+      const newShip = addVessel({
+        ...formData,
+        name: formData.name.trim(),
+        type: cleanType,
+        portOfRegistry: formData.portOfRegistry?.trim() || 'Pontianak, Kalimantan Barat',
+        regNo: cleanReg,
+        imo: formData.imo?.trim() || '',
+        callSign: formData.callSign?.trim() || (isBarge ? '-' : (cleanReg ? `YDB${cleanReg.replace(/[^A-Za-z0-9]/g, '').slice(0, 4)}` : '-'))
+      });
+
+      if (newShip) {
+        setShowAddModal(false);
+        // Automatically select the new ship and switch to its dashboard!
+        setSelectedVesselId(newShip.id);
+        setActiveTab('dashboard');
+      }
+    } catch (err) {
+      console.error('Submit ship form error:', err);
+      showToast('Gagal menyimpan kapal: ' + err.message, 'error');
+    }
   };
 
   // Filter and Search logic
@@ -348,7 +366,7 @@ export const VesselList = () => {
                       <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                         <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>Nakhoda & Chief Engineer</span>
                         <p style={{ fontSize: '0.825rem', fontWeight: 600, marginTop: '0.15rem' }}>
-                          {v.masterCaptain || '-'} / {v.chiefEngineer?.split(' ')[0] || '-'}
+                          {v.masterCaptain || '-'} / {(v.chiefEngineer || '-').split(' ')[0]}
                         </p>
                       </div>
                       <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
@@ -471,17 +489,16 @@ export const VesselList = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label className="field-label">No. Registrasi Kapal *</label>
+                  <label className="field-label">No. Registrasi Kapal</label>
                   <input
                     type="text"
                     name="regNo"
-                    required
                     placeholder="Contoh: 31890 atau PK.882/KL"
                     value={formData.regNo}
                     onChange={handleInputChange}
                     className="input-control"
                   />
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>No. Akta / Tanda Selar / Buku Pendaftaran</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>No. Akta / Tanda Selar / Buku Pendaftaran (Opsional)</span>
                 </div>
                 <div>
                   <label className="field-label">Nomor IMO</label>
@@ -510,19 +527,25 @@ export const VesselList = () => {
                   />
                 </div>
                 <div>
-                  <label className="field-label">Tipe / Jenis Kapal</label>
-                  <select
+                  <label className="field-label">Tipe / Jenis Kapal (Bisa Manual)</label>
+                  <input
+                    type="text"
                     name="type"
+                    list="vessel-types-datalist"
+                    placeholder="Ketik manual atau pilih..."
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="select-control"
-                  >
+                    className="input-control"
+                  />
+                  <datalist id="vessel-types-datalist">
                     <option value="Tugboat (Kapal Tunda Twin Screw 3200 BHP)">Tugboat Twin Screw</option>
                     <option value="Tugboat (Kapal Tunda Single Screw 1800 BHP)">Tugboat Single Screw</option>
                     <option value="Tongkang (Barge Batubara 300 Feet)">Tongkang Batubara 300 Feet</option>
                     <option value="Tongkang (Barge Batubara 330 Feet)">Tongkang Batubara 330 Feet</option>
                     <option value="Kapal Kargo / SPOB">Kapal Kargo / SPOB</option>
-                  </select>
+                    <option value="LCT (Landing Craft Tank)">LCT (Landing Craft Tank)</option>
+                    <option value="Speedboat Patroli">Speedboat Patroli</option>
+                  </datalist>
                 </div>
                 <div>
                   <label className="field-label">Status Kepemilikan</label>
@@ -541,22 +564,30 @@ export const VesselList = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                 <div>
-                  <label className="field-label">Pelabuhan Pendaftaran</label>
-                  <select
+                  <label className="field-label">Pelabuhan Pendaftaran (Bisa Manual)</label>
+                  <input
+                    type="text"
                     name="portOfRegistry"
+                    list="ports-datalist"
+                    placeholder="Ketik manual nama pelabuhan..."
                     value={formData.portOfRegistry}
                     onChange={handleInputChange}
-                    className="select-control"
-                  >
-                    <option value="Pontianak, Kalimantan Barat">Pontianak, Kalimantan Barat</option>
-                    <option value="Ketapang, Kalimantan Barat">Ketapang, Kalimantan Barat</option>
-                    <option value="Kendawangan, Kalimantan Barat">Kendawangan, Kalimantan Barat</option>
-                    <option value="Singkawang, Kalimantan Barat">Singkawang, Kalimantan Barat</option>
-                    <option value="Banjarmasin, Kalimantan Selatan">Banjarmasin, Kalimantan Selatan</option>
-                    <option value="Kumai, Kalimantan Tengah">Kumai, Kalimantan Tengah</option>
-                    <option value="Surabaya, Jawa Timur">Surabaya, Jawa Timur</option>
-                    <option value="Batam, Kepulauan Riau">Batam, Kepulauan Riau</option>
-                  </select>
+                    className="input-control"
+                  />
+                  <datalist id="ports-datalist">
+                    <option value="Pontianak, Kalimantan Barat" />
+                    <option value="Ketapang, Kalimantan Barat" />
+                    <option value="Kendawangan, Kalimantan Barat" />
+                    <option value="Singkawang, Kalimantan Barat" />
+                    <option value="Banjarmasin, Kalimantan Selatan" />
+                    <option value="Kumai, Kalimantan Tengah" />
+                    <option value="Sampit, Kalimantan Tengah" />
+                    <option value="Samarinda, Kalimantan Timur" />
+                    <option value="Balikpapan, Kalimantan Timur" />
+                    <option value="Surabaya, Jawa Timur" />
+                    <option value="Jakarta (Tanjung Priok)" />
+                    <option value="Batam, Kepulauan Riau" />
+                  </datalist>
                 </div>
                 <div>
                   <label className="field-label">Gross Tonnage (GT)</label>

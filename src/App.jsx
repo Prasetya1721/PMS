@@ -169,16 +169,16 @@ const AppContent = () => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="main-content">
-        <Header />
-        <UrgencyBanner />
+      <ErrorBoundary>
+        <div className="main-content">
+          <Header />
+          <UrgencyBanner />
 
-        <main className="page-body">
-          <ErrorBoundary>
+          <main className="page-body">
             {renderContent()}
-          </ErrorBoundary>
-        </main>
-      </div>
+          </main>
+        </div>
+      </ErrorBoundary>
 
       {/* Toast Alert Notification */}
       {toastMessage && (
