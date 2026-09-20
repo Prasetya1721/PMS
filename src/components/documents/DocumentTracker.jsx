@@ -351,6 +351,11 @@ export const DocumentTracker = () => {
                             🔍 {item.surveyType}
                           </span>
                         )}
+                        {item.surveyPeriod && (
+                          <span className="badge" style={{ fontSize: '0.66rem', padding: '0.1rem 0.4rem', background: 'rgba(168, 85, 247, 0.15)', color: '#a855f7', border: '1px solid rgba(168, 85, 247, 0.35)', fontWeight: 600 }}>
+                            ⏱️ {item.surveyPeriod}
+                          </span>
+                        )}
                         <span>{item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}</span>
                       </div>
                       {item.notificationReminders && item.notificationReminders.enabled !== false && (

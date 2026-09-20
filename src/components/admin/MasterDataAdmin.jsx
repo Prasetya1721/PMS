@@ -158,6 +158,7 @@ export const MasterDataAdmin = () => {
     name: '',
     category: 'BKI',
     intervalYears: 1,
+    periodLabel: '1 Tahun',
     description: ''
   });
   const [deletingSurveyId, setDeletingSurveyId] = useState(null);
@@ -487,6 +488,7 @@ export const MasterDataAdmin = () => {
     addMasterSurveyType({
       name: newSurveyData.name.trim(),
       category: newSurveyData.category || 'BKI',
+      periodLabel: newSurveyData.periodLabel?.trim() || `${newSurveyData.intervalYears} Tahun`,
       intervalYears: Number(newSurveyData.intervalYears) || 1,
       description: newSurveyData.description.trim()
     });
@@ -495,6 +497,7 @@ export const MasterDataAdmin = () => {
       name: '',
       category: newSurveyData.category || 'BKI',
       intervalYears: 1,
+      periodLabel: '1 Tahun',
       description: ''
     });
   };
@@ -2200,19 +2203,33 @@ export const MasterDataAdmin = () => {
               </div>
 
               <div>
-                <label className="field-label">Siklus / Interval *</label>
-                <select
-                  value={newSurveyData.intervalYears}
-                  onChange={(e) => setNewSurveyData(prev => ({ ...prev, intervalYears: Number(e.target.value) }))}
-                  className="select-control"
-                >
-                  <option value={1}>1 Tahun (Tahunan / Annual)</option>
-                  <option value={2.5}>2.5 Tahun (Antara / Intermediate / Docking)</option>
-                  <option value={5}>5 Tahun (Pembaruan / Renewal / Special)</option>
-                  <option value={10}>10 Tahun (Surat Ukur / Jangka Panjang)</option>
-                  <option value={0.5}>6 Bulan (SSCEC / Sanitasi)</option>
-                  <option value={0}>Non-Survey (Tidak Berkala / Permanen)</option>
-                </select>
+                <label className="field-label">Periode / Siklus (Diisi Manual) *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: 1 Tahun / 2.5 Tahun / Bebas..."
+                  value={newSurveyData.periodLabel || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    let num = 1;
+                    if (val.includes('2.5')) num = 2.5;
+                    else if (val.includes('5')) num = 5;
+                    else if (val.includes('10')) num = 10;
+                    else if (val.includes('0.5') || val.toLowerCase().includes('6 bln')) num = 0.5;
+                    else if (val.toLowerCase().includes('non')) num = 0;
+                    setNewSurveyData(prev => ({ ...prev, periodLabel: val, intervalYears: num }));
+                  }}
+                  className="input-control"
+                  list="period-datalist-opts"
+                />
+                <datalist id="period-datalist-opts">
+                  <option value="1 Tahun (Tahunan / Annual)" />
+                  <option value="2.5 Tahun (Antara / Intermediate / Docking)" />
+                  <option value="5 Tahun (Pembaruan / Renewal / Special)" />
+                  <option value="10 Tahun (Surat Ukur / Jangka Panjang)" />
+                  <option value="6 Bulan (SSCEC / Sanitasi)" />
+                  <option value="Non-Survey (Tidak Berkala)" />
+                </datalist>
               </div>
 
               <div>
@@ -2304,13 +2321,15 @@ export const MasterDataAdmin = () => {
                         d => (d.surveyType || '').trim().toLowerCase() === (s.name || '').trim().toLowerCase()
                       ).length;
 
-                      const intervalText = s.intervalYears === 0
+                      const intervalText = s.periodLabel || (
+                        s.intervalYears === 0
                         ? 'Non-Survey'
                         : s.intervalYears === 0.5
                         ? '6 Bulan'
                         : s.intervalYears === 2.5
                         ? '2.5 Tahun'
-                        : `${s.intervalYears} Tahun`;
+                        : `${s.intervalYears} Tahun`
+                      );
 
                       return (
                         <tr key={s.id || s.name}>

@@ -724,6 +724,7 @@ export const DocumentFormModal = ({
       vesselId: defaultVesselId || vessels[0]?.id || '',
       category: initCat,
       surveyType: initialData?.surveyType || '',
+      surveyPeriod: initialData?.surveyPeriod || initialData?.period || '',
       name: initialData?.name || '',
       documentNo: initialData?.documentNo || initialData?.certificateNo || '',
       issuer: initIssuer,
@@ -755,6 +756,7 @@ export const DocumentFormModal = ({
         vesselId: initialData.vesselId || defaultVesselId || vessels[0]?.id || 'v-001',
         category: cat,
         surveyType: initialData.surveyType || '',
+        surveyPeriod: initialData.surveyPeriod || initialData.period || '',
         name: initialData.name || '',
         documentNo: initialData.documentNo || initialData.certificateNo || '',
         issuer,
@@ -796,6 +798,7 @@ export const DocumentFormModal = ({
         vesselId: defaultVesselId || vessels[0]?.id || '',
         category: cat,
         surveyType: '',
+        surveyPeriod: '',
         name: '',
         documentNo: '',
         issuer,
@@ -836,19 +839,34 @@ export const DocumentFormModal = ({
 
   const handleSurveyTypeSelect = (surveyVal, validityYears = null) => {
     let years = validityYears;
+    let autoPeriod = '';
+
     if (!years && surveyVal) {
       const lower = surveyVal.toLowerCase();
-      if (lower.includes('2.5') || lower.includes('intermediate') || lower.includes('docking')) years = 2.5;
-      else if (lower.includes('5 thn') || lower.includes('5 tahun') || lower.includes('special') || lower.includes('renewal')) years = 5;
-      else if (lower.includes('10 thn') || lower.includes('10 tahun') || lower.includes('surat ukur')) years = 10;
-      else if (lower.includes('6 bln') || lower.includes('6 bulan') || lower.includes('0.5') || lower.includes('sscec')) years = 0.5;
-      else if (lower.includes('annual') || lower.includes('1 thn') || lower.includes('1 tahun') || lower.includes('tahunan') || lower.includes('kelaiklautan') || lower.includes('safety equipment') || lower.includes('radio') || lower.includes('endorsement')) years = 1;
+      if (lower.includes('2.5') || lower.includes('intermediate') || lower.includes('docking')) {
+        years = 2.5;
+        autoPeriod = '2.5 Tahun';
+      } else if (lower.includes('5 thn') || lower.includes('5 tahun') || lower.includes('special') || lower.includes('renewal')) {
+        years = 5;
+        autoPeriod = '5 Tahun';
+      } else if (lower.includes('10 thn') || lower.includes('10 tahun') || lower.includes('surat ukur')) {
+        years = 10;
+        autoPeriod = '10 Tahun';
+      } else if (lower.includes('6 bln') || lower.includes('6 bulan') || lower.includes('0.5') || lower.includes('sscec')) {
+        years = 0.5;
+        autoPeriod = '6 Bulan';
+      } else if (lower.includes('annual') || lower.includes('1 thn') || lower.includes('1 tahun') || lower.includes('tahunan') || lower.includes('kelaiklautan') || lower.includes('safety equipment') || lower.includes('radio') || lower.includes('endorsement')) {
+        years = 1;
+        autoPeriod = '1 Tahun';
+      }
     }
 
     setFormData(prev => {
       const updated = {
         ...prev,
-        surveyType: surveyVal
+        surveyType: surveyVal,
+        // Otomatis isi periode jika kolom periode masih kosong
+        surveyPeriod: prev.surveyPeriod || autoPeriod || ''
       };
 
       if (years && prev.issueDate) {
@@ -887,6 +905,7 @@ export const DocumentFormModal = ({
 
       // Kolom jenis survey dibiarkan kosong default agar mudah dicari / dipilih oleh user
       const nextSurvey = isEditing ? prev.surveyType : '';
+      const nextPeriod = isEditing ? (prev.surveyPeriod || '') : '';
 
       // Auto-adjust default expiry for Kesehatan SSCEC (6 months)
       let nextExpiry = prev.expiryDate;
@@ -903,6 +922,7 @@ export const DocumentFormModal = ({
         category: newCat,
         issuer: shouldUpdateIssuer ? autoIssuer : prev.issuer,
         surveyType: nextSurvey,
+        surveyPeriod: nextPeriod,
         expiryDate: nextExpiry
       };
     });
@@ -1067,8 +1087,9 @@ export const DocumentFormModal = ({
         addMasterSurveyType({
           name: trimmedSurvey,
           category: formData.category || 'BKI',
+          periodLabel: formData.surveyPeriod?.trim() || '',
           intervalYears: 1,
-          description: `Jenis survey ${trimmedSurvey}`
+          description: `Jenis survey ${trimmedSurvey}${formData.surveyPeriod?.trim() ? ` (Periode: ${formData.surveyPeriod.trim()})` : ''}`
         });
       }
     }
@@ -1092,6 +1113,7 @@ export const DocumentFormModal = ({
 
     onSave({
       ...formData,
+      surveyPeriod: formData.surveyPeriod?.trim() || '',
       notificationReminders: finalReminders
     });
     onClose();
@@ -1792,7 +1814,7 @@ export const DocumentFormModal = ({
                 </select>
               </div>
 
-          {/* 3. JENIS SURVEY / SIKLUS PEMERIKSAAN DOKUMEN KAPAL */}
+          {/* 3. JENIS SURVEY & PERIODE PEMERIKSAAN DOKUMEN KAPAL */}
           <div style={{
             padding: '1.1rem 1.25rem',
             borderRadius: '12px',
@@ -1803,7 +1825,13 @@ export const DocumentFormModal = ({
             gap: '0.75rem',
             transition: 'border-color 0.25s ease'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.25rem',
+              alignItems: 'start'
+            }}>
+              {/* Kolom 1: Jenis Survey */}
               <div>
                 <label style={{
                   fontSize: '0.82rem',
@@ -1813,26 +1841,56 @@ export const DocumentFormModal = ({
                   letterSpacing: '0.04em',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.45rem'
+                  gap: '0.45rem',
+                  marginBottom: '0.35rem'
                 }}>
                   <ClipboardCheck size={16} />
                   <span>JENIS SURVEY / PEMERIKSAAN {currentProfile.shortLabel.toUpperCase()} *</span>
                 </label>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                <MasterCombobox
+                  name="surveyType"
+                  value={formData.surveyType || ''}
+                  onChange={(e) => {
+                    handleSurveyTypeSelect(e.target.value);
+                  }}
+                  options={availableSurveyTypes}
+                  placeholder={currentProfile.surveyPlaceholder || 'Pilih dari daftar survey atau ketik manual jenis survey...'}
+                />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', marginTop: '0.35rem', display: 'block' }}>
                   Pilih siklus pemeriksaan atau jenis survey khusus {currentProfile.shortLabel} (bisa diketik manual).
                 </span>
               </div>
-            </div>
 
-            <MasterCombobox
-              name="surveyType"
-              value={formData.surveyType || ''}
-              onChange={(e) => {
-                handleSurveyTypeSelect(e.target.value);
-              }}
-              options={availableSurveyTypes}
-              placeholder={currentProfile.surveyPlaceholder || 'Pilih dari daftar survey atau ketik manual jenis survey...'}
-            />
+              {/* Kolom 2: Periode (Diisi Manual) */}
+              <div>
+                <label style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  color: currentProfile.color || '#38bdf8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  marginBottom: '0.35rem'
+                }}>
+                  <Clock size={16} />
+                  <span>PERIODE SURVEY (DIISI MANUAL) *</span>
+                </label>
+                <input
+                  type="text"
+                  name="surveyPeriod"
+                  placeholder="Contoh: 1 Tahun / Periode 2025 - 2026 / Annual ke-2..."
+                  value={formData.surveyPeriod || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, surveyPeriod: e.target.value }))}
+                  className="input-control"
+                  style={{ fontWeight: 600, height: '40px' }}
+                />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', marginTop: '0.35rem', display: 'block' }}>
+                  Ketik periode pemeriksaan atau masa berlaku survey secara manual (bebas teks).
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* 4. NAME & DOCUMENT NUMBER */}
