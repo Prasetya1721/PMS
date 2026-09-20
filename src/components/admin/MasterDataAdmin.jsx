@@ -20,6 +20,8 @@ import {
   RefreshCw,
   FileSpreadsheet,
   Layers,
+  ClipboardCheck,
+  FileText,
   Wrench,
   Package,
   Calendar,
@@ -42,6 +44,10 @@ import { DocumentFormModal } from '../documents/DocumentFormModal';
 import { DocumentPreviewModal } from '../documents/DocumentPreviewModal';
 import { ParticularsModal } from '../vessels/ParticularsModal';
 import { MasterCombobox } from '../common/MasterCombobox';
+import {
+  DEFAULT_MASTER_SURVEY_TYPES,
+  DEFAULT_MASTER_CERTIFICATE_NAMES
+} from '../../data/shipCertificatesMaster';
 
 export const MasterDataAdmin = () => {
   const {
@@ -58,6 +64,14 @@ export const MasterDataAdmin = () => {
     certificateCategories,
     addCertificateCategory,
     deleteCertificateCategory,
+    documentTemplates,
+    addDocumentTemplate,
+    deleteDocumentTemplate,
+    clearDocumentTemplates,
+    masterSurveyTypes,
+    addMasterSurveyType,
+    deleteMasterSurveyType,
+    clearMasterSurveyTypes,
     clearAllData,
     loadDemoData,
     addVessel,
@@ -84,7 +98,7 @@ export const MasterDataAdmin = () => {
     showToast
   } = usePMS();
 
-  const [activeTab, setActiveTab] = useState('audit'); // 'vessels' | 'crew' | 'documents' | 'categories' | 'users' | 'audit'
+  const [activeTab, setActiveTab] = useState('audit'); // 'vessels' | 'crew' | 'documents' | 'categories' | 'surveyTypes' | 'certNames' | 'users' | 'audit'
 
   // Modals state
   const [showDocModal, setShowDocModal] = useState(false);
@@ -132,6 +146,30 @@ export const MasterDataAdmin = () => {
     color: '#38bdf8'
   });
   const [deletingCatId, setDeletingCatId] = useState(null);
+
+  // Master Jenis Survey state
+  const [surveySearch, setSurveySearch] = useState('');
+  const [surveyCatFilter, setSurveyCatFilter] = useState('ALL');
+  const [newSurveyData, setNewSurveyData] = useState({
+    name: '',
+    category: 'BKI',
+    intervalYears: 1,
+    description: ''
+  });
+  const [deletingSurveyId, setDeletingSurveyId] = useState(null);
+
+  // Master Nama Sertifikat state
+  const [certNameSearch, setCertNameSearch] = useState('');
+  const [certNameCatFilter, setCertNameCatFilter] = useState('ALL');
+  const [newCertNameData, setNewCertNameData] = useState({
+    name: '',
+    category: 'BKI',
+    defaultValidityYears: 1,
+    issuer: '',
+    description: ''
+  });
+  const [deletingCertNameId, setDeletingCertNameId] = useState(null);
+
   const [deletingDocId, setDeletingDocId] = useState(null);
   const [deletingVesselId, setDeletingVesselId] = useState(null);
   const [deletingCrewId, setDeletingCrewId] = useState(null);
@@ -360,6 +398,24 @@ export const MasterDataAdmin = () => {
     return matchSearch && matchVessel && matchCat && matchStatus;
   });
 
+  // Filtered Master Survey Types
+  const allSurveyTypesList = masterSurveyTypes || [];
+  const filteredSurveyTypes = allSurveyTypesList.filter(s => {
+    const q = surveySearch.trim().toLowerCase();
+    const matchQuery = !q || s.name.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
+    const matchCat = surveyCatFilter === 'ALL' || (s.category || '').toLowerCase() === surveyCatFilter.toLowerCase();
+    return matchQuery && matchCat;
+  });
+
+  // Filtered Master Certificate Names
+  const allCertNamesList = documentTemplates || [];
+  const filteredCertNames = allCertNamesList.filter(t => {
+    const q = certNameSearch.trim().toLowerCase();
+    const matchQuery = !q || t.name.toLowerCase().includes(q) || (t.description && t.description.toLowerCase().includes(q)) || (t.issuer && t.issuer.toLowerCase().includes(q));
+    const matchCat = certNameCatFilter === 'ALL' || (t.category || '').toLowerCase() === certNameCatFilter.toLowerCase();
+    return matchQuery && matchCat;
+  });
+
   // Handle Save Vessel
   const handleSaveVessel = (e) => {
     e.preventDefault();
@@ -417,6 +473,70 @@ export const MasterDataAdmin = () => {
     });
 
     setNewCatData({ label: '', code: '', description: '', color: '#38bdf8' });
+  };
+
+  // Handle Add Survey Type
+  const handleCreateSurveyType = (e) => {
+    e.preventDefault();
+    if (!newSurveyData.name.trim()) return;
+
+    addMasterSurveyType({
+      name: newSurveyData.name.trim(),
+      category: newSurveyData.category || 'BKI',
+      intervalYears: Number(newSurveyData.intervalYears) || 1,
+      description: newSurveyData.description.trim()
+    });
+
+    setNewSurveyData({
+      name: '',
+      category: newSurveyData.category || 'BKI',
+      intervalYears: 1,
+      description: ''
+    });
+  };
+
+  // Handle Add Certificate Name
+  const handleCreateCertName = (e) => {
+    e.preventDefault();
+    if (!newCertNameData.name.trim()) return;
+
+    addDocumentTemplate({
+      name: newCertNameData.name.trim(),
+      category: newCertNameData.category || 'BKI',
+      defaultValidityYears: Number(newCertNameData.defaultValidityYears) || 1,
+      issuer: newCertNameData.issuer.trim(),
+      description: newCertNameData.description.trim()
+    });
+
+    setNewCertNameData({
+      name: '',
+      category: newCertNameData.category || 'BKI',
+      defaultValidityYears: 1,
+      issuer: '',
+      description: ''
+    });
+  };
+
+  // Reset Master Survey Types to standard defaults
+  const handleResetSurveyTypes = () => {
+    if (window.confirm('Reset Master Jenis Survey ke daftar bawaan maritim resmi (BKI, KSOP, Statutory, Kesehatan, Asuransi)?')) {
+      clearMasterSurveyTypes();
+      (DEFAULT_MASTER_SURVEY_TYPES || []).forEach(st => {
+        addMasterSurveyType(st);
+      });
+      showToast('Master Jenis Survey berhasil direset ke data bawaan!', 'success');
+    }
+  };
+
+  // Reset Master Certificate Names to standard defaults
+  const handleResetCertNames = () => {
+    if (window.confirm('Reset Master Nama Sertifikat ke daftar bawaan maritim resmi (BKI, KSOP, Statutory, Kesehatan, Asuransi)?')) {
+      clearDocumentTemplates();
+      (DEFAULT_MASTER_CERTIFICATE_NAMES || []).forEach(cn => {
+        addDocumentTemplate(cn);
+      });
+      showToast('Master Nama Sertifikat berhasil direset ke data bawaan!', 'success');
+    }
   };
 
   // User Management filters and handlers
@@ -639,8 +759,10 @@ export const MasterDataAdmin = () => {
             { id: 'audit', label: '🔍 Cek Semua Data Web (Audit)', count: `${auditReport.score}% Sehat`, badgeColor: '#10b981' },
             { id: 'vessels', label: '🚢 Master Data Kapal', count: vessels.length },
             { id: 'crew', label: '👥 Master Data Crew', count: allCrewList.length },
-            { id: 'documents', label: '📜 Master Dokumen & Sertifikat', count: allDocList.length },
+            { id: 'documents', label: '📜 Dokumen Kapal Armada', count: allDocList.length },
             { id: 'categories', label: '🏷️ Master Kategori Sertifikat', count: (certificateCategories || []).length },
+            { id: 'surveyTypes', label: '📋 Master Jenis Survey', count: (masterSurveyTypes || []).length },
+            { id: 'certNames', label: '📜 Master Nama Sertifikat', count: (documentTemplates || []).length },
             { id: 'users', label: '👤 Manajemen User', count: allUserList.length }
           ].map(tab => {
             const isActive = activeTab === tab.id;
@@ -1895,6 +2017,583 @@ export const MasterDataAdmin = () => {
                                 className="btn btn-secondary btn-sm"
                                 style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
                                 title={`Hapus kategori ${c.label}`}
+                              >
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5B: MASTER JENIS SURVEY & PEMERIKSAAN PERIODIK                       */}
+      {/* ========================================================================= */}
+      {activeTab === 'surveyTypes' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Master Jenis Survey & Siklus Pemeriksaan Kapal</h3>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                  {filteredSurveyTypes.length} dari {allSurveyTypesList.length} Jenis Survey
+                </span>
+              </div>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                Kelola jenis survei periodik (Annual, Intermediate, Special/Renewal, Docking, Non-Survey) per kategori sertifikat.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleResetSurveyTypes}
+                className="btn btn-secondary btn-sm"
+                title="Kembalikan master survey ke data standar maritim"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <RefreshCw size={14} />
+                <span>Reset Standar Maritim</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Kosongkan semua data master jenis survey? Setelah dikosongkan, kolom input survey di form dokumen akan bersih tanpa opsi preset.')) {
+                    clearMasterSurveyTypes();
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                title="Kosongkan master survey"
+              >
+                <Trash2 size={14} />
+                <span>Kosongkan Master Survey</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Form Tambah Jenis Survey Baru */}
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Plus size={16} color="#38bdf8" />
+              <span>Tambah Jenis Survey Baru ke Data Master</span>
+            </h4>
+            <form onSubmit={handleCreateSurveyType} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1.5fr auto', gap: '0.75rem', alignItems: 'end' }}>
+              <div>
+                <label className="field-label">Nama Jenis Survey *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Annual Survey Lambung & Mesin"
+                  value={newSurveyData.name}
+                  onChange={(e) => setNewSurveyData(prev => ({ ...prev, name: e.target.value }))}
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Kategori Sertifikat *</label>
+                <select
+                  value={newSurveyData.category}
+                  onChange={(e) => setNewSurveyData(prev => ({ ...prev, category: e.target.value }))}
+                  className="select-control"
+                >
+                  {(certificateCategories || []).map(c => (
+                    <option key={c.id || c.code} value={c.id || c.code}>{c.label || c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="field-label">Siklus / Interval *</label>
+                <select
+                  value={newSurveyData.intervalYears}
+                  onChange={(e) => setNewSurveyData(prev => ({ ...prev, intervalYears: Number(e.target.value) }))}
+                  className="select-control"
+                >
+                  <option value={1}>1 Tahun (Tahunan / Annual)</option>
+                  <option value={2.5}>2.5 Tahun (Antara / Intermediate / Docking)</option>
+                  <option value={5}>5 Tahun (Pembaruan / Renewal / Special)</option>
+                  <option value={10}>10 Tahun (Surat Ukur / Jangka Panjang)</option>
+                  <option value={0.5}>6 Bulan (SSCEC / Sanitasi)</option>
+                  <option value={0}>Non-Survey (Tidak Berkala / Permanen)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="field-label">Keterangan / Ruang Lingkup</label>
+                <input
+                  type="text"
+                  placeholder="Keterangan objek inspeksi kelaiklautan..."
+                  value={newSurveyData.description}
+                  onChange={(e) => setNewSurveyData(prev => ({ ...prev, description: e.target.value }))}
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <button type="submit" className="btn btn-primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
+                  Simpan Survey
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Filters & Search */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Cari nama survey, deskripsi ruang lingkup..."
+                value={surveySearch}
+                onChange={(e) => setSurveySearch(e.target.value)}
+                className="input-control"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+
+            <select
+              value={surveyCatFilter}
+              onChange={(e) => setSurveyCatFilter(e.target.value)}
+              className="select-control"
+              style={{ width: '220px' }}
+            >
+              <option value="ALL">Semua Kategori ({allSurveyTypesList.length})</option>
+              {(certificateCategories || []).map(c => {
+                const cnt = allSurveyTypesList.filter(s => (s.category || '').toLowerCase() === (c.id || c.code || '').toLowerCase()).length;
+                return (
+                  <option key={c.id || c.code} value={c.id || c.code}>
+                    {c.label || c.name} ({cnt})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Survey Types Table */}
+          <div className="glass-card" style={{ overflow: 'hidden' }}>
+            <div className="table-container">
+              <table className="pms-table">
+                <thead>
+                  <tr>
+                    <th>Nama Jenis Survey</th>
+                    <th>Kategori</th>
+                    <th>Siklus / Interval</th>
+                    <th>Deskripsi & Ruang Lingkup</th>
+                    <th>Terpakai di Dokumen</th>
+                    <th style={{ textAlign: 'right' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSurveyTypes.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-subtle)' }}>
+                        <ClipboardCheck size={36} style={{ opacity: 0.35, margin: '0 auto 0.5rem auto', display: 'block', color: '#38bdf8' }} />
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                          Tidak Ada Data Jenis Survey
+                        </div>
+                        <p style={{ fontSize: '0.8rem', maxWidth: '420px', margin: '0 auto' }}>
+                          {surveySearch || surveyCatFilter !== 'ALL'
+                            ? 'Tidak ada jenis survey yang cocok dengan kriteria pencarian/filter.'
+                            : 'Master data jenis survey saat ini kosong. Gunakan form di atas untuk menambah atau klik "Reset Standar Maritim" untuk memuat daftar baku.'}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredSurveyTypes.map(s => {
+                      const matchedCat = (certificateCategories || []).find(
+                        c => (c.id || c.code || '').toLowerCase() === (s.category || '').toLowerCase()
+                      );
+                      const usedCount = allDocList.filter(
+                        d => (d.surveyType || '').trim().toLowerCase() === (s.name || '').trim().toLowerCase()
+                      ).length;
+
+                      const intervalText = s.intervalYears === 0
+                        ? 'Non-Survey'
+                        : s.intervalYears === 0.5
+                        ? '6 Bulan'
+                        : s.intervalYears === 2.5
+                        ? '2.5 Tahun'
+                        : `${s.intervalYears} Tahun`;
+
+                      return (
+                        <tr key={s.id || s.name}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <ClipboardCheck size={16} color={matchedCat?.color || '#38bdf8'} />
+                              <strong style={{ fontSize: '0.88rem' }}>{s.name}</strong>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: matchedCat?.bgColor || 'rgba(56, 189, 248, 0.15)',
+                                color: matchedCat?.color || '#38bdf8',
+                                border: `1px solid ${matchedCat?.borderColor || 'rgba(56, 189, 248, 0.35)'}`
+                              }}
+                            >
+                              {matchedCat?.label || s.category}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge ${s.intervalYears === 0 ? 'badge-neutral' : s.intervalYears <= 1 ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.75rem' }}>
+                              {intervalText}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                            {s.description || '-'}
+                          </td>
+                          <td>
+                            <span className="badge badge-neutral" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                              {usedCount} Dokumen
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {deletingSurveyId === (s.id || s.name) ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Yakin?</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteMasterSurveyType(s.id || s.name, s.category);
+                                    setDeletingSurveyId(null);
+                                  }}
+                                  className="btn btn-danger btn-sm"
+                                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                >
+                                  Ya, Hapus
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingSurveyId(null);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingSurveyId(s.id || s.name);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
+                                title={`Hapus jenis survey ${s.name}`}
+                              >
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5C: MASTER NAMA SERTIFIKAT / DOKUMEN RESMI                          */}
+      {/* ========================================================================= */}
+      {activeTab === 'certNames' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Master Nama Sertifikat & Dokumen Resmi Kapal</h3>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                  {filteredCertNames.length} dari {allCertNamesList.length} Nama Sertifikat
+                </span>
+              </div>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                Kelola daftar nama baku sertifikat kapal armada (BKI, KSOP, Statutory, Kesehatan, Asuransi). Setiap nama baru yang diketik di form juga otomatis tersimpan ke master data ini.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleResetCertNames}
+                className="btn btn-secondary btn-sm"
+                title="Kembalikan master nama sertifikat ke data standar maritim"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+              >
+                <RefreshCw size={14} />
+                <span>Reset Standar Maritim</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Kosongkan semua data master nama sertifikat? Setelah dikosongkan, kolom input nama sertifikat di form pengisian akan kosong tanpa pilihan preset.')) {
+                    clearDocumentTemplates();
+                  }
+                }}
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                title="Kosongkan master sertifikat"
+              >
+                <Trash2 size={14} />
+                <span>Kosongkan Master Sertifikat</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Form Tambah Nama Sertifikat Baru */}
+          <div className="glass-card" style={{ padding: '1.25rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Plus size={16} color="#38bdf8" />
+              <span>Tambah Nama Sertifikat Baru ke Data Master</span>
+            </h4>
+            <form onSubmit={handleCreateCertName} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1.2fr 1.2fr auto', gap: '0.75rem', alignItems: 'end' }}>
+              <div>
+                <label className="field-label">Nama Sertifikat / Dokumen *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Sertifikat Garis Muat Lambung Timbul"
+                  value={newCertNameData.name}
+                  onChange={(e) => setNewCertNameData(prev => ({ ...prev, name: e.target.value }))}
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Kategori Sertifikat *</label>
+                <select
+                  value={newCertNameData.category}
+                  onChange={(e) => setNewCertNameData(prev => ({ ...prev, category: e.target.value }))}
+                  className="select-control"
+                >
+                  {(certificateCategories || []).map(c => (
+                    <option key={c.id || c.code} value={c.id || c.code}>{c.label || c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="field-label">Masa Berlaku Standar *</label>
+                <select
+                  value={newCertNameData.defaultValidityYears}
+                  onChange={(e) => setNewCertNameData(prev => ({ ...prev, defaultValidityYears: Number(e.target.value) }))}
+                  className="select-control"
+                >
+                  <option value={1}>1 Tahun (Tahunan)</option>
+                  <option value={2.5}>2.5 Tahun (Intermediate)</option>
+                  <option value={5}>5 Tahun (Standar Solas / BKI)</option>
+                  <option value={10}>10 Tahun (Surat Ukur)</option>
+                  <option value={0.5}>6 Bulan (SSCEC Port Health)</option>
+                  <option value={0}>Permanen / Tetap</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="field-label">Instansi Penerbit Bawaan</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Biro Klasifikasi Indonesia"
+                  value={newCertNameData.issuer}
+                  onChange={(e) => setNewCertNameData(prev => ({ ...prev, issuer: e.target.value }))}
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Keterangan / Fungsi</label>
+                <input
+                  type="text"
+                  placeholder="Keterangan singkat fungsi sertifikat..."
+                  value={newCertNameData.description}
+                  onChange={(e) => setNewCertNameData(prev => ({ ...prev, description: e.target.value }))}
+                  className="input-control"
+                />
+              </div>
+
+              <div>
+                <button type="submit" className="btn btn-primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
+                  Simpan Sertifikat
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Filters & Search */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1', minWidth: '220px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Cari nama sertifikat, penerbit, keterangan..."
+                value={certNameSearch}
+                onChange={(e) => setCertNameSearch(e.target.value)}
+                className="input-control"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+
+            <select
+              value={certNameCatFilter}
+              onChange={(e) => setCertNameCatFilter(e.target.value)}
+              className="select-control"
+              style={{ width: '220px' }}
+            >
+              <option value="ALL">Semua Kategori ({allCertNamesList.length})</option>
+              {(certificateCategories || []).map(c => {
+                const cnt = allCertNamesList.filter(t => (t.category || '').toLowerCase() === (c.id || c.code || '').toLowerCase()).length;
+                return (
+                  <option key={c.id || c.code} value={c.id || c.code}>
+                    {c.label || c.name} ({cnt})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Certificate Names Table */}
+          <div className="glass-card" style={{ overflow: 'hidden' }}>
+            <div className="table-container">
+              <table className="pms-table">
+                <thead>
+                  <tr>
+                    <th>Nama Sertifikat / Dokumen Resmi</th>
+                    <th>Kategori</th>
+                    <th>Masa Berlaku Standar</th>
+                    <th>Instansi Penerbit Bawaan</th>
+                    <th>Keterangan</th>
+                    <th>Terpakai di Dokumen</th>
+                    <th style={{ textAlign: 'right' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCertNames.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-subtle)' }}>
+                        <FileText size={36} style={{ opacity: 0.35, margin: '0 auto 0.5rem auto', display: 'block', color: '#38bdf8' }} />
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                          Tidak Ada Data Nama Sertifikat
+                        </div>
+                        <p style={{ fontSize: '0.8rem', maxWidth: '420px', margin: '0 auto' }}>
+                          {certNameSearch || certNameCatFilter !== 'ALL'
+                            ? 'Tidak ada nama sertifikat yang cocok dengan kriteria pencarian/filter.'
+                            : 'Master data nama sertifikat saat ini kosong. Gunakan form di atas untuk menambah atau klik "Reset Standar Maritim" untuk memuat daftar baku.'}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCertNames.map(t => {
+                      const matchedCat = (certificateCategories || []).find(
+                        c => (c.id || c.code || '').toLowerCase() === (t.category || '').toLowerCase()
+                      );
+                      const usedCount = allDocList.filter(
+                        d => (d.name || '').trim().toLowerCase() === (t.name || '').trim().toLowerCase()
+                      ).length;
+
+                      const validityText = t.defaultValidityYears === 0
+                        ? 'Permanen'
+                        : t.defaultValidityYears === 0.5
+                        ? '6 Bulan'
+                        : t.defaultValidityYears === 2.5
+                        ? '2.5 Tahun'
+                        : `${t.defaultValidityYears || 1} Tahun`;
+
+                      return (
+                        <tr key={t.id || t.name}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <FileText size={16} color={matchedCat?.color || '#38bdf8'} />
+                              <strong style={{ fontSize: '0.88rem' }}>{t.name}</strong>
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                background: matchedCat?.bgColor || 'rgba(56, 189, 248, 0.15)',
+                                color: matchedCat?.color || '#38bdf8',
+                                border: `1px solid ${matchedCat?.borderColor || 'rgba(56, 189, 248, 0.35)'}`
+                              }}
+                            >
+                              {matchedCat?.label || t.category}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge ${t.defaultValidityYears === 0 ? 'badge-neutral' : t.defaultValidityYears <= 1 ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.75rem' }}>
+                              {validityText}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                            {t.issuer || '-'}
+                          </td>
+                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                            {t.description || '-'}
+                          </td>
+                          <td>
+                            <span className="badge badge-neutral" style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                              {usedCount} Dokumen
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {deletingCertNameId === (t.id || t.name) ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Yakin?</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteDocumentTemplate(t.id || t.name, t.category);
+                                    setDeletingCertNameId(null);
+                                  }}
+                                  className="btn btn-danger btn-sm"
+                                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                >
+                                  Ya, Hapus
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingCertNameId(null);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingCertNameId(t.id || t.name);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
+                                title={`Hapus sertifikat ${t.name}`}
                               >
                                 <Trash2 size={13} />
                                 <span>Hapus</span>

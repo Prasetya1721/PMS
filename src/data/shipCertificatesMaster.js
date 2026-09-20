@@ -219,6 +219,105 @@ export const DEMO_STANDARD_CERTIFICATE_TEMPLATES = [
 export const CERTIFICATE_CATEGORIES = DEMO_CERTIFICATE_CATEGORIES;
 export const STANDARD_CERTIFICATE_TEMPLATES = [];
 
+// Master Data Default Jenis Survey / Siklus Pemeriksaan (Tanpa tanda kurung)
+export const DEFAULT_MASTER_SURVEY_TYPES = [
+  // BKI
+  { id: 'st-bki-1', name: 'Annual Survey Lambung & Mesin', category: 'BKI', intervalYears: 1, description: 'Survei tahunan berkala lambung dan permesinan kelas BKI' },
+  { id: 'st-bki-2', name: 'Intermediate Survey', category: 'BKI', intervalYears: 2.5, description: 'Survei antara pertengahan periode kelas BKI' },
+  { id: 'st-bki-3', name: 'Special Survey / Renewal', category: 'BKI', intervalYears: 5, description: 'Survei pembaharuan kelas 5 tahunan BKI' },
+  { id: 'st-bki-4', name: 'Docking Survey', category: 'BKI', intervalYears: 2.5, description: 'Pemeriksaan bawah air / pengedokan berkala' },
+  { id: 'st-bki-5', name: 'Propeller Shaft Survey', category: 'BKI', intervalYears: 5, description: 'Pemeriksaan poros baling-baling kapal' },
+  { id: 'st-bki-6', name: 'Boiler Survey', category: 'BKI', intervalYears: 2.5, description: 'Pemeriksaan ketel uap kapal' },
+  { id: 'st-bki-7', name: 'Continuous Survey Machinery', category: 'BKI', intervalYears: 5, description: 'Survei mesin berkelanjutan CSM' },
+  { id: 'st-bki-8', name: 'Non-Survey', category: 'BKI', intervalYears: 0, description: 'Sertifikat tetap / catatan kelas' },
+
+  // KSOP
+  { id: 'st-ksop-1', name: 'Pemeriksaan Kelaiklautan Kapal', category: 'KSOP', intervalYears: 1, description: 'Inspeksi fisik kelaiklautan oleh Marine Inspector KSOP' },
+  { id: 'st-ksop-2', name: 'Survei Keselamatan Konstruksi Kapal Barang', category: 'KSOP', intervalYears: 5, description: 'Pemeriksaan konstruksi keselamatan kapal barang' },
+  { id: 'st-ksop-3', name: 'Survei Keselamatan Perlengkapan Kapal Barang', category: 'KSOP', intervalYears: 1, description: 'Pemeriksaan alat keselamatan (Lifeboat, ILR, PMK)' },
+  { id: 'st-ksop-4', name: 'Survei Keselamatan Radio Kapal', category: 'KSOP', intervalYears: 1, description: 'Inspeksi perangkat komunikasi radio kapal' },
+  { id: 'st-ksop-5', name: 'Survei Garis Muat Nasional', category: 'KSOP', intervalYears: 5, description: 'Inspeksi garis muat dan lambung timbul' },
+  { id: 'st-ksop-6', name: 'Pemeriksaan Fisik Surat Ukur', category: 'KSOP', intervalYears: 10, description: 'Pengukuran tonase fisik kapal' },
+  { id: 'st-ksop-7', name: 'Pemeriksaan Sertifikat Pengawakan Aman', category: 'KSOP', intervalYears: 5, description: 'Pemeriksaan kecukupan formasi ABK Safe Manning' },
+  { id: 'st-ksop-8', name: 'Endorsement Tahunan Sertifikat KSOP', category: 'KSOP', intervalYears: 1, description: 'Pengukuhan berkala sertifikat tahunan KSOP' },
+  { id: 'st-ksop-9', name: 'Non-Survey', category: 'KSOP', intervalYears: 0, description: 'Pas Besar / Surat Laut / Izin Trayek RPT' },
+
+  // Statutory
+  { id: 'st-stat-1', name: 'Initial Audit ISM Code', category: 'Statutory', intervalYears: 5, description: 'Audit awal implementasi SMC / DOC ISM Code' },
+  { id: 'st-stat-2', name: 'Annual Verification Audit DOC', category: 'Statutory', intervalYears: 1, description: 'Verifikasi tahunan sertifikat DOC kantor' },
+  { id: 'st-stat-3', name: 'Intermediate Audit SMC / ISSC', category: 'Statutory', intervalYears: 2.5, description: 'Audit antara SMC kapal atau keamanan ISSC' },
+  { id: 'st-stat-4', name: 'Renewal Audit ISM / ISPS Code', category: 'Statutory', intervalYears: 5, description: 'Audit pembaruan 5 tahunan SMC / ISSC' },
+  { id: 'st-stat-5', name: 'Survei Pencegahan Polusi Minyak IOPP', category: 'Statutory', intervalYears: 5, description: 'Inspeksi MARPOL Annex I OWS & Oil Record Book' },
+  { id: 'st-stat-6', name: 'Survei Pencegahan Pencemaran Udara IAPP', category: 'Statutory', intervalYears: 5, description: 'Inspeksi MARPOL Annex VI emisi gas buang kapal' },
+  { id: 'st-stat-7', name: 'Survei Sanitasi Kapal & Pencegahan Polusi Air Bersih', category: 'Statutory', intervalYears: 5, description: 'Inspeksi sewage treatment plant ISPP MARPOL Annex IV' },
+  { id: 'st-stat-8', name: 'Pemeriksaan Anti-Fouling System AFS', category: 'Statutory', intervalYears: 5, description: 'Verifikasi cat lambung anti-teritip AFS' },
+  { id: 'st-stat-9', name: 'Non-Survey', category: 'Statutory', intervalYears: 0, description: 'Sertifikat Tetap Hubla' },
+
+  // Kesehatan
+  { id: 'st-kes-1', name: 'Inspeksi Sanitasi Kapal SSCEC', category: 'Kesehatan', intervalYears: 0.5, description: 'Pemeriksaan sanitasi karantina kapal 6 bulanan' },
+  { id: 'st-kes-2', name: 'Pemeriksaan & Fumigasi Kapal SSCC', category: 'Kesehatan', intervalYears: 0.5, description: 'Tindakan sanitasi / fumigasi pengendalian hama' },
+  { id: 'st-kes-3', name: 'Inspeksi Sertifikat P3K & Perlengkapan Obat Kapal', category: 'Kesehatan', intervalYears: 1, description: 'Pemeriksaan kelengkapan obat kotak P3K kapal' },
+  { id: 'st-kes-4', name: 'Pemeriksaan Sertifikat Air Minum Kapal', category: 'Kesehatan', intervalYears: 1, description: 'Uji laboratorium kualitas air minum tangki kapal' },
+  { id: 'st-kes-5', name: 'Pemeriksaan Buku Kesehatan Kapal', category: 'Kesehatan', intervalYears: 1, description: 'Validasi buku riwayat kesehatan kapal' },
+  { id: 'st-kes-6', name: 'Pemeriksaan Karantina Pelabuhan', category: 'Kesehatan', intervalYears: 1, description: 'Clearance kesehatan saat tiba di pelabuhan' },
+  { id: 'st-kes-7', name: 'Non-Survey', category: 'Kesehatan', intervalYears: 0, description: 'Buku Kesehatan Kapal Tetap' },
+
+  // Asuransi
+  { id: 'st-asu-1', name: 'Pembaruan Polis Asuransi Tahunan', category: 'Asuransi', intervalYears: 1, description: 'Pembaruan polis asuransi tahunan H&M / P&I' },
+  { id: 'st-asu-2', name: 'Condition Survey / Pre-Entry Survey', category: 'Asuransi', intervalYears: 1, description: 'Survei kondisi fisik sebelum kapal diterima asuransi' },
+  { id: 'st-asu-3', name: 'Marine Warranty Survey', category: 'Asuransi', intervalYears: 1, description: 'Survei kelaikan operasi towing / muatan berat' },
+  { id: 'st-asu-4', name: 'Verifikasi Sertifikat Jaminan Ganti Rugi Pencemaran CLC Bunker', category: 'Asuransi', intervalYears: 1, description: 'Pemeriksaan sertifikat jaminan pencemaran bahan bakar' },
+  { id: 'st-asu-5', name: 'Pemeriksaan Sertifikat Wreck Removal WRC', category: 'Asuransi', intervalYears: 1, description: 'Pemeriksaan jaminan penyingkiran kerangka kapal' },
+  { id: 'st-asu-6', name: 'Survey Klaim Kerusakan Lambung & Mesin', category: 'Asuransi', intervalYears: 1, description: 'Survei klaim asuransi akibat insiden atau kerusakan' },
+  { id: 'st-asu-7', name: 'Non-Survey', category: 'Asuransi', intervalYears: 0, description: 'Polis Standar & Jaminan Resmi' }
+];
+
+// Master Data Default Nama Sertifikat Resmi Kapal
+export const DEFAULT_MASTER_CERTIFICATE_NAMES = [
+  // BKI
+  { id: 'cn-bki-1', name: 'Sertifikat Klasifikasi Lambung', category: 'BKI', defaultValidityYears: 5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat klasifikasi konstruksi & kekuatan lambung' },
+  { id: 'cn-bki-2', name: 'Sertifikat Klasifikasi Mesin', category: 'BKI', defaultValidityYears: 5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat klasifikasi instalasi mesin penggerak & bantu' },
+  { id: 'cn-bki-3', name: 'Sertifikat Garis Muat Lambung Timbul', category: 'BKI', defaultValidityYears: 5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat lambung timbul garis muat kelas BKI' },
+  { id: 'cn-bki-4', name: 'Sertifikat Pengedokan / Docking BKI', category: 'BKI', defaultValidityYears: 2.5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat pemeriksaan bawah air di atas dok' },
+  { id: 'cn-bki-5', name: 'Sertifikat Poros Baling-Baling', category: 'BKI', defaultValidityYears: 5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat tailshaft & propeller kapal' },
+  { id: 'cn-bki-6', name: 'Sertifikat Ketel Uap', category: 'BKI', defaultValidityYears: 2.5, issuer: 'Biro Klasifikasi Indonesia (BKI)', description: 'Sertifikat bejana tekan & ketel uap kapal' },
+
+  // KSOP
+  { id: 'cn-ksop-1', name: 'Pas Besar / Pas Kapal', category: 'KSOP', defaultValidityYears: 5, issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)', description: 'Surat tanda kebangsaan kapal Indonesia GT 175 ke atas' },
+  { id: 'cn-ksop-2', name: 'Surat Ukur Dalam Negeri', category: 'KSOP', defaultValidityYears: 10, issuer: 'Direktorat Jenderal Perhubungan Laut / KSOP', description: 'Surat penetapan tonase kotor dan bersih kapal' },
+  { id: 'cn-ksop-3', name: 'Sertifikat Keselamatan Konstruksi Kapal Barang', category: 'KSOP', defaultValidityYears: 5, issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)', description: 'Sertifikat keselamatan konstruksi kapal' },
+  { id: 'cn-ksop-4', name: 'Sertifikat Keselamatan Perlengkapan Kapal Barang', category: 'KSOP', defaultValidityYears: 1, issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)', description: 'Sertifikat alat pemadam, sekoci & liferaft kapal' },
+  { id: 'cn-ksop-5', name: 'Sertifikat Keselamatan Radio Kapal Barang', category: 'KSOP', defaultValidityYears: 1, issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)', description: 'Sertifikat perangkat radio komunikasi pelayaran' },
+  { id: 'cn-ksop-6', name: 'Sertifikat Garis Muat Nasional', category: 'KSOP', defaultValidityYears: 5, issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)', description: 'Sertifikat batas muat aman perairan Indonesia' },
+  { id: 'cn-ksop-7', name: 'Izin Stasiun Radio Kapal Laut', category: 'KSOP', defaultValidityYears: 5, issuer: 'Ditjen SDPPI Kominfo / Ditjen Hubla', description: 'Lisensi frekuensi dan alokasi radio kapal laut' },
+  { id: 'cn-ksop-8', name: 'Sertifikat Pengawakan Kapal Safe Manning', category: 'KSOP', defaultValidityYears: 5, issuer: 'Direktorat Jenderal Perhubungan Laut / KSOP', description: 'Sertifikat penetapan jumlah minimum awak kapal' },
+  { id: 'cn-ksop-9', name: 'Izin Trayek RPT / PPKA', category: 'KSOP', defaultValidityYears: 1, issuer: 'Direktorat Jenderal Perhubungan Laut / KSOP', description: 'Rencana pengoperasian kapal trayek tetap & teratur' },
+  { id: 'cn-ksop-10', name: 'Sertifikat Servis ILR', category: 'KSOP', defaultValidityYears: 1, issuer: 'Stasiun Servis Inflatable Life Raft KSOP', description: 'Sertifikat pengujian rakit penolong kembung' },
+  { id: 'cn-ksop-11', name: 'Sertifikat Servis PMK / Alat Pemadam', category: 'KSOP', defaultValidityYears: 1, issuer: 'Balai Uji Keselamatan KSOP', description: 'Sertifikat pengujian tabung pemadam api kapal' },
+
+  // Statutory
+  { id: 'cn-stat-1', name: 'Safety Management Certificate (SMC)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Perkapalan dan Kepelautan (Ditkapel)', description: 'Sertifikat manajemen keselamatan operasional kapal' },
+  { id: 'cn-stat-2', name: 'Document of Compliance (DOC)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Jenderal Perhubungan Laut', description: 'Sertifikat pemenuhan manajemen keselamatan perusahaan' },
+  { id: 'cn-stat-3', name: 'International Ship Security Certificate (ISSC)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Jenderal Perhubungan Laut / RSO', description: 'Sertifikat sistem keamanan kapal ISPS Code' },
+  { id: 'cn-stat-4', name: 'International Oil Pollution Prevention (IOPP)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Perkapalan dan Kepelautan', description: 'Sertifikat pencegahan pencemaran tumpahan minyak' },
+  { id: 'cn-stat-5', name: 'International Air Pollution Prevention (IAPP)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Perkapalan dan Kepelautan', description: 'Sertifikat pencegahan polusi udara cerobong gas buang' },
+  { id: 'cn-stat-6', name: 'International Sewage Pollution Prevention (ISPP)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Perkapalan dan Kepelautan', description: 'Sertifikat pencegahan pencemaran air kotor kapal' },
+  { id: 'cn-stat-7', name: 'Anti-Fouling System Certificate (AFS)', category: 'Statutory', defaultValidityYears: 5, issuer: 'Direktorat Perkapalan dan Kepelautan', description: 'Sertifikat sistem anti-teritip ramah lingkungan' },
+
+  // Kesehatan
+  { id: 'cn-kes-1', name: 'Ship Sanitation Control Exemption Certificate (SSCEC)', category: 'Kesehatan', defaultValidityYears: 0.5, issuer: 'Balai Kekarantinaan Kesehatan (BKK / KKP)', description: 'Sertifikat bebas tindakan karantina & sanitasi kapal' },
+  { id: 'cn-kes-2', name: 'Buku Kesehatan Kapal (Health Book)', category: 'Kesehatan', defaultValidityYears: 1, issuer: 'Kantor Kesehatan Pelabuhan (KKP)', description: 'Buku resmi catatan kesehatan & karantina pelabuhan' },
+  { id: 'cn-kes-3', name: 'Sertifikat Obat & Kotak P3K Kapal (Medicine Chest)', category: 'Kesehatan', defaultValidityYears: 1, issuer: 'Kantor Kesehatan Pelabuhan (KKP)', description: 'Sertifikat kelayakan isi dan kedaluwarsa obat kapal' },
+  { id: 'cn-kes-4', name: 'Sertifikat Kualitas Air Minum Kapal', category: 'Kesehatan', defaultValidityYears: 1, issuer: 'Balai Kekarantinaan Kesehatan (BKK / KKP)', description: 'Sertifikat pengujian higienitas air minum kapal' },
+
+  // Asuransi
+  { id: 'cn-asu-1', name: 'Polis Marine Hull & Machinery (H&M)', category: 'Asuransi', defaultValidityYears: 1, issuer: 'PT Asuransi Jasindo / Konsorsium Asuransi Maritim', description: 'Polis asuransi perlindungan rangka dan mesin kapal' },
+  { id: 'cn-asu-2', name: 'Certificate of Entry Protection & Indemnity (P&I)', category: 'Asuransi', defaultValidityYears: 1, issuer: 'The Standard Club / P&I Club Internasional', description: 'Jaminan tanggung jawab hukum pihak ketiga armada' },
+  { id: 'cn-asu-3', name: 'Civil Liability Convention (CLC) Bunker Certificate', category: 'Asuransi', defaultValidityYears: 1, issuer: 'Direktorat Jenderal Perhubungan Laut', description: 'Sertifikat jaminan ganti rugi pencemaran bahan bakar minyak' },
+  { id: 'cn-asu-4', name: 'Wreck Removal Convention (WRC) Certificate', category: 'Asuransi', defaultValidityYears: 1, issuer: 'Direktorat Jenderal Perhubungan Laut', description: 'Sertifikat jaminan biaya penyingkiran kerangka kapal' },
+  { id: 'cn-asu-5', name: 'Polis Asuransi Personal Accident ABK (Crew PA)', category: 'Asuransi', defaultValidityYears: 1, issuer: 'Perusahaan Asuransi Jiwa & Kecelakaan Maritim', description: 'Polis asuransi kecelakaan kerja awak kapal' }
+];
+
 // Helper to determine status and days until expiry relative to system reference date
 export const calculateDocStatus = (expiryDateStr, issueDateStr) => {
   if (!expiryDateStr) return { status: 'Active', daysUntilExpiry: 365 };

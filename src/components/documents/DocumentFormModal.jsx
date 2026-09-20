@@ -679,28 +679,15 @@ export const DocumentFormModal = ({
     deleteCertificateCategory,
     documentTemplates: contextTemplates,
     addDocumentTemplate,
+    deleteDocumentTemplate,
+    masterSurveyTypes,
+    addMasterSurveyType,
+    deleteMasterSurveyType,
     shipDocuments
   } = usePMS();
 
   const activeCategories = contextCategories || [];
   const activeTemplates = contextTemplates || [];
-
-  // Pilihan nama sertifikat yang sudah ada di master templates & dokumen kapal
-  const availableDocumentNames = useMemo(() => {
-    const namesSet = new Set();
-
-    // Dari master template
-    (contextTemplates || []).forEach(t => {
-      if (t.name && t.name.trim()) namesSet.add(t.name.trim());
-    });
-
-    // Dari seluruh sertifikat kapal yang pernah tersimpan
-    (shipDocuments || []).forEach(d => {
-      if (d.name && d.name.trim()) namesSet.add(d.name.trim());
-    });
-
-    return Array.from(namesSet);
-  }, [contextTemplates, shipDocuments]);
 
   const isEditing = !!initialData?.id;
   const [formStep, setFormStep] = useState(isEditing ? 2 : 1); // 1: Pilih Kategori, 2: Form Pengisian
@@ -898,11 +885,8 @@ export const DocumentFormModal = ({
         prev.issuer.includes('Jasindo') ||
         prev.issuer.includes('Instansi Penerbit');
 
-      // Auto-update surveyType if previous was empty or from standard survey list
-      let nextSurvey = prev.surveyType;
-      if (!nextSurvey || Object.values(CATEGORY_FORM_PROFILES).some(p => p.surveyTypes?.includes(prev.surveyType))) {
-        nextSurvey = newProfile.surveyTypes ? newProfile.surveyTypes[0] : '';
-      }
+      // Kolom jenis survey dibiarkan kosong default agar mudah dicari / dipilih oleh user
+      const nextSurvey = isEditing ? prev.surveyType : '';
 
       // Auto-adjust default expiry for Kesehatan SSCEC (6 months)
       let nextExpiry = prev.expiryDate;
@@ -1073,6 +1057,22 @@ export const DocumentFormModal = ({
       }
     }
 
+    // Otomatis daftarkan jenis survey baru ke Data Master jika belum ada
+    if (addMasterSurveyType && formData.surveyType?.trim()) {
+      const trimmedSurvey = formData.surveyType.trim();
+      const exists = (masterSurveyTypes || []).some(
+        s => s.name && s.name.trim().toLowerCase() === trimmedSurvey.toLowerCase()
+      );
+      if (!exists) {
+        addMasterSurveyType({
+          name: trimmedSurvey,
+          category: formData.category || 'BKI',
+          intervalYears: 1,
+          description: `Jenis survey ${trimmedSurvey}`
+        });
+      }
+    }
+
     const eff = getEffectiveReminder();
     const finalReminders = {
       enabled: formData.notificationReminders?.enabled !== false,
@@ -1098,6 +1098,61 @@ export const DocumentFormModal = ({
   };
 
   const currentProfile = getCategoryProfile(formData.category);
+
+  // Pilihan master jenis survey (difilter berdasarkan kategori terpilih atau umum)
+  const availableSurveyTypes = useMemo(() => {
+    const list = [];
+    const catUpper = (formData?.category || '').toUpperCase();
+
+    // Prioritaskan dari Master Data Survey Types di Data Master
+    (masterSurveyTypes || []).forEach(st => {
+      const stCat = (st.category || '').toUpperCase();
+      if (!stCat || stCat === catUpper || stCat === 'ALL') {
+        if (st.name && !list.includes(st.name.trim())) {
+          list.push(st.name.trim());
+        }
+      }
+    });
+
+    // Fallback dari kategori profile jika master data belum memiliki entri khusus
+    if (list.length === 0 && currentProfile?.surveyTypes) {
+      currentProfile.surveyTypes.forEach(st => {
+        if (!list.includes(st)) list.push(st);
+      });
+    }
+
+    return list;
+  }, [masterSurveyTypes, formData?.category, currentProfile]);
+
+  // Pilihan nama sertifikat yang sudah ada di master templates & dokumen kapal (difilter per kategori)
+  const availableDocumentNames = useMemo(() => {
+    const namesSet = new Set();
+    const catUpper = (formData?.category || '').toUpperCase();
+
+    // Dari master template nama sertifikat yang sesuai kategori
+    (contextTemplates || []).forEach(t => {
+      const tCat = (t.category || '').toUpperCase();
+      if (!tCat || tCat === catUpper || tCat === 'ALL') {
+        if (t.name && t.name.trim()) namesSet.add(t.name.trim());
+      }
+    });
+
+    // Tambahkan juga dari dokumen kapal yang pernah tersimpan dengan kategori ini
+    (shipDocuments || []).forEach(d => {
+      if ((d.category || '').toUpperCase() === catUpper) {
+        if (d.name && d.name.trim()) namesSet.add(d.name.trim());
+      }
+    });
+
+    // Jika belum ada yang sama persis kategori, sertakan semua nama master lainnya
+    if (namesSet.size === 0) {
+      (contextTemplates || []).forEach(t => {
+        if (t.name && t.name.trim()) namesSet.add(t.name.trim());
+      });
+    }
+
+    return Array.from(namesSet);
+  }, [contextTemplates, shipDocuments, formData?.category]);
 
   // Daftar kategori sertifikat kapal disinkronkan 100% dengan Data Master
   const allCategoryList = useMemo(() => {
@@ -1782,7 +1837,7 @@ export const DocumentFormModal = ({
               onChange={(e) => {
                 handleSurveyTypeSelect(e.target.value);
               }}
-              options={currentProfile.surveyTypes || []}
+              options={availableSurveyTypes}
               placeholder={currentProfile.surveyPlaceholder || 'Pilih dari daftar survey atau ketik manual jenis survey...'}
             />
           </div>

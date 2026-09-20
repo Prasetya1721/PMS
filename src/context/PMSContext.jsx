@@ -19,7 +19,12 @@ import {
   INITIAL_USERS
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
-import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../data/shipCertificatesMaster';
+import {
+  CERTIFICATE_CATEGORIES,
+  STANDARD_CERTIFICATE_TEMPLATES,
+  DEFAULT_MASTER_SURVEY_TYPES,
+  DEFAULT_MASTER_CERTIFICATE_NAMES
+} from '../data/shipCertificatesMaster';
 import {
   INITIAL_AUDITS,
   INITIAL_AUDIT_FINDINGS,
@@ -161,8 +166,18 @@ export const PMSProvider = ({ children }) => {
     return CERTIFICATE_CATEGORIES || [];
   });
   const [documentTemplates, setDocumentTemplates] = useState(() => {
-    const stored = loadStored('documentTemplates', []);
-    return Array.isArray(stored) ? stored : [];
+    const stored = loadStored('documentTemplates', null);
+    if (Array.isArray(stored)) {
+      return stored;
+    }
+    return DEFAULT_MASTER_CERTIFICATE_NAMES || [];
+  });
+  const [masterSurveyTypes, setMasterSurveyTypes] = useState(() => {
+    const stored = loadStored('masterSurveyTypes', null);
+    if (Array.isArray(stored)) {
+      return stored;
+    }
+    return DEFAULT_MASTER_SURVEY_TYPES || [];
   });
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
@@ -1225,47 +1240,121 @@ export const PMSProvider = ({ children }) => {
     return true;
   };
 
-  // Master Document Templates Management (Auto-save new templates to Data Master)
+  // =========================================================================
+  // Master Data Nama Sertifikat (Document Templates)
+  // =========================================================================
   const addDocumentTemplate = (newTmpl) => {
     if (!newTmpl || !newTmpl.name) return null;
     const name = newTmpl.name.trim();
-    const category = newTmpl.category || 'KSOP';
+    const category = newTmpl.category || 'BKI';
+    const id = newTmpl.id || `cn-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const created = {
+      id,
       name,
       category,
       defaultValidityYears: Number(newTmpl.defaultValidityYears) || 1,
       issuer: newTmpl.issuer || (category === 'KSOP' ? 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)' : category === 'BKI' ? 'Biro Klasifikasi Indonesia (BKI)' : 'Instansi Penerbit Terkait'),
+      description: newTmpl.description?.trim() || `Sertifikat resmi ${name}`,
       docPrefix: newTmpl.docPrefix || name.substring(0, 4).toUpperCase(),
       isCustom: true
     };
 
     setDocumentTemplates(prev => {
-      if (prev.some(t => t.name.toLowerCase() === name.toLowerCase() && t.category.toLowerCase() === category.toLowerCase())) {
+      if ((prev || []).some(t => t.name.toLowerCase() === name.toLowerCase() && (t.category || '').toLowerCase() === category.toLowerCase())) {
         return prev;
       }
-      const next = [...prev, created];
+      const next = [...(prev || []), created];
       localStorage.setItem('pms_documentTemplates', JSON.stringify(next));
       return next;
     });
 
-    showToast(`Template dokumen "${created.name}" (${created.category}) otomatis tersimpan di Data Master!`, 'success');
+    showToast(`Nama sertifikat "${created.name}" (${created.category}) berhasil disimpan ke Data Master!`, 'success');
     return created;
   };
 
-  const deleteDocumentTemplate = (tmplName, category) => {
+  const deleteDocumentTemplate = (idOrName, category = null) => {
+    if (!idOrName) return false;
+    const target = String(idOrName).trim().toLowerCase();
+
     setDocumentTemplates(prev => {
-      const next = prev.filter(t => !(t.name.toLowerCase() === tmplName.toLowerCase() && (!category || t.category.toLowerCase() === category.toLowerCase())));
+      const next = (prev || []).filter(t => {
+        const tId = (t.id || '').toLowerCase();
+        const tName = (t.name || '').toLowerCase();
+        const matchesTarget = tId === target || tName === target;
+        if (!matchesTarget) return true;
+        if (category && (t.category || '').toLowerCase() !== category.toLowerCase()) return true;
+        return false;
+      });
       localStorage.setItem('pms_documentTemplates', JSON.stringify(next));
       return next;
     });
-    showToast(`Template "${tmplName}" berhasil dihapus dari Data Master.`, 'info');
+    showToast(`Nama sertifikat berhasil dihapus dari Data Master.`, 'info');
+    return true;
   };
 
   const clearDocumentTemplates = () => {
     setDocumentTemplates([]);
     localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
-    showToast('Seluruh data master template dokumen berhasil dikosongkan.', 'info');
+    showToast('Seluruh master data nama sertifikat berhasil dikosongkan.', 'info');
+  };
+
+  // =========================================================================
+  // Master Data Jenis Survey / Siklus Pemeriksaan Kapal
+  // =========================================================================
+  const addMasterSurveyType = (newSurvey) => {
+    if (!newSurvey || !newSurvey.name) return null;
+    const name = newSurvey.name.trim();
+    const category = newSurvey.category || 'BKI';
+    const intervalYears = newSurvey.intervalYears !== undefined ? Number(newSurvey.intervalYears) : 1;
+    const id = newSurvey.id || `st-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    const created = {
+      id,
+      name,
+      category,
+      intervalYears,
+      description: newSurvey.description?.trim() || `Jenis pemeriksaan ${name}`,
+      isCustom: true
+    };
+
+    setMasterSurveyTypes(prev => {
+      if ((prev || []).some(s => s.name.toLowerCase() === name.toLowerCase() && (s.category || '').toLowerCase() === category.toLowerCase())) {
+        return prev;
+      }
+      const next = [...(prev || []), created];
+      localStorage.setItem('pms_masterSurveyTypes', JSON.stringify(next));
+      return next;
+    });
+
+    showToast(`Jenis survey "${created.name}" (${created.category}) berhasil ditambahkan ke Data Master!`, 'success');
+    return created;
+  };
+
+  const deleteMasterSurveyType = (idOrName, category = null) => {
+    if (!idOrName) return false;
+    const target = String(idOrName).trim().toLowerCase();
+
+    setMasterSurveyTypes(prev => {
+      const next = (prev || []).filter(s => {
+        const sId = (s.id || '').toLowerCase();
+        const sName = (s.name || '').toLowerCase();
+        const matchesTarget = sId === target || sName === target;
+        if (!matchesTarget) return true;
+        if (category && (s.category || '').toLowerCase() !== category.toLowerCase()) return true;
+        return false;
+      });
+      localStorage.setItem('pms_masterSurveyTypes', JSON.stringify(next));
+      return next;
+    });
+    showToast(`Jenis survey berhasil dihapus dari Data Master.`, 'info');
+    return true;
+  };
+
+  const clearMasterSurveyTypes = () => {
+    setMasterSurveyTypes([]);
+    localStorage.setItem('pms_masterSurveyTypes', JSON.stringify([]));
+    showToast('Seluruh master data jenis survey berhasil dikosongkan.', 'info');
   };
 
   // =========================================================================
@@ -2305,6 +2394,7 @@ export const PMSProvider = ({ children }) => {
     setShipDocuments([]);
     setCertificateCategories([]);
     setDocumentTemplates([]);
+    setMasterSurveyTypes([]);
     setNotificationLogs([]);
     setAudits([]);
     setAuditFindings([]);
@@ -2325,6 +2415,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_shipDocuments', JSON.stringify([]));
     localStorage.setItem('pms_certificateCategories', JSON.stringify([]));
     localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
+    localStorage.setItem('pms_masterSurveyTypes', JSON.stringify([]));
     localStorage.setItem('pms_notificationLogs', JSON.stringify([]));
     localStorage.setItem('pms_audits', JSON.stringify([]));
     localStorage.setItem('pms_auditFindings', JSON.stringify([]));
@@ -2368,6 +2459,7 @@ export const PMSProvider = ({ children }) => {
     setShipDocuments(dShipDocs);
     setCertificateCategories(dCategories);
     setDocumentTemplates(dTemplates);
+    setMasterSurveyTypes(DEFAULT_MASTER_SURVEY_TYPES);
     setNotificationLogs(dLogs);
     setAudits(dAudits);
     setAuditFindings(dFindings);
@@ -2387,6 +2479,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_shipDocuments', JSON.stringify(dShipDocs));
     localStorage.setItem('pms_certificateCategories', JSON.stringify(dCategories));
     localStorage.setItem('pms_documentTemplates', JSON.stringify(dTemplates));
+    localStorage.setItem('pms_masterSurveyTypes', JSON.stringify(DEFAULT_MASTER_SURVEY_TYPES));
     localStorage.setItem('pms_notificationLogs', JSON.stringify(dLogs));
     localStorage.setItem('pms_audits', JSON.stringify(dAudits));
     localStorage.setItem('pms_auditFindings', JSON.stringify(dFindings));
@@ -2619,6 +2712,13 @@ export const PMSProvider = ({ children }) => {
         addDocumentTemplate,
         deleteDocumentTemplate,
         clearDocumentTemplates,
+        masterCertificateNames: documentTemplates,
+        addMasterCertificateName: addDocumentTemplate,
+        deleteMasterCertificateName: deleteDocumentTemplate,
+        masterSurveyTypes,
+        addMasterSurveyType,
+        deleteMasterSurveyType,
+        clearMasterSurveyTypes,
         addCrew,
         updateCrew,
         deleteCrew,
