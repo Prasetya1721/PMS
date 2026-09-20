@@ -61,6 +61,7 @@ export const MasterDataAdmin = () => {
     documentTemplates,
     addDocumentTemplate,
     deleteDocumentTemplate,
+    clearDocumentTemplates,
     clearAllData,
     loadDemoData,
     addVessel,
@@ -139,6 +140,7 @@ export const MasterDataAdmin = () => {
   const [deletingDocId, setDeletingDocId] = useState(null);
   const [deletingVesselId, setDeletingVesselId] = useState(null);
   const [deletingCrewId, setDeletingCrewId] = useState(null);
+  const [confirmClearTemplates, setConfirmClearTemplates] = useState(false);
 
   // Document Templates Management state
   const [tmplSearch, setTmplSearch] = useState('');
@@ -1961,8 +1963,57 @@ export const MasterDataAdmin = () => {
                   <span>📋 Master Template Dokumen Maritim ({filteredTemplates.length} Dokumen Tersedia)</span>
                 </h4>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Daftar template sertifikat yang muncul otomatis di pilihan cepat modal dokumen sesuai kategori yang dipilih.
+                  Daftar template sertifikat yang muncul otomatis di pilihan dropdown modal dokumen sesuai kategori yang dipilih.
                 </p>
+              </div>
+
+              <div>
+                {confirmClearTemplates ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(225, 29, 72, 0.1)', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(225, 29, 72, 0.3)' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#f43f5e', fontWeight: 600 }}>Yakin kosongkan semua template?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearDocumentTemplates();
+                        setConfirmClearTemplates(false);
+                      }}
+                      className="btn btn-sm"
+                      style={{ background: '#e11d48', color: '#fff', fontSize: '0.75rem', padding: '0.3rem 0.75rem', fontWeight: 600, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Ya, Kosongkan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearTemplates(false)}
+                      className="btn btn-sm"
+                      style={{ background: 'rgba(255, 255, 255, 0.1)', color: 'var(--text-main)', fontSize: '0.75rem', padding: '0.3rem 0.6rem', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearTemplates(true)}
+                    className="btn btn-sm"
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      color: '#f87171',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '6px',
+                      cursor: 'pointer'
+                    }}
+                    title="Kosongkan seluruh master template dokumen"
+                  >
+                    <Trash2 size={14} />
+                    <span>Kosongkan Master Template</span>
+                  </button>
+                )}
               </div>
             </div>
 

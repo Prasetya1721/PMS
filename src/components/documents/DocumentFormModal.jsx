@@ -56,15 +56,15 @@ export const CATEGORY_FORM_PROFILES = {
     docNoPlaceholder: 'Contoh: BKI.PTK-2026-HL-04812',
     surveyPlaceholder: 'Pilih jenis survey BKI atau ketik manual...',
     surveyTypes: [
-      'Annual Survey (Survei Tahunan BKI)',
-      'Intermediate Survey (Survei Antara BKI - 2.5 Thn)',
-      'Special / Renewal Survey (Survei Pembaruan Kelas 5 Tahunan)',
-      'Docking / Bottom Survey (Survei Pengedokan Bawah Air BKI)',
-      'Tailshaft Survey (Survei Poros Baling-Baling BKI)',
-      'Boiler Survey (Survei Ketel Uap BKI)',
-      'Continuous Survey (CSM / CSH Mesin & Lambung)',
-      'Occasional / Damage Survey (Survei Kerusakan / Perbaikan BKI)',
-      'Non-Survey / Sertifikat Kelas Khusus'
+      'Annual Survey',
+      'Intermediate Survey',
+      'Special / Renewal Survey',
+      'Docking / Bottom Survey',
+      'Tailshaft Survey',
+      'Boiler Survey',
+      'Continuous Survey',
+      'Occasional / Damage Survey',
+      'Non-Survey'
     ],
     surveyPresets: [
       { label: 'Annual Survey (1 Thn)', full: 'Annual Survey (Survei Tahunan BKI)', years: 1 },
@@ -672,11 +672,29 @@ export const DocumentFormModal = ({
     certificateCategories: contextCategories,
     addCertificateCategory,
     documentTemplates: contextTemplates,
-    addDocumentTemplate
+    addDocumentTemplate,
+    shipDocuments
   } = usePMS();
 
   const activeCategories = contextCategories || [];
   const activeTemplates = contextTemplates || [];
+
+  // Pilihan nama sertifikat yang sudah ada di master templates & dokumen kapal
+  const availableDocumentNames = useMemo(() => {
+    const namesSet = new Set();
+
+    // Dari master template
+    (contextTemplates || []).forEach(t => {
+      if (t.name && t.name.trim()) namesSet.add(t.name.trim());
+    });
+
+    // Dari seluruh sertifikat kapal yang pernah tersimpan
+    (shipDocuments || []).forEach(d => {
+      if (d.name && d.name.trim()) namesSet.add(d.name.trim());
+    });
+
+    return Array.from(namesSet);
+  }, [contextTemplates, shipDocuments]);
 
   const isEditing = !!initialData?.id;
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -1028,6 +1046,23 @@ export const DocumentFormModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
+
+    const trimmedName = formData.name.trim();
+
+    // Otomatis daftarkan nama dokumen baru ke Data Master jika belum ada
+    if (addDocumentTemplate && trimmedName) {
+      const exists = (contextTemplates || []).some(
+        t => t.name && t.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      );
+      if (!exists) {
+        addDocumentTemplate({
+          name: trimmedName,
+          category: formData.category || 'BKI',
+          defaultValidityYears: 1,
+          issuer: formData.issuer || 'Biro Klasifikasi Indonesia (BKI)'
+        });
+      }
+    }
 
     const eff = getEffectiveReminder();
     const finalReminders = {
@@ -1439,57 +1474,17 @@ export const DocumentFormModal = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1rem' }}>
             <div>
               <label className="field-label">Nama Sertifikat / Dokumen *</label>
-              <input
-                type="text"
-                required
-                placeholder={currentProfile.namePlaceholder || 'Contoh: Pas Besar / Cargo Ship Safety Equipment'}
+              <MasterCombobox
+                name="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className="input-control"
+                options={availableDocumentNames}
+                placeholder="Pilih dari master data atau ketik nama sertifikat baru..."
+                required
               />
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                Ketik nama resmi sertifikat kapal secara manual sesuai fisik dokumen (bebas dan tidak dipaksa sama dengan template).
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.25rem', display: 'block' }}>
+                Ketik nama resmi sertifikat kapal secara manual. Setiap nama baru otomatis tersimpan ke Data Master dan muncul di pilihan dropdown.
               </span>
-
-              {/* Quick Certificate Name Badges */}
-              {currentProfile.quickCertificateNames && currentProfile.quickCertificateNames.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.45rem' }}>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.2rem' }}>
-                    Contoh Nama Sertifikat {currentProfile.shortLabel}:
-                  </span>
-                  {currentProfile.quickCertificateNames.map(cn => (
-                    <button
-                      key={cn}
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, name: cn }));
-                        if (cn.includes('SSCEC')) {
-                          handleSurveyTypeSelect('Pembaruan Rutin SSCEC 6 Bulanan (Exemption Certificate)', 0.5);
-                        } else if (cn.includes('Surat Ukur')) {
-                          handleSurveyTypeSelect('Pemeriksaan Fisik Surat Ukur (Tonnage Measurement)', 10);
-                        } else if (cn.includes('Pas Besar')) {
-                          handleSurveyTypeSelect('Non-Survey (Pas Besar / Surat Laut / Izin Trayek RPT / Dokumen Tetap)', 5);
-                        } else if (cn.includes('Lambung') || cn.includes('Mesin')) {
-                          handleSurveyTypeSelect('Special / Renewal Survey (Survei Pembaruan Kelas 5 Tahunan)', 5);
-                        }
-                      }}
-                      className="badge"
-                      style={{
-                        cursor: 'pointer',
-                        fontSize: '0.68rem',
-                        padding: '0.18rem 0.45rem',
-                        background: formData.name === cn ? `${currentProfile.color}33` : 'rgba(255, 255, 255, 0.04)',
-                        border: `1px solid ${formData.name === cn ? currentProfile.color : 'var(--border-subtle)'}`,
-                        color: formData.name === cn ? currentProfile.color : 'var(--text-secondary)',
-                        transition: 'all 0.15s ease'
-                      }}
-                      title={`Klik untuk mengisi nama: ${cn}`}
-                    >
-                      + {cn}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div>

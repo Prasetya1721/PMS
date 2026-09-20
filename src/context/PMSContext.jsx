@@ -62,6 +62,13 @@ if (typeof window !== 'undefined') {
       }
       localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
     }
+
+    // Bersihkan data master template agar kosong default sesuai permintaan user
+    const isMasterCleaned = localStorage.getItem('pms_master_templates_cleaned_v3');
+    if (!isMasterCleaned) {
+      localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
+      localStorage.setItem('pms_master_templates_cleaned_v3', 'true');
+    }
   } catch (err) {
     console.error('[PMS] Storage purge check error:', err);
   }
@@ -151,7 +158,10 @@ export const PMSProvider = ({ children }) => {
     if (Array.isArray(stored)) return stored;
     return CERTIFICATE_CATEGORIES;
   });
-  const [documentTemplates, setDocumentTemplates] = useState(() => loadStored('documentTemplates', STANDARD_CERTIFICATE_TEMPLATES));
+  const [documentTemplates, setDocumentTemplates] = useState(() => {
+    const stored = loadStored('documentTemplates', []);
+    return Array.isArray(stored) ? stored : [];
+  });
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
@@ -1084,6 +1094,32 @@ export const PMSProvider = ({ children }) => {
       fileType: docData.fileType || null,
       uploadedAt: docData.uploadedAt || (docData.fileUrl ? new Date().toISOString() : null)
     };
+
+    // Auto-save new certificate name to master templates if not already present
+    if (newDoc.name && newDoc.name.trim()) {
+      const trimmedName = newDoc.name.trim();
+      const docCat = newDoc.category || 'BKI';
+      setDocumentTemplates(prev => {
+        const exists = (prev || []).some(
+          t => t.name && t.name.trim().toLowerCase() === trimmedName.toLowerCase() && (!docCat || t.category?.toLowerCase() === docCat.toLowerCase())
+        );
+        if (!exists) {
+          const newTmpl = {
+            name: trimmedName,
+            category: docCat,
+            defaultValidityYears: 1,
+            issuer: newDoc.issuer || (docCat === 'BKI' ? 'Biro Klasifikasi Indonesia (BKI)' : 'Instansi Penerbit Terkait'),
+            docPrefix: trimmedName.substring(0, 4).toUpperCase(),
+            isCustom: true
+          };
+          const next = [...(prev || []), newTmpl];
+          localStorage.setItem('pms_documentTemplates', JSON.stringify(next));
+          return next;
+        }
+        return prev;
+      });
+    }
+
     setShipDocuments(prev => [newDoc, ...prev]);
     showToast(`Sertifikat ${newDoc.name} (${newDoc.category}) berhasil ditambahkan!`, 'success');
     return newDoc;
@@ -1222,6 +1258,12 @@ export const PMSProvider = ({ children }) => {
       return next;
     });
     showToast(`Template "${tmplName}" berhasil dihapus dari Data Master.`, 'info');
+  };
+
+  const clearDocumentTemplates = () => {
+    setDocumentTemplates([]);
+    localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
+    showToast('Seluruh data master template dokumen berhasil dikosongkan.', 'info');
   };
 
   // =========================================================================
@@ -2574,6 +2616,7 @@ export const PMSProvider = ({ children }) => {
         documentTemplates,
         addDocumentTemplate,
         deleteDocumentTemplate,
+        clearDocumentTemplates,
         addCrew,
         updateCrew,
         deleteCrew,
