@@ -1055,21 +1055,34 @@ export const DocumentFormModal = ({
 
   const currentProfile = getCategoryProfile(formData.category);
 
-  // Combine activeCategories from context and standard profiles so tabs always exist
-  const coreCategoryKeys = ['BKI', 'KSOP', 'Statutory', 'Kesehatan', 'Asuransi'];
-  const allCategoryList = [
-    ...activeCategories,
-    ...coreCategoryKeys
-      .filter(k => !activeCategories.some(c => c.id?.toLowerCase() === k.toLowerCase()))
-      .map(k => ({
-        id: k,
-        label: CATEGORY_FORM_PROFILES[k]?.label || k,
-        code: k,
-        color: CATEGORY_FORM_PROFILES[k]?.color,
-        bgColor: CATEGORY_FORM_PROFILES[k]?.bgColor,
-        borderColor: CATEGORY_FORM_PROFILES[k]?.borderColor
-      }))
-  ];
+  // Hanya pertahankan BKI sesuai instruksi user ("hilangkan dulu pertahankan BKI")
+  const allCategoryList = useMemo(() => {
+    const list = [
+      {
+        id: 'BKI',
+        label: 'BKI (Biro Klasifikasi Indonesia)',
+        code: 'BKI',
+        color: '#38bdf8',
+        bgColor: 'rgba(2, 132, 199, 0.12)',
+        borderColor: 'rgba(56, 189, 248, 0.35)'
+      }
+    ];
+
+    // Jika sedang edit dokumen lama yang kategorinya bukan BKI, tetap sertakan agar dokumen tidak error
+    if (isEditing && initialData?.category && initialData.category !== 'BKI') {
+      const prof = getCategoryProfile(initialData.category);
+      list.push({
+        id: initialData.category,
+        label: prof.label || initialData.category,
+        code: initialData.category,
+        color: prof.color,
+        bgColor: prof.bgColor,
+        borderColor: prof.borderColor
+      });
+    }
+
+    return list;
+  }, [isEditing, initialData]);
 
   return (
     <div style={{
@@ -1200,10 +1213,10 @@ export const DocumentFormModal = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <label className="field-label" style={{ marginBottom: '0.1rem', fontWeight: 800, fontSize: '0.82rem', letterSpacing: '0.03em', color: currentProfile.color }}>
-                  PILIH KATEGORI SERTIFIKAT KAPAL *
+                  KATEGORI SERTIFIKAT KAPAL
                 </label>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                  Setiap kategori memiliki formulir khusus: jenis survey, surveyor, penerbit, & masa berlaku otomatis berbeda.
+                  Formulir khusus sertifikasi BKI (Biro Klasifikasi Indonesia) - Lambung, Mesin, dan Survei Periodik.
                 </span>
               </div>
 
@@ -1222,8 +1235,8 @@ export const DocumentFormModal = ({
 
             {/* Visual Category Tab Buttons */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+              display: 'flex',
+              flexWrap: 'wrap',
               gap: '0.55rem'
             }}>
               {allCategoryList.map(cat => {
