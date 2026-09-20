@@ -23,6 +23,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { DocumentFormModal } from './DocumentFormModal';
+import { DocumentPreviewModal } from './DocumentPreviewModal';
 
 export const DocumentTracker = () => {
   const {
@@ -419,12 +420,7 @@ export const DocumentTracker = () => {
                       {item.fileUrl ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            const win = window.open();
-                            if (win) {
-                              win.document.write(`<iframe src="${item.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                            }
-                          }}
+                          onClick={() => setPreviewDoc(item)}
                           className="badge badge-info"
                           style={{
                             fontSize: '0.7rem',
@@ -915,6 +911,14 @@ export const DocumentTracker = () => {
               addShipDocument(data);
             }
           }}
+        />
+      )}
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          document={previewDoc}
+          onClose={() => setPreviewDoc(null)}
         />
       )}
     </div>

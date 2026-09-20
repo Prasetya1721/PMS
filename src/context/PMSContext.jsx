@@ -1083,7 +1083,6 @@ export const PMSProvider = ({ children }) => {
       defaultValidityYears: Number(newTmpl.defaultValidityYears) || 1,
       issuer: newTmpl.issuer || (category === 'KSOP' ? 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)' : category === 'BKI' ? 'Biro Klasifikasi Indonesia (BKI)' : 'Instansi Penerbit Terkait'),
       docPrefix: newTmpl.docPrefix || name.substring(0, 4).toUpperCase(),
-      mandatoryAuditor: newTmpl.mandatoryAuditor || (category === 'KSOP' ? 'Syahbandar KSOP' : category === 'BKI' ? 'Surveyor BKI' : 'Auditor / Surveyor Resmi'),
       isCustom: true
     };
 

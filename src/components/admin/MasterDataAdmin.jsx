@@ -39,6 +39,7 @@ import {
   Phone
 } from 'lucide-react';
 import { DocumentFormModal } from '../documents/DocumentFormModal';
+import { DocumentPreviewModal } from '../documents/DocumentPreviewModal';
 import { ParticularsModal } from '../vessels/ParticularsModal';
 
 export const MasterDataAdmin = () => {
@@ -132,12 +133,12 @@ export const MasterDataAdmin = () => {
   // Document Templates Management state
   const [tmplSearch, setTmplSearch] = useState('');
   const [tmplCatFilter, setTmplCatFilter] = useState('ALL');
+  const [previewDoc, setPreviewDoc] = useState(null);
   const [newTmplData, setNewTmplData] = useState({
     name: '',
     category: 'KSOP',
     defaultValidityYears: 1,
-    issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
-    mandatoryAuditor: 'Syahbandar KSOP Pontianak'
+    issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)'
   });
 
   // User Management state
@@ -431,24 +432,21 @@ export const MasterDataAdmin = () => {
       name: newTmplData.name.trim(),
       category: newTmplData.category,
       defaultValidityYears: Number(newTmplData.defaultValidityYears) || 1,
-      issuer: newTmplData.issuer.trim() || `Instansi Penerbit ${newTmplData.category}`,
-      mandatoryAuditor: newTmplData.mandatoryAuditor.trim() || `Surveyor / Auditor ${newTmplData.category}`
+      issuer: newTmplData.issuer.trim() || `Instansi Penerbit ${newTmplData.category}`
     });
 
     setNewTmplData({
       name: '',
       category: 'KSOP',
       defaultValidityYears: 1,
-      issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
-      mandatoryAuditor: 'Syahbandar KSOP Pontianak'
+      issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)'
     });
   };
 
   const filteredTemplates = (documentTemplates || []).filter(t => {
     const matchCat = tmplCatFilter === 'ALL' || t.category === tmplCatFilter;
     const matchSearch = (t.name && t.name.toLowerCase().includes(tmplSearch.toLowerCase())) ||
-      (t.issuer && t.issuer.toLowerCase().includes(tmplSearch.toLowerCase())) ||
-      (t.mandatoryAuditor && t.mandatoryAuditor.toLowerCase().includes(tmplSearch.toLowerCase()));
+      (t.issuer && t.issuer.toLowerCase().includes(tmplSearch.toLowerCase()));
     return matchCat && matchSearch;
   });
 
@@ -1509,12 +1507,7 @@ export const MasterDataAdmin = () => {
                           {d.fileUrl ? (
                             <button
                               type="button"
-                              onClick={() => {
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(`<iframe src="${d.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                }
-                              }}
+                              onClick={() => setPreviewDoc(d)}
                               className="badge badge-info"
                               style={{
                                 fontSize: '0.7rem',
@@ -1809,17 +1802,6 @@ export const MasterDataAdmin = () => {
                 </div>
 
                 <div>
-                  <label className="field-label">Surveyor / Auditor Default</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Syahbandar KSOP / Surveyor BKI"
-                    value={newTmplData.mandatoryAuditor}
-                    onChange={(e) => setNewTmplData(prev => ({ ...prev, mandatoryAuditor: e.target.value }))}
-                    className="input-control"
-                  />
-                </div>
-
-                <div>
                   <button type="submit" className="btn btn-primary" style={{ height: '38px', whiteSpace: 'nowrap' }}>
                     + Simpan Template
                   </button>
@@ -1833,7 +1815,7 @@ export const MasterDataAdmin = () => {
                 <Search size={16} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Cari template dokumen, instansi, surveyor..."
+                  placeholder="Cari template dokumen, instansi..."
                   value={tmplSearch}
                   onChange={(e) => setTmplSearch(e.target.value)}
                   className="input-control"
@@ -1865,7 +1847,6 @@ export const MasterDataAdmin = () => {
                       <th>Nama Sertifikat / Template</th>
                       <th>Kategori</th>
                       <th>Masa Berlaku</th>
-                      <th>Surveyor / Auditor Default</th>
                       <th>Instansi Penerbit</th>
                       <th>Tipe Template</th>
                       <th style={{ textAlign: 'right' }}>Aksi</th>
@@ -1895,12 +1876,6 @@ export const MasterDataAdmin = () => {
                           </td>
                           <td className="mono" style={{ fontSize: '0.82rem' }}>
                             {t.defaultValidityYears} Tahun
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <UserCheck size={12} color="#38bdf8" />
-                              <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>{t.mandatoryAuditor || '-'}</span>
-                            </div>
                           </td>
                           <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {t.issuer || '-'}
@@ -2990,6 +2965,14 @@ export const MasterDataAdmin = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          document={previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   );

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../../data/shipCertificatesMaster';
 import { usePMS } from '../../context/PMSContext';
+import { DocumentPreviewModal } from './DocumentPreviewModal';
 
 const PRESET_INTERVAL_MAP = {
   '1y': { unit: 'year', value: 1, label: '1 Tahun Sebelum (H-365)' },
@@ -149,6 +150,10 @@ export const DocumentFormModal = ({
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isAddingNewTemplate, setIsAddingNewTemplate] = useState(false);
   const [newTemplateCustomName, setNewTemplateCustomName] = useState('');
+  const [newTemplateCategory, setNewTemplateCategory] = useState('');
+  const [newTemplateValidity, setNewTemplateValidity] = useState(1);
+  const [newTemplateIssuer, setNewTemplateIssuer] = useState('');
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   // Simplified notification state (dropdown + manual input)
   const [reminderMode, setReminderMode] = useState('1m');
@@ -266,41 +271,40 @@ export const DocumentFormModal = ({
     const issueStr = now.toISOString().split('T')[0];
 
     const exp = new Date();
-    exp.setFullYear(exp.getFullYear() + (tmpl.defaultValidityYears || 1));
+    const valYears = Number(tmpl.defaultValidityYears) || 1;
+    if (valYears < 1) {
+      exp.setMonth(exp.getMonth() + Math.round(valYears * 12));
+    } else {
+      exp.setFullYear(exp.getFullYear() + valYears);
+    }
     const expStr = exp.toISOString().split('T')[0];
 
-    const issuer = tmpl.issuer.includes('KSOP')
-      ? `KSOP Kelas II ${port}`
-      : tmpl.issuer.includes('KKP')
-      ? `Kantor Kesehatan Pelabuhan (KKP) ${port}`
-      : tmpl.issuer;
+    const issuer = tmpl.issuer
+      ? (tmpl.issuer.includes('KSOP')
+        ? `KSOP Kelas II ${port}`
+        : tmpl.issuer.includes('KKP')
+        ? `Kantor Kesehatan Pelabuhan (KKP) ${port}`
+        : tmpl.issuer)
+      : (formData.issuer || `Instansi Penerbit ${tmpl.category || formData.category}`);
 
     // Smart default reminder for template
     let autoMode = '1m';
     if (tmpl.category === 'BKI') autoMode = '3m';
-    else if (tmpl.defaultValidityYears >= 5) autoMode = '1y';
-    else if (tmpl.defaultValidityYears < 1) autoMode = '2w';
+    else if (valYears >= 5) autoMode = '1y';
+    else if (valYears < 1) autoMode = '2w';
 
     setReminderMode(autoMode);
     setSelectedTemplate(tmpl.name);
 
-    const auditor = tmpl.mandatoryAuditor || (tmpl.category === 'KSOP'
-      ? `Syahbandar KSOP ${port}`
-      : tmpl.category === 'Kesehatan'
-      ? `Petugas Sanitasi KKP ${port}`
-      : tmpl.category === 'BKI'
-      ? `Surveyor BKI Cabang ${port}`
-      : `Marine Inspector ${tmpl.category}`);
-
     setFormData(prev => ({
       ...prev,
-      category: tmpl.category,
       name: tmpl.name,
-      documentNo: `${tmpl.docPrefix || 'DOC'}-${reg}-${exp.getFullYear()}`,
-      issuer,
-      issueDate: issueStr,
+      category: tmpl.category || prev.category,
+      documentNo: prev.documentNo || `${tmpl.docPrefix || 'DOC'}-${reg}-${exp.getFullYear()}`,
+      issuer: issuer,
+      issueDate: prev.issueDate || issueStr,
       expiryDate: expStr,
-      mandatoryAuditor: auditor,
+      // Note: formData.mandatoryAuditor is preserved (surveyor is specific per ship inspection, not saved in master)
       notificationReminders: {
         enabled: true,
         mode: autoMode,
@@ -314,33 +318,23 @@ export const DocumentFormModal = ({
 
   const handleCategoryChange = (newCat) => {
     let defaultIssuer = 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)';
-    let defaultAuditor = 'Syahbandar KSOP Pontianak';
-
     if (newCat === 'BKI') {
       defaultIssuer = 'Biro Klasifikasi Indonesia (BKI)';
-      defaultAuditor = 'Surveyor BKI Cabang Pontianak';
     } else if (newCat === 'Statutory') {
       defaultIssuer = 'Direktorat Jenderal Perhubungan Laut / BKI Statutory';
-      defaultAuditor = 'Marine Inspector Ditjen Hubla';
     } else if (newCat === 'Asuransi') {
       defaultIssuer = 'PT. Asuransi Jasa Indonesia (Jasindo) / P&I Club';
-      defaultAuditor = 'Underwriter Asuransi Maritim';
     } else if (newCat === 'Kesehatan') {
       defaultIssuer = 'Balai Karantina Kesehatan / KKP Kelas II';
-      defaultAuditor = 'Petugas Pengawas Sanitasi KKP';
     } else {
       defaultIssuer = `Instansi Penerbit ${newCat}`;
-      defaultAuditor = `Surveyor / Auditor ${newCat}`;
     }
 
     setFormData(prev => ({
       ...prev,
       category: newCat,
-      issuer: defaultIssuer,
-      mandatoryAuditor: defaultAuditor
+      issuer: prev.issuer || defaultIssuer
     }));
-
-    setSelectedTemplate(''); // Reset template dropdown when category changes
   };
 
   // Handle file selection from local device
@@ -464,24 +458,6 @@ export const DocumentFormModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-
-    // 1. AUTO-SAVE TO MASTER DATA: Check if document template already exists in this category
-    if (addDocumentTemplate) {
-      const existsInTemplates = activeTemplates.some(
-        t => t.name.toLowerCase() === formData.name.trim().toLowerCase() &&
-             t.category.toLowerCase() === formData.category.toLowerCase()
-      );
-      if (!existsInTemplates) {
-        addDocumentTemplate({
-          name: formData.name.trim(),
-          category: formData.category,
-          defaultValidityYears: 1,
-          issuer: formData.issuer,
-          docPrefix: formData.documentNo?.split('-')[0] || formData.category,
-          mandatoryAuditor: formData.mandatoryAuditor
-        });
-      }
-    }
 
     const eff = getEffectiveReminder();
     const finalReminders = {
@@ -709,7 +685,7 @@ export const DocumentFormModal = ({
             </div>
           </div>
 
-          {/* 2. DYNAMIC QUICK DOCUMENT PICKER (Otomatis Merujuk Sesuai Kategori yang Dipilih) */}
+          {/* 2. QUICK DOCUMENT TEMPLATE PICKER (OPSIONAL & TIDAK DIKUNCI KATEGORI / NAMA SERTIFIKAT) */}
           <div style={{
             padding: '1rem',
             borderRadius: '12px',
@@ -720,26 +696,37 @@ export const DocumentFormModal = ({
             gap: '0.65rem'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <label style={{
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                color: selectedCategoryMeta.color || 'var(--text-main)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}>
-                <Sparkles size={14} />
-                <span>⚡ Pilihan Cepat Dokumen Kategori [{formData.category}] ({categoryTemplates.length} Dokumen Tersedia):</span>
-              </label>
+              <div>
+                <label style={{
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  color: selectedCategoryMeta.color || 'var(--text-main)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}>
+                  <Sparkles size={14} />
+                  <span>⚡ PILIHAN CEPAT TEMPLATE DOKUMEN (OPSIONAL):</span>
+                </label>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
+                  Pilih dari template standar jika ada, atau lewati dan ketik langsung nama sertifikat di bawah.
+                </span>
+              </div>
 
               {!isAddingNewTemplate && (
                 <button
                   type="button"
-                  onClick={() => setIsAddingNewTemplate(true)}
+                  onClick={() => {
+                    setNewTemplateCategory(formData.category || activeCategories[0]?.id || 'KSOP');
+                    setNewTemplateValidity(1);
+                    setNewTemplateCustomName('');
+                    setNewTemplateIssuer(formData.issuer || '');
+                    setIsAddingNewTemplate(true);
+                  }}
                   className="btn btn-secondary btn-sm"
-                  style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', color: '#38bdf8' }}
+                  style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                 >
                   <Plus size={12} />
                   <span>+ Tambah Template Dokumen</span>
@@ -747,68 +734,119 @@ export const DocumentFormModal = ({
               )}
             </div>
 
-            {/* Sub-form to quickly add template directly to master data */}
+            {/* Sub-form to quickly add template directly to master data with Validity period */}
             {isAddingNewTemplate && (
               <div style={{
-                padding: '0.65rem',
-                borderRadius: '8px',
+                padding: '0.85rem 1rem',
+                borderRadius: '10px',
                 background: 'rgba(56, 189, 248, 0.08)',
                 border: '1px dashed rgba(56, 189, 248, 0.4)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.4rem'
+                gap: '0.65rem'
               }}>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder={`Nama template baru untuk kategori ${formData.category}...`}
-                    value={newTemplateCustomName}
-                    onChange={(e) => setNewTemplateCustomName(e.target.value)}
-                    className="input-control"
-                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!newTemplateCustomName.trim()) return;
-                      const newTmpl = addDocumentTemplate({
-                        name: newTemplateCustomName.trim(),
-                        category: formData.category,
-                        defaultValidityYears: 1,
-                        issuer: formData.issuer,
-                        mandatoryAuditor: formData.mandatoryAuditor
-                      });
-                      if (newTmpl) {
-                        handleTemplateSelect(newTmpl);
-                      }
-                      setNewTemplateCustomName('');
-                      setIsAddingNewTemplate(false);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.75rem', fontSize: '0.75rem' }}
-                  >
-                    Simpan ke Master
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingNewTemplate(false);
-                      setNewTemplateCustomName('');
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    Batal
-                  </button>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>
+                  Tambah Template Dokumen Baru ke Data Master
                 </div>
-                <span style={{ fontSize: '0.7rem', color: '#38bdf8' }}>
-                  ✓ Template dokumen baru akan langsung tersimpan di Master Data dan selalu muncul di pilihan cepat kategori ini.
-                </span>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Nama Template *</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Pas Sungai / Sertifikat Keselamatan"
+                      value={newTemplateCustomName}
+                      onChange={(e) => setNewTemplateCustomName(e.target.value)}
+                      className="input-control"
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Kategori Dokumen *</label>
+                    <select
+                      value={newTemplateCategory || formData.category}
+                      onChange={(e) => setNewTemplateCategory(e.target.value)}
+                      className="select-control"
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
+                    >
+                      {activeCategories.map(c => (
+                        <option key={c.id} value={c.id}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Masa Berlaku *</label>
+                    <select
+                      value={newTemplateValidity}
+                      onChange={(e) => setNewTemplateValidity(Number(e.target.value))}
+                      className="select-control"
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem', fontWeight: 600 }}
+                    >
+                      <option value={0.5}>6 Bulan</option>
+                      <option value={1}>1 Tahun</option>
+                      <option value={2}>2 Tahun</option>
+                      <option value={3}>3 Tahun</option>
+                      <option value={5}>5 Tahun</option>
+                      <option value={10}>10 Tahun</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <input
+                      type="text"
+                      placeholder="Instansi Penerbit (Opsional, cth: KSOP / BKI)"
+                      value={newTemplateIssuer}
+                      onChange={(e) => setNewTemplateIssuer(e.target.value)}
+                      className="input-control"
+                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newTemplateCustomName.trim()) return;
+                        const cat = newTemplateCategory || formData.category || activeCategories[0]?.id || 'KSOP';
+                        const newTmpl = addDocumentTemplate({
+                          name: newTemplateCustomName.trim(),
+                          category: cat,
+                          defaultValidityYears: Number(newTemplateValidity) || 1,
+                          issuer: newTemplateIssuer.trim() || `Instansi Penerbit ${cat}`
+                        });
+                        if (newTmpl) {
+                          handleTemplateSelect(newTmpl);
+                        }
+                        setNewTemplateCustomName('');
+                        setIsAddingNewTemplate(false);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ whiteSpace: 'nowrap', padding: '0.35rem 0.85rem', fontSize: '0.75rem' }}
+                    >
+                      Simpan Template ke Master
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewTemplate(false);
+                        setNewTemplateCustomName('');
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Dropdown Selector Filtered Strictly by Category */}
+            {/* Dropdown Selector from all active templates */}
             <select
               className="select-control"
               value={selectedTemplate}
@@ -816,31 +854,46 @@ export const DocumentFormModal = ({
                 const val = e.target.value;
                 setSelectedTemplate(val);
                 if (val && val !== 'MANUAL') {
-                  const tmpl = activeTemplates.find(t => t.name === val && t.category === formData.category) ||
-                               activeTemplates.find(t => t.name === val);
+                  const tmpl = activeTemplates.find(t => t.name === val);
                   if (tmpl) handleTemplateSelect(tmpl);
-                } else if (val === 'MANUAL') {
-                  setFormData(prev => ({ ...prev, name: '' }));
                 }
               }}
               style={{ background: 'var(--bg-surface)', fontWeight: 600 }}
             >
               <option value="">
-                {categoryTemplates.length > 0
-                  ? `-- Pilih Dokumen Standar ${formData.category} (${categoryTemplates.length} Tersedia) --`
-                  : `-- Belum ada template standar untuk kategori ${formData.category} (Input nama di bawah) --`}
+                {activeTemplates.length > 0
+                  ? `-- Pilih Template Standar (${activeTemplates.length} Template Tersedia) --`
+                  : `-- Belum ada template standar (Input nama manual di bawah) --`}
               </option>
-              {categoryTemplates.map(t => (
-                <option key={t.name} value={t.name}>
-                  📄 {t.name} (Berlaku {t.defaultValidityYears} Thn)
-                </option>
-              ))}
-              <option value="MANUAL">✍️ Dokumen Baru / Input Judul Manual (Otomatis Masuk Data Master)</option>
+              {activeCategories.map(cat => {
+                const catTmpls = activeTemplates.filter(t => t.category === cat.id);
+                if (catTmpls.length === 0) return null;
+                return (
+                  <optgroup key={cat.id} label={`📁 Kategori: ${cat.label}`}>
+                    {catTmpls.map(t => (
+                      <option key={`${cat.id}-${t.name}`} value={t.name}>
+                        📄 {t.name} (Berlaku {t.defaultValidityYears >= 1 ? `${t.defaultValidityYears} Thn` : `${Math.round(t.defaultValidityYears * 12)} Bln`})
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+              {activeTemplates.some(t => !activeCategories.some(c => c.id === t.category)) && (
+                <optgroup label="📁 Template Lainnya">
+                  {activeTemplates.filter(t => !activeCategories.some(c => c.id === t.category)).map(t => (
+                    <option key={`other-${t.name}`} value={t.name}>
+                      📄 [{t.category}] {t.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <option value="MANUAL">✍️ Lewati Template / Ketik Judul Manual</option>
             </select>
 
             {/* Quick Interactive Chips for Click-to-Pick */}
             {categoryTemplates.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.15rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.2rem' }}>Pilihan Cepat:</span>
                 {categoryTemplates.map(t => {
                   const isSelected = formData.name === t.name;
                   return (
@@ -859,7 +912,7 @@ export const DocumentFormModal = ({
                         border: isSelected ? `1px solid ${selectedCategoryMeta.color}` : '1px solid var(--border-subtle)',
                         transition: 'all 0.15s ease'
                       }}
-                      title={`Klik untuk otomatis mengisi ${t.name}`}
+                      title={`Klik untuk otomatis mengisi nama & masa berlaku ${t.name}`}
                     >
                       {t.name}
                     </button>
@@ -882,7 +935,7 @@ export const DocumentFormModal = ({
                 className="input-control"
               />
               <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                Jika mengetik nama baru, otomatis tersimpan ke Data Master saat formulir disimpan.
+                Ketik nama resmi sertifikat kapal secara manual sesuai fisik dokumen (bebas dan tidak dipaksa sama dengan template).
               </span>
             </div>
 
@@ -899,7 +952,7 @@ export const DocumentFormModal = ({
             </div>
           </div>
 
-          {/* 4. SURVEYOR / AUDITOR & ISSUER ROW (CRUCIAL USER REQUIREMENT) */}
+          {/* 4. SURVEYOR / AUDITOR & ISSUER ROW */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1.1fr 1fr',
@@ -924,7 +977,7 @@ export const DocumentFormModal = ({
                 style={{ fontWeight: 600 }}
               />
               <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                Nama atau jabatan surveyor pemeriksa (akan ditampilkan di kolom tabel sertifikat).
+                Nama surveyor yang bertugas memeriksa kapal ini (bisa berbeda-beda setiap survei, tidak disimpan di data master).
               </span>
             </div>
 
@@ -1059,7 +1112,24 @@ export const DocumentFormModal = ({
                 gap: '0.75rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <FileCheck size={26} color="#10b981" />
+                  {formData.fileUrl && (formData.fileType?.includes('image') || formData.fileUrl.startsWith('data:image/')) ? (
+                    <img
+                      src={formData.fileUrl}
+                      alt="Thumbnail"
+                      onClick={() => setPreviewDoc(formData)}
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        cursor: 'pointer'
+                      }}
+                      title="Klik untuk melihat pratinjau dokumen"
+                    />
+                  ) : (
+                    <FileCheck size={26} color="#10b981" />
+                  )}
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
                       {formData.fileName || 'Berkas_Sertifikat.pdf'}
@@ -1075,14 +1145,14 @@ export const DocumentFormModal = ({
                     type="button"
                     onClick={() => {
                       if (formData.fileUrl) {
-                        const win = window.open();
-                        if (win) {
-                          win.document.write(`<iframe src="${formData.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                        }
+                        setPreviewDoc({
+                          ...formData,
+                          name: formData.name || 'Dokumen Sertifikat'
+                        });
                       }
                     }}
                     className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#38bdf8' }}
                   >
                     <Eye size={13} />
                     <span>Lihat Berkas</span>
@@ -1382,6 +1452,14 @@ export const DocumentFormModal = ({
           </div>
         </form>
       </div>
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          document={previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
+      )}
     </div>
   );
 };

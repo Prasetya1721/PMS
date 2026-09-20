@@ -44,6 +44,7 @@ import { ShipParticularsView } from '../vessels/ShipParticularsView';
 import { ParticularsModal } from '../vessels/ParticularsModal';
 import { EditVesselPhotoModal } from '../vessels/EditVesselPhotoModal';
 import { DocumentFormModal } from '../documents/DocumentFormModal';
+import { DocumentPreviewModal } from '../documents/DocumentPreviewModal';
 import { AuditReportModal } from '../audit/AuditReportModal';
 
 export const VesselDashboard = () => {
@@ -95,6 +96,7 @@ export const VesselDashboard = () => {
   const [editingShipDoc, setEditingShipDoc] = useState(null);
   const [vesselReportFinding, setVesselReportFinding] = useState(null);
   const [vesselReportSession, setVesselReportSession] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
 
   // New Crew Form State
@@ -1123,12 +1125,7 @@ export const VesselDashboard = () => {
                             {d.fileUrl ? (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const win = window.open();
-                                  if (win) {
-                                    win.document.write(`<iframe src="${d.fileUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
-                                  }
-                                }}
+                                onClick={() => setPreviewDoc(d)}
                                 className="badge badge-info"
                                 style={{
                                   fontSize: '0.7rem',
@@ -2147,6 +2144,14 @@ export const VesselDashboard = () => {
             setVesselReportFinding(null);
             setVesselReportSession(null);
           }}
+        />
+      )}
+
+      {/* Document Preview Modal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          document={previewDoc}
+          onClose={() => setPreviewDoc(null)}
         />
       )}
     </div>
