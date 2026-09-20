@@ -54,9 +54,9 @@ export const CATEGORY_FORM_PROFILES = {
     bgColor: 'rgba(2, 132, 199, 0.15)',
     defaultIssuer: (port) => `Biro Klasifikasi Indonesia (BKI) Cabang ${port || 'Pontianak'}`,
     issuerPlaceholder: 'Contoh: Biro Klasifikasi Indonesia (BKI) Cabang Pontianak / BKI Pusat',
-    auditorLabel: 'Surveyor BKI Pemeriksa (Lambung / Mesin) *',
-    auditorPlaceholder: 'Contoh: Surveyor Lambung & Mesin BKI Pontianak',
-    auditorHelper: 'Surveyor resmi Biro Klasifikasi Indonesia (BKI) yang memeriksa kondisi teknis kapal.',
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor...',
+    auditorHelper: 'Nama surveyor yang memeriksa kondisi teknis kapal.',
     namePlaceholder: 'Contoh: Sertifikat Klasifikasi Lambung (Hull) / Mesin (Machinery)',
     docNoPlaceholder: 'Contoh: BKI.PTK-2026-HL-04812',
     surveyPlaceholder: 'Pilih jenis survey BKI atau ketik manual...',
@@ -100,9 +100,9 @@ export const CATEGORY_FORM_PROFILES = {
     bgColor: 'rgba(245, 158, 11, 0.15)',
     defaultIssuer: (port) => `Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP) Kelas II ${port || 'Pontianak'}`,
     issuerPlaceholder: 'Contoh: KSOP Kelas II Pontianak / KSOP Balikpapan',
-    auditorLabel: 'Marine Inspector (MI) / Petugas KSOP *',
-    auditorPlaceholder: 'Contoh: Capt. Hendra (Marine Inspector KSOP Kelas II Pontianak)',
-    auditorHelper: 'Marine Inspector resmi Ditjen Hubla atau Petugas Syahbandar Pelabuhan.',
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor / Marine Inspector...',
+    auditorHelper: 'Nama surveyor atau Marine Inspector yang memeriksa kapal.',
     namePlaceholder: 'Contoh: Pas Besar / Surat Ukur / Sertifikat Keselamatan Konstruksi',
     docNoPlaceholder: 'Contoh: PK.201/KSOP-PTK/24587-2026',
     surveyPlaceholder: 'Pilih jenis pemeriksaan KSOP atau ketik manual...',
@@ -145,13 +145,13 @@ export const CATEGORY_FORM_PROFILES = {
     tagline: 'Khusus Sistem Manajemen Keselamatan (ISM Code), Keamanan Kapal (ISPS), dan Pencegahan Polusi (MARPOL).',
     icon: ShieldCheck,
     color: '#10b981',
-    borderColor: 'rgba(16, 185, 129, 0.45)',
+    borderColor: 'rgba(168, 85, 247, 0.45)',
     bgColor: 'rgba(16, 185, 129, 0.15)',
     defaultIssuer: () => 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)',
     issuerPlaceholder: 'Contoh: Direktorat Kelaiklautan & Kepelautan (Ditkapel) Ditjen Hubla',
-    auditorLabel: 'Lead Auditor ISM / Auditor ISPS / Inspektur Ditkapel *',
-    auditorPlaceholder: 'Contoh: Lead Auditor ISM Ditkapel / Auditor RSO BKI',
-    auditorHelper: 'Auditor resmi ISM Code / ISPS Code atau Inspektur Kelaiklautan Hubla.',
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor / Auditor...',
+    auditorHelper: 'Nama surveyor atau auditor yang memeriksa kapal.',
     namePlaceholder: 'Contoh: Safety Management Certificate (SMC) / DOC / ISSC',
     docNoPlaceholder: 'Contoh: AL.301/SMC-HUBLA/2026',
     surveyPlaceholder: 'Pilih jenis audit / verifikasi statutori atau ketik manual...',
@@ -193,9 +193,9 @@ export const CATEGORY_FORM_PROFILES = {
     bgColor: 'rgba(236, 72, 153, 0.15)',
     defaultIssuer: (port) => `Balai Kekarantinaan Kesehatan (BKK / KKP) Pelabuhan ${port || 'Pontianak'}`,
     issuerPlaceholder: 'Contoh: Balai Kekarantinaan Kesehatan (KKP) Kelas II Pontianak',
-    auditorLabel: 'Petugas Sanitarian KKP / Dokter Karantina Pelabuhan *',
-    auditorPlaceholder: 'Contoh: Sanitarian Ahli Balai Kekarantinaan Kesehatan Pontianak',
-    auditorHelper: 'Pejabat fungsional Sanitarian KKP atau Dokter Karantina Pelabuhan.',
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor / Petugas Sanitarian...',
+    auditorHelper: 'Nama surveyor atau petugas sanitarian yang memeriksa kapal.',
     namePlaceholder: 'Contoh: Ship Sanitation Control Exemption Certificate (SSCEC)',
     docNoPlaceholder: 'Contoh: KK.02.01/BKK-PTK/SSCEC-2026',
     surveyPlaceholder: 'Pilih jenis inspeksi kesehatan kapal atau ketik manual...',
@@ -235,9 +235,9 @@ export const CATEGORY_FORM_PROFILES = {
     bgColor: 'rgba(168, 85, 247, 0.15)',
     defaultIssuer: () => 'PT. Asuransi Jasa Indonesia (Jasindo) / P&I Club',
     issuerPlaceholder: 'Contoh: PT. Asuransi Jasindo / The Shipowners Club / Broker Asuransi',
-    auditorLabel: 'Marine Risk Assessor / Adjuster / Surveyor Asuransi *',
-    auditorPlaceholder: 'Contoh: Marine Surveyor Independen / Risk Adjuster Asuransi',
-    auditorHelper: 'Surveyor independen atau loss adjuster yang ditunjuk oleh Underwriter asuransi.',
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor / Risk Assessor...',
+    auditorHelper: 'Nama surveyor atau risk assessor yang memeriksa kapal.',
     namePlaceholder: 'Contoh: CLC Bunker Certificate / Polis Marine H&M / P&I Club',
     docNoPlaceholder: 'Contoh: POLIS-HM/BHM/2026/0921',
     surveyPlaceholder: 'Pilih tipe inspeksi / perpanjangan asuransi atau ketik manual...',
@@ -293,9 +293,9 @@ export const getCategoryProfile = (catId) => {
     bgColor: 'rgba(2, 132, 199, 0.15)',
     defaultIssuer: () => `Instansi Penerbit ${catId}`,
     issuerPlaceholder: `Contoh: Otoritas / Balai Penerbit ${catId}`,
-    auditorLabel: `Surveyor / Auditor Pemeriksa (${catId}) *`,
-    auditorPlaceholder: `Contoh: Nama Petugas / Surveyor Pemeriksa ${catId}`,
-    auditorHelper: `Petugas atau surveyor yang memeriksa dokumen ${catId}.`,
+    auditorLabel: 'Nama Surveyor *',
+    auditorPlaceholder: 'Contoh: Nama Surveyor...',
+    auditorHelper: 'Nama surveyor yang bertugas memeriksa kapal.',
     namePlaceholder: `Contoh: Nama Sertifikat / Dokumen ${catId}`,
     docNoPlaceholder: `Contoh: NO-${catId.toUpperCase()}/2026/001`,
     surveyPlaceholder: `Pilih jenis pemeriksaan ${catId} atau ketik manual...`,
@@ -1889,19 +1889,19 @@ export const DocumentFormModal = ({
             <div>
               <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: currentProfile.color }}>
                 <UserCheck size={15} />
-                <span>{currentProfile.auditorLabel || 'Surveyor / Auditor Pemeriksa *'}</span>
+                <span>{currentProfile.auditorLabel || 'Nama Surveyor *'}</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder={currentProfile.auditorPlaceholder || 'Contoh: Nama Surveyor / Marine Inspector'}
+                placeholder={currentProfile.auditorPlaceholder || 'Contoh: Nama Surveyor...'}
                 value={formData.mandatoryAuditor}
                 onChange={(e) => setFormData(prev => ({ ...prev, mandatoryAuditor: e.target.value }))}
                 className="input-control"
                 style={{ fontWeight: 600 }}
               />
               <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                {currentProfile.auditorHelper || 'Nama surveyor yang bertugas memeriksa kapal ini (bisa berbeda-beda setiap survei, tidak disimpan di data master).'}
+                {currentProfile.auditorHelper || 'Nama surveyor yang bertugas memeriksa kapal ini.'}
               </span>
             </div>
 
@@ -1923,13 +1923,6 @@ export const DocumentFormModal = ({
               </span>
             </div>
           </div>
-
-          {/* 6. CATEGORY-SPECIFIC SPECIAL FIELDS (BKI, KSOP, STATUTORY, KESEHATAN, ASURANSI) */}
-          <CategorySpecialFields
-            categoryId={formData.category}
-            categoryData={formData.categorySpecificData}
-            onChange={updateCategorySpecific}
-          />
 
           {/* 5. TANGGAL PENERBITAN & TANGGAL EXPIRED */}
           <div style={{
@@ -2219,7 +2212,7 @@ export const DocumentFormModal = ({
                   {/* Dropdown Selector */}
                   <div>
                     <label className="field-label" style={{ fontSize: '0.75rem', marginBottom: '0.3rem', color: '#f59e0b' }}>
-                      Waktu Pengingat Sebelum Expired (Tahun / Bulan / Minggu / Hari) *
+                      Waktu Pengingat Sebelum Expired *
                     </label>
                     <select
                       value={reminderMode}
@@ -2227,15 +2220,15 @@ export const DocumentFormModal = ({
                       className="select-control"
                       style={{ fontWeight: 600, background: 'var(--bg-surface)' }}
                     >
-                      <optgroup label="⚡ Pilihan Cepat Maritim (Standar)">
-                        <option value="1y">📅 1 Tahun Sebelumnya (H-365) - Survey BKI / Docking</option>
-                        <option value="6m">🗓️ 6 Bulan Sebelumnya (H-180)</option>
-                        <option value="3m">🗓️ 3 Bulan Sebelumnya (H-90) - Pengajuan Survey BKI/KSOP</option>
-                        <option value="1m">🗓️ 1 Bulan Sebelumnya (H-30) - Standar Peringatan Maritim</option>
-                        <option value="2w">⏱️ 2 Minggu Sebelumnya (H-14)</option>
-                        <option value="1w">⏱️ 1 Minggu Sebelumnya (H-7) - Inspeksi Fisik</option>
-                        <option value="3d">🚨 3 Hari Sebelumnya (H-3) - Peringatan Darurat</option>
-                        <option value="1d">🚨 1 Hari Sebelumnya (H-1) - Batas Akhir Kritis</option>
+                      <optgroup label="Pilihan Pengingat (Standar)">
+                        <option value="1y">1 Tahun Sebelumnya (H-365)</option>
+                        <option value="6m">6 Bulan Sebelumnya (H-180)</option>
+                        <option value="3m">3 Bulan Sebelumnya (H-90)</option>
+                        <option value="1m">1 Bulan Sebelumnya (H-30)</option>
+                        <option value="2w">2 Minggu Sebelumnya (H-14)</option>
+                        <option value="1w">1 Minggu Sebelumnya (H-7)</option>
+                        <option value="3d">3 Hari Sebelumnya (H-3)</option>
+                        <option value="1d">1 Hari Sebelumnya (H-1)</option>
                       </optgroup>
                       <optgroup label="✍️ Isi Manual (Kustom Bebas)">
                         <option value="MANUAL_INTERVAL">✍️ Isi Manual: Tentukan Jumlah Hari / Minggu / Bulan / Tahun...</option>
