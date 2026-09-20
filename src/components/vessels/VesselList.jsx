@@ -562,26 +562,26 @@ export const VesselList = () => {
                     className="input-control"
                     autoComplete="off"
                   />
-                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
-                    {['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT', 'Kapal Kargo / SPOB', 'Speedboat'].map(t => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, type: t }))}
-                        className="badge"
-                        style={{
-                          cursor: 'pointer',
-                          fontSize: '0.68rem',
-                          padding: '0.15rem 0.45rem',
-                          background: formData.type === t ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                          border: `1px solid ${formData.type === t ? '#38bdf8' : 'var(--border-subtle)'}`,
-                          color: formData.type === t ? '#38bdf8' : 'var(--text-secondary)'
-                        }}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                  <div style={{ marginTop: '0.35rem' }}>
+                    <select
+                      value={['Tugboat', 'Tongkang 300 Feet', 'Tongkang 330 Feet', 'LCT (Landing Craft Tank)', 'Kapal Kargo / SPOB', 'Speedboat', 'Oil Barge'].includes(formData.type) ? formData.type : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setFormData(prev => ({ ...prev, type: e.target.value }));
+                        }
+                      }}
+                      className="select-control"
+                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
+                    >
+                      <option value="" disabled>⚡ Pilihan Cepat Jenis Kapal (Dropdown) ▼</option>
+                      <option value="Tugboat">Tugboat (Kapal Tunda)</option>
+                      <option value="Tongkang 300 Feet">Tongkang 300 Feet</option>
+                      <option value="Tongkang 330 Feet">Tongkang 330 Feet</option>
+                      <option value="LCT (Landing Craft Tank)">LCT (Landing Craft Tank)</option>
+                      <option value="Kapal Kargo / SPOB">Kapal Kargo / SPOB</option>
+                      <option value="Speedboat">Speedboat Patroli</option>
+                      <option value="Oil Barge">Oil Barge (Tongkang Minyak)</option>
+                    </select>
                   </div>
                 </div>
                 <div>
@@ -611,26 +611,30 @@ export const VesselList = () => {
                     className="input-control"
                     autoComplete="off"
                   />
-                  <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Pilihan Cepat:</span>
-                    {['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya'].map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, portOfRegistry: p }))}
-                        className="badge"
-                        style={{
-                          cursor: 'pointer',
-                          fontSize: '0.68rem',
-                          padding: '0.15rem 0.45rem',
-                          background: formData.portOfRegistry === p ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                          border: `1px solid ${formData.portOfRegistry === p ? '#38bdf8' : 'var(--border-subtle)'}`,
-                          color: formData.portOfRegistry === p ? '#38bdf8' : 'var(--text-secondary)'
-                        }}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                  <div style={{ marginTop: '0.35rem' }}>
+                    <select
+                      value={['Pontianak', 'Ketapang', 'Kendawangan', 'Banjarmasin', 'Samarinda', 'Balikpapan', 'Jakarta', 'Surabaya', 'Batam', 'Kumai', 'Sampit'].includes(formData.portOfRegistry) ? formData.portOfRegistry : ''}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setFormData(prev => ({ ...prev, portOfRegistry: e.target.value }));
+                        }
+                      }}
+                      className="select-control"
+                      style={{ fontSize: '0.78rem', height: '32px', padding: '0.2rem 0.6rem' }}
+                    >
+                      <option value="" disabled>⚡ Pilihan Cepat Pelabuhan (Dropdown) ▼</option>
+                      <option value="Pontianak">Pontianak</option>
+                      <option value="Ketapang">Ketapang</option>
+                      <option value="Kendawangan">Kendawangan</option>
+                      <option value="Banjarmasin">Banjarmasin</option>
+                      <option value="Samarinda">Samarinda</option>
+                      <option value="Balikpapan">Balikpapan</option>
+                      <option value="Jakarta">Jakarta</option>
+                      <option value="Surabaya">Surabaya</option>
+                      <option value="Batam">Batam</option>
+                      <option value="Kumai">Kumai</option>
+                      <option value="Sampit">Sampit</option>
+                    </select>
                   </div>
                 </div>
                 <div>
