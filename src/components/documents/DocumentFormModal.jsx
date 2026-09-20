@@ -22,11 +22,13 @@ import {
   Download,
   Sparkles,
   ExternalLink,
-  UserCheck
+  UserCheck,
+  ClipboardCheck
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES } from '../../data/shipCertificatesMaster';
 import { usePMS } from '../../context/PMSContext';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
+import { MasterCombobox } from '../common/MasterCombobox';
 
 const PRESET_INTERVAL_MAP = {
   '1y': { unit: 'year', value: 1, label: '1 Tahun Sebelum (H-365)' },
@@ -168,6 +170,7 @@ export const DocumentFormModal = ({
   const [formData, setFormData] = useState({
     vesselId: defaultVesselId || vessels[0]?.id || '',
     category: activeCategories[0]?.id || '',
+    surveyType: '',
     name: '',
     documentNo: '',
     issuer: '',
@@ -189,6 +192,7 @@ export const DocumentFormModal = ({
       setFormData({
         vesselId: initialData.vesselId || defaultVesselId || vessels[0]?.id || 'v-001',
         category: initialData.category || 'KSOP',
+        surveyType: initialData.surveyType || '',
         name: initialData.name || '',
         documentNo: initialData.documentNo || initialData.certificateNo || '',
         issuer: initialData.issuer || '',
@@ -225,6 +229,7 @@ export const DocumentFormModal = ({
       setFormData({
         vesselId: defaultVesselId || vessels[0]?.id || '',
         category: activeCategories[0]?.id || '',
+        surveyType: '',
         name: '',
         documentNo: '',
         issuer: '',
@@ -262,58 +267,30 @@ export const DocumentFormModal = ({
     }));
   };
 
-  const handleTemplateSelect = (tmpl) => {
-    if (!tmpl) return;
-    const selectedVessel = vessels.find(v => v.id === formData.vesselId);
-    const port = selectedVessel?.portOfRegistry?.split(',')[0] || 'Pontianak';
-    const reg = selectedVessel?.regNo || 'REG';
-    const now = new Date();
-    const issueStr = now.toISOString().split('T')[0];
+  const handleSurveyTypeSelect = (surveyVal, validityYears = null) => {
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        surveyType: surveyVal
+      };
 
-    const exp = new Date();
-    const valYears = Number(tmpl.defaultValidityYears) || 1;
-    if (valYears < 1) {
-      exp.setMonth(exp.getMonth() + Math.round(valYears * 12));
-    } else {
-      exp.setFullYear(exp.getFullYear() + valYears);
-    }
-    const expStr = exp.toISOString().split('T')[0];
-
-    const issuer = tmpl.issuer
-      ? (tmpl.issuer.includes('KSOP')
-        ? `KSOP Kelas II ${port}`
-        : tmpl.issuer.includes('KKP')
-        ? `Kantor Kesehatan Pelabuhan (KKP) ${port}`
-        : tmpl.issuer)
-      : (formData.issuer || `Instansi Penerbit ${tmpl.category || formData.category}`);
-
-    // Smart default reminder for template
-    let autoMode = '1m';
-    if (tmpl.category === 'BKI') autoMode = '3m';
-    else if (valYears >= 5) autoMode = '1y';
-    else if (valYears < 1) autoMode = '2w';
-
-    setReminderMode(autoMode);
-    setSelectedTemplate(tmpl.name);
-
-    setFormData(prev => ({
-      ...prev,
-      name: tmpl.name,
-      category: tmpl.category || prev.category,
-      documentNo: prev.documentNo || `${tmpl.docPrefix || 'DOC'}-${reg}-${exp.getFullYear()}`,
-      issuer: issuer,
-      issueDate: prev.issueDate || issueStr,
-      expiryDate: expStr,
-      // Note: formData.mandatoryAuditor is preserved (surveyor is specific per ship inspection, not saved in master)
-      notificationReminders: {
-        enabled: true,
-        mode: autoMode,
-        channels: {
-          whatsapp: true,
-          googleCalendar: true
-        }
+      if (validityYears && prev.issueDate) {
+        try {
+          const d = new Date(prev.issueDate + 'T00:00:00');
+          if (!isNaN(d.getTime())) {
+            if (validityYears === 2.5) {
+              d.setMonth(d.getMonth() + 30);
+            } else if (validityYears < 1) {
+              d.setMonth(d.getMonth() + Math.round(validityYears * 12));
+            } else {
+              d.setFullYear(d.getFullYear() + validityYears);
+            }
+            updated.expiryDate = d.toISOString().split('T')[0];
+          }
+        } catch {}
       }
-    }));
+      return updated;
+    });
   };
 
   const handleCategoryChange = (newCat) => {
@@ -685,241 +662,92 @@ export const DocumentFormModal = ({
             </div>
           </div>
 
-          {/* 2. QUICK DOCUMENT TEMPLATE PICKER (OPSIONAL & TIDAK DIKUNCI KATEGORI / NAMA SERTIFIKAT) */}
+          {/* 2. JENIS SURVEY / TIPE PEMERIKSAAN DOKUMEN KAPAL */}
           <div style={{
-            padding: '1rem',
+            padding: '1.1rem 1.25rem',
             borderRadius: '12px',
             background: 'var(--bg-surface-elevated)',
             border: `1px solid ${selectedCategoryMeta.borderColor || 'var(--border-subtle)'}`,
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.65rem'
+            gap: '0.75rem'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <label style={{
-                  fontSize: '0.78rem',
+                  fontSize: '0.82rem',
                   fontWeight: 800,
-                  color: selectedCategoryMeta.color || 'var(--text-main)',
+                  color: selectedCategoryMeta.color || '#38bdf8',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem'
+                  gap: '0.45rem'
                 }}>
-                  <Sparkles size={14} />
-                  <span>⚡ PILIHAN CEPAT TEMPLATE DOKUMEN (OPSIONAL):</span>
+                  <ClipboardCheck size={16} />
+                  <span>JENIS SURVEY / SIKLUS PEMERIKSAAN KAPAL</span>
                 </label>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
-                  Pilih dari template standar jika ada, atau lewati dan ketik langsung nama sertifikat di bawah.
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                  Tentukan jenis survey berkala, tahunan, pembaruan, atau dokumen non-survey (bisa diketik manual).
                 </span>
               </div>
-
-              {!isAddingNewTemplate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewTemplateCategory(formData.category || activeCategories[0]?.id || 'KSOP');
-                    setNewTemplateValidity(1);
-                    setNewTemplateCustomName('');
-                    setNewTemplateIssuer(formData.issuer || '');
-                    setIsAddingNewTemplate(true);
-                  }}
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '0.25rem 0.65rem', fontSize: '0.72rem', color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  <Plus size={12} />
-                  <span>+ Tambah Template Dokumen</span>
-                </button>
-              )}
             </div>
 
-            {/* Sub-form to quickly add template directly to master data with Validity period */}
-            {isAddingNewTemplate && (
-              <div style={{
-                padding: '0.85rem 1rem',
-                borderRadius: '10px',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px dashed rgba(56, 189, 248, 0.4)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.65rem'
-              }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#38bdf8' }}>
-                  Tambah Template Dokumen Baru ke Data Master
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '0.5rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Nama Template *</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Pas Sungai / Sertifikat Keselamatan"
-                      value={newTemplateCustomName}
-                      onChange={(e) => setNewTemplateCustomName(e.target.value)}
-                      className="input-control"
-                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
-                      autoFocus
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Kategori Dokumen *</label>
-                    <select
-                      value={newTemplateCategory || formData.category}
-                      onChange={(e) => setNewTemplateCategory(e.target.value)}
-                      className="select-control"
-                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem' }}
-                    >
-                      {activeCategories.map(c => (
-                        <option key={c.id} value={c.id}>{c.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.2rem', display: 'block' }}>Masa Berlaku *</label>
-                    <select
-                      value={newTemplateValidity}
-                      onChange={(e) => setNewTemplateValidity(Number(e.target.value))}
-                      className="select-control"
-                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem', fontWeight: 600 }}
-                    >
-                      <option value={0.5}>6 Bulan</option>
-                      <option value={1}>1 Tahun</option>
-                      <option value={2}>2 Tahun</option>
-                      <option value={3}>3 Tahun</option>
-                      <option value={5}>5 Tahun</option>
-                      <option value={10}>10 Tahun</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                  <div style={{ flex: 1, minWidth: '200px' }}>
-                    <input
-                      type="text"
-                      placeholder="Instansi Penerbit (Opsional, cth: KSOP / BKI)"
-                      value={newTemplateIssuer}
-                      onChange={(e) => setNewTemplateIssuer(e.target.value)}
-                      className="input-control"
-                      style={{ fontSize: '0.8rem', padding: '0.35rem 0.6rem' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!newTemplateCustomName.trim()) return;
-                        const cat = newTemplateCategory || formData.category || activeCategories[0]?.id || 'KSOP';
-                        const newTmpl = addDocumentTemplate({
-                          name: newTemplateCustomName.trim(),
-                          category: cat,
-                          defaultValidityYears: Number(newTemplateValidity) || 1,
-                          issuer: newTemplateIssuer.trim() || `Instansi Penerbit ${cat}`
-                        });
-                        if (newTmpl) {
-                          handleTemplateSelect(newTmpl);
-                        }
-                        setNewTemplateCustomName('');
-                        setIsAddingNewTemplate(false);
-                      }}
-                      className="btn btn-primary btn-sm"
-                      style={{ whiteSpace: 'nowrap', padding: '0.35rem 0.85rem', fontSize: '0.75rem' }}
-                    >
-                      Simpan Template ke Master
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingNewTemplate(false);
-                        setNewTemplateCustomName('');
-                      }}
-                      className="btn btn-secondary btn-sm"
-                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem' }}
-                    >
-                      Batal
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Dropdown Selector from all active templates */}
-            <select
-              className="select-control"
-              value={selectedTemplate}
+            <MasterCombobox
+              name="surveyType"
+              value={formData.surveyType || ''}
               onChange={(e) => {
-                const val = e.target.value;
-                setSelectedTemplate(val);
-                if (val && val !== 'MANUAL') {
-                  const tmpl = activeTemplates.find(t => t.name === val);
-                  if (tmpl) handleTemplateSelect(tmpl);
-                }
+                handleSurveyTypeSelect(e.target.value);
               }}
-              style={{ background: 'var(--bg-surface)', fontWeight: 600 }}
-            >
-              <option value="">
-                {activeTemplates.length > 0
-                  ? `-- Pilih Template Standar (${activeTemplates.length} Template Tersedia) --`
-                  : `-- Belum ada template standar (Input nama manual di bawah) --`}
-              </option>
-              {activeCategories.map(cat => {
-                const catTmpls = activeTemplates.filter(t => t.category === cat.id);
-                if (catTmpls.length === 0) return null;
+              options={[
+                'Annual Survey (Survei Tahunan)',
+                'Intermediate Survey (Survei Antara)',
+                'Special / Renewal Survey (Survei Pembaruan 5 Tahunan)',
+                'Docking / Bottom Survey (Survei Pengedokan Bawah Air)',
+                'Initial Survey (Survei Pertama / Penerbitan Baru)',
+                'Periodical Survey (Survei Periodik / Radio & Safety)',
+                'Endorsement Survey (Pengukuhan Berkala)',
+                'Occasional / Damage Survey (Survei Khusus / Kerusakan)',
+                'Non-Survey / Sertifikat Tetap (Surat Izin / Pas Kapal)'
+              ]}
+              placeholder="Pilih dari daftar survey atau ketik manual jenis survey..."
+            />
+
+            {/* Quick-Click Badges for Fast 1-Click Fill */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.1rem' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.2rem' }}>Pilihan Cepat:</span>
+              {[
+                { label: 'Annual Survey', full: 'Annual Survey', years: 1 },
+                { label: 'Intermediate Survey', full: 'Intermediate Survey', years: 2.5 },
+                { label: 'Special / Renewal Survey', full: 'Special / Renewal Survey', years: 5 },
+                { label: 'Docking Survey', full: 'Docking / Bottom Survey', years: 2.5 },
+                { label: 'Initial Survey', full: 'Initial Survey', years: 1 },
+                { label: 'Endorsement Survey', full: 'Endorsement Survey', years: 1 },
+                { label: 'Non-Survey', full: 'Non-Survey / Sertifikat Tetap', years: 1 }
+              ].map(st => {
+                const isSelected = (formData.surveyType || '').toLowerCase().includes(st.label.toLowerCase());
                 return (
-                  <optgroup key={cat.id} label={`📁 Kategori: ${cat.label}`}>
-                    {catTmpls.map(t => (
-                      <option key={`${cat.id}-${t.name}`} value={t.name}>
-                        📄 {t.name} (Berlaku {t.defaultValidityYears >= 1 ? `${t.defaultValidityYears} Thn` : `${Math.round(t.defaultValidityYears * 12)} Bln`})
-                      </option>
-                    ))}
-                  </optgroup>
+                  <button
+                    key={st.label}
+                    type="button"
+                    onClick={() => handleSurveyTypeSelect(st.full, st.years)}
+                    className="badge"
+                    style={{
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      padding: '0.2rem 0.5rem',
+                      background: isSelected ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                      border: `1px solid ${isSelected ? '#38bdf8' : 'var(--border-subtle)'}`,
+                      color: isSelected ? '#38bdf8' : 'var(--text-secondary)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title={`Pilih ${st.full}`}
+                  >
+                    {st.label}
+                  </button>
                 );
               })}
-              {activeTemplates.some(t => !activeCategories.some(c => c.id === t.category)) && (
-                <optgroup label="📁 Template Lainnya">
-                  {activeTemplates.filter(t => !activeCategories.some(c => c.id === t.category)).map(t => (
-                    <option key={`other-${t.name}`} value={t.name}>
-                      📄 [{t.category}] {t.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <option value="MANUAL">✍️ Lewati Template / Ketik Judul Manual</option>
-            </select>
-
-            {/* Quick Interactive Chips for Click-to-Pick */}
-            {categoryTemplates.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.15rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.2rem' }}>Pilihan Cepat:</span>
-                {categoryTemplates.map(t => {
-                  const isSelected = formData.name === t.name;
-                  return (
-                    <button
-                      key={t.name}
-                      type="button"
-                      onClick={() => handleTemplateSelect(t)}
-                      className="btn btn-sm"
-                      style={{
-                        padding: '0.2rem 0.55rem',
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        borderRadius: '6px',
-                        background: isSelected ? selectedCategoryMeta.color : 'rgba(255, 255, 255, 0.04)',
-                        color: isSelected ? '#000' : 'var(--text-main)',
-                        border: isSelected ? `1px solid ${selectedCategoryMeta.color}` : '1px solid var(--border-subtle)',
-                        transition: 'all 0.15s ease'
-                      }}
-                      title={`Klik untuk otomatis mengisi nama & masa berlaku ${t.name}`}
-                    >
-                      {t.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            </div>
           </div>
 
           {/* 3. NAME & DOCUMENT NUMBER */}

@@ -345,8 +345,13 @@ export const DocumentTracker = () => {
                     </td>
                     <td>
                       <strong style={{ fontSize: '0.92rem' }}>{item.name}</strong>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                        {item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                        {item.surveyType && (
+                          <span className="badge" style={{ fontSize: '0.66rem', padding: '0.1rem 0.4rem', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.35)', fontWeight: 600 }}>
+                            🔍 {item.surveyType}
+                          </span>
+                        )}
+                        <span>{item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}</span>
                       </div>
                       {item.notificationReminders && item.notificationReminders.enabled !== false && (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
