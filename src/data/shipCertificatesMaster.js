@@ -215,8 +215,8 @@ export const DEMO_STANDARD_CERTIFICATE_TEMPLATES = [
   }
 ];
 
-// Clean state default: Kosong untuk diinput manual oleh pengguna
-export const CERTIFICATE_CATEGORIES = [];
+// Core Standard Categories for Maritime Vessels (BKI, KSOP, Statutory, Kesehatan, Asuransi)
+export const CERTIFICATE_CATEGORIES = DEMO_CERTIFICATE_CATEGORIES;
 export const STANDARD_CERTIFICATE_TEMPLATES = [];
 
 // Helper to determine status and days until expiry relative to system reference date

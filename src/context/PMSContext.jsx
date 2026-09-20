@@ -146,7 +146,10 @@ export const PMSProvider = ({ children }) => {
   const [drills, setDrills] = useState(() => loadStored('drills', INITIAL_DRILLS));
   const [crewCertificates, setCrewCertificates] = useState(() => loadStored('crewCertificates', INITIAL_CREW_CERTIFICATES));
   const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
-  const [certificateCategories, setCertificateCategories] = useState(() => loadStored('certificateCategories', CERTIFICATE_CATEGORIES));
+  const [certificateCategories, setCertificateCategories] = useState(() => {
+    const stored = loadStored('certificateCategories', CERTIFICATE_CATEGORIES);
+    return (Array.isArray(stored) && stored.length > 0) ? stored : CERTIFICATE_CATEGORIES;
+  });
   const [documentTemplates, setDocumentTemplates] = useState(() => loadStored('documentTemplates', STANDARD_CERTIFICATE_TEMPLATES));
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
