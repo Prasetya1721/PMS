@@ -134,6 +134,11 @@ export const MasterDataAdmin = () => {
     description: '',
     color: '#38bdf8'
   });
+  const [deletingCatId, setDeletingCatId] = useState(null);
+  const [deletingTmplKey, setDeletingTmplKey] = useState(null);
+  const [deletingDocId, setDeletingDocId] = useState(null);
+  const [deletingVesselId, setDeletingVesselId] = useState(null);
+  const [deletingCrewId, setDeletingCrewId] = useState(null);
 
   // Document Templates Management state
   const [tmplSearch, setTmplSearch] = useState('');
@@ -1101,18 +1106,48 @@ export const MasterDataAdmin = () => {
                           >
                             <Edit2 size={13} />
                           </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Yakin hapus kapal "${v.name}" (${v.id}) dari sistem?`)) {
-                                deleteVessel(v.id);
-                              }
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            title="Hapus Kapal"
-                            style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {deletingVesselId === v.id ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteVessel(v.id);
+                                  setDeletingVesselId(null);
+                                }}
+                                className="btn btn-danger btn-sm"
+                                style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                title="Konfirmasi Hapus"
+                              >
+                                Yakin?
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingVesselId(null);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer' }}
+                                title="Batal"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingVesselId(v.id);
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              title="Hapus Kapal"
+                              style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1386,18 +1421,48 @@ export const MasterDataAdmin = () => {
                             >
                               <Edit2 size={13} />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Yakin hapus kru "${c.name}"?`)) {
-                                  deleteCrew(c.id);
-                                }
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              title="Hapus Kru"
-                              style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {deletingCrewId === c.id ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteCrew(c.id);
+                                    setDeletingCrewId(null);
+                                  }}
+                                  className="btn btn-danger btn-sm"
+                                  style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                  title="Konfirmasi Hapus"
+                                >
+                                  Yakin?
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingCrewId(null);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer' }}
+                                  title="Batal"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingCrewId(c.id);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                title="Hapus Kru"
+                                style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1647,18 +1712,48 @@ export const MasterDataAdmin = () => {
                             >
                               <Edit2 size={13} />
                             </button>
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Yakin hapus sertifikat "${d.name}" (${d.documentNo})?`)) {
-                                  deleteShipDocument(d.id);
-                                }
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              title="Hapus Sertifikat"
-                              style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                            {deletingDocId === d.id ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteShipDocument(d.id);
+                                    setDeletingDocId(null);
+                                  }}
+                                  className="btn btn-danger btn-sm"
+                                  style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                  title="Konfirmasi Hapus"
+                                >
+                                  Yakin?
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingDocId(null);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer' }}
+                                  title="Batal"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingDocId(d.id);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                title="Hapus Sertifikat"
+                                style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1804,18 +1899,48 @@ export const MasterDataAdmin = () => {
                             </span>
                           </td>
                           <td style={{ textAlign: 'right' }}>
-                            <button
-                              onClick={() => {
-                                if (window.confirm(`Hapus kategori "${c.label}"?`)) {
-                                  deleteCertificateCategory(c.id);
-                                }
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
-                            >
-                              <Trash2 size={13} />
-                              <span>Hapus</span>
-                            </button>
+                            {deletingCatId === (c.id || c.code || c.label) ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Yakin?</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteCertificateCategory(c.id || c.code || c.label);
+                                    setDeletingCatId(null);
+                                  }}
+                                  className="btn btn-danger btn-sm"
+                                  style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                >
+                                  Ya, Hapus
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingCatId(null);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', cursor: 'pointer' }}
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingCatId(c.id || c.code || c.label);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
+                                title={`Hapus kategori ${c.label}`}
+                              >
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1987,19 +2112,48 @@ export const MasterDataAdmin = () => {
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             {t.isCustom ? (
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Hapus template "${t.name}" (${t.category}) dari Data Master?`)) {
-                                    deleteDocumentTemplate(t.name, t.category);
-                                  }
-                                }}
-                                className="btn btn-secondary btn-sm"
-                                style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
-                                title="Hapus Template Kustom Ini"
-                              >
-                                <Trash2 size={13} />
-                                <span>Hapus</span>
-                              </button>
+                              deletingTmplKey === `${t.name}-${t.category}` ? (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                                  <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 600 }}>Yakin?</span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteDocumentTemplate(t.name, t.category);
+                                      setDeletingTmplKey(null);
+                                    }}
+                                    className="btn btn-danger btn-sm"
+                                    style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                  >
+                                    Ya, Hapus
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setDeletingTmplKey(null);
+                                    }}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', cursor: 'pointer' }}
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingTmplKey(`${t.name}-${t.category}`);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ color: '#ef4444', padding: '0.35rem 0.55rem' }}
+                                  title="Hapus Template Kustom Ini"
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Hapus</span>
+                                </button>
+                              )
                             ) : (
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Standar Maritim</span>
                             )}

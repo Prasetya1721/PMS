@@ -147,8 +147,9 @@ export const PMSProvider = ({ children }) => {
   const [crewCertificates, setCrewCertificates] = useState(() => loadStored('crewCertificates', INITIAL_CREW_CERTIFICATES));
   const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
   const [certificateCategories, setCertificateCategories] = useState(() => {
-    const stored = loadStored('certificateCategories', CERTIFICATE_CATEGORIES);
-    return (Array.isArray(stored) && stored.length > 0) ? stored : CERTIFICATE_CATEGORIES;
+    const stored = loadStored('certificateCategories', null);
+    if (Array.isArray(stored)) return stored;
+    return CERTIFICATE_CATEGORIES;
   });
   const [documentTemplates, setDocumentTemplates] = useState(() => loadStored('documentTemplates', STANDARD_CERTIFICATE_TEMPLATES));
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
@@ -1158,12 +1159,31 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteCertificateCategory = (catId) => {
+    if (!catId) return false;
+    const target = String(catId).trim().toLowerCase();
+
+    // Find category to delete for toast message
+    const catToDelete = (certificateCategories || []).find(c => {
+      const cId = c.id ? String(c.id).trim().toLowerCase() : '';
+      const cCode = c.code ? String(c.code).trim().toLowerCase() : '';
+      const cLabel = c.label ? String(c.label).trim().toLowerCase() : '';
+      return cId === target || cCode === target || cLabel === target;
+    });
+
+    const deletedLabel = catToDelete ? catToDelete.label : catId;
+
     setCertificateCategories(prev => {
-      const next = prev.filter(c => c.id !== catId);
+      const next = (prev || []).filter(c => {
+        const cId = c.id ? String(c.id).trim().toLowerCase() : '';
+        const cCode = c.code ? String(c.code).trim().toLowerCase() : '';
+        const cLabel = c.label ? String(c.label).trim().toLowerCase() : '';
+        return cId !== target && cCode !== target && cLabel !== target;
+      });
       localStorage.setItem('pms_certificateCategories', JSON.stringify(next));
       return next;
     });
-    showToast('Kategori dokumen berhasil dihapus.', 'info');
+
+    showToast(`Kategori "${deletedLabel}" berhasil dihapus.`, 'info');
     return true;
   };
 
