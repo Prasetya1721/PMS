@@ -193,6 +193,115 @@ export const PMSProvider = ({ children }) => {
   const [audits, setAudits] = useState(() => loadStored('audits', INITIAL_AUDITS));
   const [auditFindings, setAuditFindings] = useState(() => loadStored('auditFindings', INITIAL_AUDIT_FINDINGS));
 
+  // CMS Site Configuration (login page content, branding, backgrounds)
+  // CMS Site Configuration (login page content, branding, backgrounds)
+  const DEFAULT_SITE_CONFIG = {
+    // Tipe Latar Belakang: 'bawaan' | 'solid' | 'gradasi' | 'wallpaper'
+    bgType: 'wallpaper',
+    solidColor: '#0c1a30',
+    gradientFrom: '#0c1a30',
+    gradientVia: '#0f2942',
+    gradientTo: '#060d19',
+    gradientDirection: 'to bottom right',
+    wallpaperUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80',
+    wallpaperBlur: 0,
+    wallpaperOverlay: 40,
+    glowBlobs: true,
+    glowColor1: 'rgba(2, 132, 199, 0.25)',
+    glowColor2: 'rgba(6, 182, 212, 0.2)',
+    // Tema Kontras: 'light' (Latar Terang) | 'dark' (Latar Gelap)
+    textColorTheme: 'light',
+
+    // Panel Kiri (Branding PT Baharimas)
+    logoMode: 'baharimas',
+    customLogoUrl: '',
+    companyBadge: 'MARITIME FLEET MANAGEMENT SYSTEM',
+    systemTitle: 'PT PELAYARAN BAHARIMAS KALIMANTAN',
+    companySubtitle: 'Fleet Management & Marine Shipping Lines',
+    portalDescription: 'Pusat sistem digital operasional armada kapal tunda (tugboat), tongkang, dan kapal kargo niaga perairan Kalimantan Barat dan jalur pelayaran Nusantara.',
+    officeAddress: 'Jl. Adi Sucipto KM 6, Kompleks Bahari Permai No. 2, RT. 004 / RW. 004, Desa Sungai Raya, Kec. Sungai Raya, Kab. Kubu Raya - Pontianak, Kalimantan Barat',
+    officePhone: '(0561) 531016 / 732194',
+    officeEmail: 'pt.baharimas@hotmail.com',
+
+    // Panel Kanan (Formulir Login)
+    formCardStyle: 'dark_glass',
+    formTitle: 'Masuk ke Portal PMS',
+    formSubtitle: 'Gunakan akun korporat PT. Pelayaran Baharimas Kalimantan',
+    usernamePlaceholder: 'admin@baharimas.co.id',
+    passwordPlaceholder: '•••',
+    buttonText: 'Masuk ke Sistem PMS →',
+    showQuickLogin: true,
+    quickLoginLabel: '⚡ Akses Cepat Demo (Klik Akun):',
+    quickAccounts: [
+      { name: 'Capt. Robert Sitorus', role: 'Super Admin', email: 'admin@baharimas.co.id' },
+      { name: 'Ir. H. Gunawan', role: 'Fleet Manager', email: 'fleet.ops@baharimas.co.id' },
+      { name: 'Capt. Hendra Gunawan', role: 'Admin Kapal / Nakhoda', email: 'nakhoda@baharimas.co.id' },
+      { name: 'Ir. Bambang Wijaya (KKM)', role: 'Teknisi / Chief Engineer', email: 'kkm@baharimas.co.id' },
+      { name: 'Suryadi Pratama', role: 'Crew / ABK', email: 'abk@baharimas.co.id' },
+      { name: 'Siti Rahmawati', role: 'HR / Personalia', email: 'hr@baharimas.co.id' }
+    ],
+    formFooterNotice: '🔒 Portal Resmi PT. Pelayaran Baharimas Kalimantan • ISM Code Compliant',
+    footerText: '© 2026 PT. Pelayaran Baharimas Kalimantan • All Rights Reserved'
+  };
+
+  const [siteConfig, setSiteConfig] = useState(() => {
+    const stored = loadStored('siteConfig', null);
+    if (stored && typeof stored === 'object') {
+      if (stored.systemTitle?.includes('Nota Debit') || stored.logoMode === 'bki_group') {
+        localStorage.setItem('pms_siteConfig', JSON.stringify(DEFAULT_SITE_CONFIG));
+        return DEFAULT_SITE_CONFIG;
+      }
+      return { ...DEFAULT_SITE_CONFIG, ...stored };
+    }
+    return DEFAULT_SITE_CONFIG;
+  });
+
+  const updateSiteConfig = (updates) => {
+    setSiteConfig(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('pms_siteConfig', JSON.stringify(updated));
+      return updated;
+    });
+    showToast('Konfigurasi situs berhasil disimpan!', 'success');
+  };
+
+  const resetSiteConfig = () => {
+    setSiteConfig(DEFAULT_SITE_CONFIG);
+    localStorage.setItem('pms_siteConfig', JSON.stringify(DEFAULT_SITE_CONFIG));
+    showToast('Konfigurasi dikembalikan ke standar PT. Baharimas.', 'info');
+  };
+
+  // Sidebar Visibility Overrides (Super Admin controls which modules each role can see)
+  const [sidebarOverrides, setSidebarOverrides] = useState(() => {
+    const stored = loadStored('sidebarOverrides', null);
+    return stored && typeof stored === 'object' ? stored : {};
+  });
+
+  const updateSidebarOverrides = (newOverrides) => {
+    setSidebarOverrides(newOverrides);
+    localStorage.setItem('pms_sidebarOverrides', JSON.stringify(newOverrides));
+    showToast('Pengaturan sidebar berhasil disimpan!', 'success');
+  };
+
+  // User Profile Update
+  const updateUserProfile = (userId, profileData) => {
+    setUsers(prev => {
+      const updated = prev.map(u => u.id === userId ? { ...u, ...profileData } : u);
+      localStorage.setItem('pms_users', JSON.stringify(updated));
+      return updated;
+    });
+    // Also update currentUser if it's the same user
+    if (currentUser && currentUser.id === userId) {
+      const updatedUser = { ...currentUser, ...profileData };
+      setCurrentUser(updatedUser);
+      if (profileData.role) {
+        setCurrentRoleState(profileData.role);
+      }
+      localStorage.setItem('pms_current_user', JSON.stringify(updatedUser));
+    }
+    showToast('Profil berhasil diperbarui!', 'success');
+  };
+
   // Master Data Tipe Kapal & Pelabuhan Pendaftaran (Bisa Ditambah Otomatis Saat Input Manual Disimpan)
   const DEFAULT_VESSEL_TYPES = [
     'Tugboat',
@@ -397,6 +506,8 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_users', JSON.stringify(users || []));
       localStorage.setItem('pms_audits', JSON.stringify(audits || []));
       localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings || []));
+      localStorage.setItem('pms_siteConfig', JSON.stringify(siteConfig || {}));
+      localStorage.setItem('pms_sidebarOverrides', JSON.stringify(sidebarOverrides || {}));
     } catch (err) {
       console.error('[PMS] Failed to sync state to localStorage:', err);
     }
@@ -404,7 +515,7 @@ export const PMSProvider = ({ children }) => {
     vessels, equipment, schedules, workOrders, spareparts, requisitions,
     costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
     certificateCategories, documentTemplates, notificationSettings, notificationLogs, users,
-    audits, auditFindings
+    audits, auditFindings, siteConfig, sidebarOverrides
   ]);
 
 
@@ -2636,6 +2747,16 @@ export const PMSProvider = ({ children }) => {
         currentUser,
         login,
         logout,
+        updateUserProfile,
+
+        // Site Config (CMS)
+        siteConfig,
+        updateSiteConfig,
+        resetSiteConfig,
+
+        // Sidebar Overrides
+        sidebarOverrides,
+        updateSidebarOverrides,
 
         // Theme Mode
         theme,

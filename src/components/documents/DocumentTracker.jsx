@@ -3,8 +3,6 @@ import { usePMS } from '../../context/PMSContext';
 import {
   FileCheck,
   FileText,
-  AlertTriangle,
-  CheckCircle,
   Clock,
   Search,
   Filter,
@@ -12,7 +10,6 @@ import {
   Eye,
   Download,
   ShieldAlert,
-  ShieldCheck,
   QrCode,
   X,
   CalendarPlus,
@@ -359,13 +356,22 @@ export const DocumentTracker = () => {
                         <span>{item.type || (item.category ? `Kategori ${item.category}` : item.itemCategory)}</span>
                       </div>
                       {item.notificationReminders && item.notificationReminders.enabled !== false && (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
                           <span className="badge" style={{ fontSize: '0.62rem', padding: '0.1rem 0.35rem', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }} title="Interval Pengingat Expired Aktif">
                             🔔 {item.notificationReminders.year?.enabled ? `${item.notificationReminders.year.value}Th ` : ''}
                             {item.notificationReminders.month?.enabled ? `${item.notificationReminders.month.value}Bl ` : ''}
                             {item.notificationReminders.week?.enabled ? `${item.notificationReminders.week.value}Mg ` : ''}
                             {item.notificationReminders.day?.enabled ? `${item.notificationReminders.day.value}Hr` : ''}
                           </span>
+                          {item.notificationReminders.channels?.whatsapp !== false && (
+                            <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#22c55e', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '4px', padding: '0.05rem 0.25rem' }} title="Notifikasi WhatsApp Aktif">WA</span>
+                          )}
+                          {item.notificationReminders.channels?.email !== false && (
+                            <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.12)', border: '1px solid rgba(14, 165, 233, 0.3)', borderRadius: '4px', padding: '0.05rem 0.25rem' }} title="Notifikasi Email Aktif">Email</span>
+                          )}
+                          {item.notificationReminders.channels?.googleCalendar !== false && (
+                            <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: '4px', padding: '0.05rem 0.25rem' }} title="Pengingat Google Calendar Aktif">Cal</span>
+                          )}
                         </div>
                       )}
                     </td>

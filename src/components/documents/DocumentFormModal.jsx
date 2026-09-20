@@ -11,7 +11,6 @@ import {
   HeartPulse,
   CheckCircle2,
   Plus,
-  Bell,
   BellRing,
   Clock,
   UploadCloud,
@@ -19,20 +18,17 @@ import {
   FileCheck,
   Eye,
   Trash2,
-  Download,
   Sparkles,
-  ExternalLink,
   UserCheck,
   ClipboardCheck,
-  Info,
-  Award,
   RotateCcw,
   ArrowLeft,
   ArrowRight,
   Layers,
-  Tag
+  Tag,
+  Mail
 } from 'lucide-react';
-import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES, DEMO_CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
+import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { usePMS } from '../../context/PMSContext';
 import { DocumentPreviewModal } from './DocumentPreviewModal';
 import { MasterCombobox } from '../common/MasterCombobox';
@@ -587,8 +583,10 @@ const DEFAULT_REMINDERS = {
   manualCustomDate: '',
   channels: {
     whatsapp: true,
+    email: true,
     googleCalendar: true
-  }
+  },
+  emailRecipient: ''
 };
 
 const calculateReminderDate = (expDateStr, unit, value) => {
@@ -691,16 +689,10 @@ export const DocumentFormModal = ({
 
   const isEditing = !!initialData?.id;
   const [formStep, setFormStep] = useState(isEditing ? 2 : 1); // 1: Pilih Kategori, 2: Form Pengisian
-  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isAddingNewCat, setIsAddingNewCat] = useState(false);
   const [deletingCatId, setDeletingCatId] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
-  const [isAddingNewTemplate, setIsAddingNewTemplate] = useState(false);
-  const [newTemplateCustomName, setNewTemplateCustomName] = useState('');
-  const [newTemplateCategory, setNewTemplateCategory] = useState('');
-  const [newTemplateValidity, setNewTemplateValidity] = useState(1);
-  const [newTemplateIssuer, setNewTemplateIssuer] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
 
   // Simplified notification state (dropdown + manual input)
@@ -820,9 +812,6 @@ export const DocumentFormModal = ({
       setManualCustomDate('');
     }
   }, [initialData, defaultVesselId, vessels]);
-
-  // Documents templates that strictly belong to the currently selected category
-  const categoryTemplates = activeTemplates.filter(t => t.category === formData.category);
 
   const updateReminderChannel = (channel, val) => {
     setFormData(prev => ({
@@ -1108,7 +1097,8 @@ export const DocumentFormModal = ({
       month: { enabled: eff.unit === 'month', value: eff.unit === 'month' ? eff.value : 1 },
       week: { enabled: eff.unit === 'week', value: eff.unit === 'week' ? eff.value : 1 },
       day: { enabled: eff.unit === 'day' || eff.unit === 'custom_date', value: eff.daysBefore },
-      channels: formData.notificationReminders?.channels || { whatsapp: true, googleCalendar: true }
+      channels: formData.notificationReminders?.channels || { whatsapp: true, email: true, googleCalendar: true },
+      emailRecipient: formData.notificationReminders?.emailRecipient || ''
     };
 
     onSave({
@@ -2364,7 +2354,7 @@ export const DocumentFormModal = ({
                   </div>
 
                   {/* Saluran Notifikasi */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', color: '#22c55e', fontWeight: 600 }}>
                       <input
                         type="checkbox"
@@ -2373,6 +2363,15 @@ export const DocumentFormModal = ({
                         style={{ accentColor: '#22c55e', cursor: 'pointer' }}
                       />
                       <span>WhatsApp WA</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', color: '#0ea5e9', fontWeight: 600 }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.notificationReminders?.channels?.email !== false}
+                        onChange={(e) => updateReminderChannel('email', e.target.checked)}
+                        style={{ accentColor: '#0ea5e9', cursor: 'pointer' }}
+                      />
+                      <span>Email</span>
                     </label>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer', color: '#38bdf8', fontWeight: 600 }}>
                       <input
@@ -2385,6 +2384,42 @@ export const DocumentFormModal = ({
                     </label>
                   </div>
                 </div>
+
+                {/* Optional Email Recipient Field when Email Notification is enabled */}
+                {formData.notificationReminders?.channels?.email !== false && (
+                  <div style={{
+                    padding: '0.45rem 0.75rem',
+                    borderRadius: '8px',
+                    background: 'rgba(14, 165, 233, 0.08)',
+                    border: '1px solid rgba(14, 165, 233, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.75rem'
+                  }}>
+                    <Mail size={14} color="#0ea5e9" style={{ flexShrink: 0 }} />
+                    <span style={{ color: 'var(--text-subtle)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                      Alamat Email Notifikasi:
+                    </span>
+                    <input
+                      type="email"
+                      value={formData.notificationReminders?.emailRecipient || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          notificationReminders: {
+                            ...prev.notificationReminders,
+                            emailRecipient: val
+                          }
+                        }));
+                      }}
+                      placeholder="Default otomatis (admin / operasional kapal) atau ketik email khusus..."
+                      className="input-control mono"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', height: '28px', flex: 1 }}
+                    />
+                  </div>
+                )}
               </>
             )}
           </div>

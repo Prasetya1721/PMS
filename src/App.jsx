@@ -16,9 +16,11 @@ import { DocumentTracker } from './components/documents/DocumentTracker';
 import { NotificationCenter } from './components/notification/NotificationCenter';
 import { ReportGenerator } from './components/reports/ReportGenerator';
 import { MasterDataAdmin } from './components/admin/MasterDataAdmin';
+import { SiteSettingsAdmin } from './components/admin/SiteSettingsAdmin';
+import { SidebarManagementAdmin } from './components/admin/SidebarManagementAdmin';
 import { AuditManager } from './components/audit/AuditManager';
 import { CheckCircle, AlertTriangle, Info, ShieldAlert } from 'lucide-react';
-import { hasAccess, ROLE_DEFINITIONS } from './utils/rbac';
+import { hasAccessWithOverrides, ROLE_DEFINITIONS } from './utils/rbac';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -71,11 +73,11 @@ class ErrorBoundary extends React.Component {
 }
 
 const AppContent = () => {
-  const { activeTab, setActiveTab, currentRole, selectedVesselId, toastMessage } = usePMS();
+  const { activeTab, setActiveTab, currentRole, selectedVesselId, toastMessage, sidebarOverrides } = usePMS();
 
   const renderContent = () => {
-    // Role-based Module Access Guard
-    if (!hasAccess(currentRole, activeTab)) {
+    // Role-based Module Access Guard (with sidebar overrides)
+    if (!hasAccessWithOverrides(currentRole, activeTab, sidebarOverrides)) {
       const roleDef = ROLE_DEFINITIONS[currentRole] || {};
       return (
         <div style={{
@@ -158,6 +160,10 @@ const AppContent = () => {
         return <ReportGenerator />;
       case 'master':
         return <MasterDataAdmin />;
+      case 'settings':
+        return <SiteSettingsAdmin />;
+      case 'sidebar_management':
+        return <SidebarManagementAdmin />;
       default:
         return <FleetOverview />;
     }

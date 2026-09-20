@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
-import { hasAccess, ROLE_DEFINITIONS } from '../../utils/rbac';
+import { hasAccessWithOverrides, ROLE_DEFINITIONS } from '../../utils/rbac';
+import { ProfileSettingsModal } from '../admin/ProfileSettingsModal';
 import {
   LayoutDashboard,
   Ship,
@@ -14,11 +15,13 @@ import {
   BellRing,
   FileSpreadsheet,
   ShieldCheck,
-  AlertTriangle,
   LogOut,
   Sun,
   Moon,
-  Database
+  Database,
+  UserCog,
+  Palette,
+  Shield
 } from 'lucide-react';
 
 export const Sidebar = () => {
@@ -33,8 +36,12 @@ export const Sidebar = () => {
     currentUser,
     logout,
     theme,
-    toggleTheme
+    toggleTheme,
+    sidebarOverrides,
+    siteConfig
   } = usePMS();
+
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
@@ -78,21 +85,41 @@ export const Sidebar = () => {
       icon: Database,
       badge: 'Admin',
       badgeType: 'info'
+    },
+    {
+      id: 'settings',
+      label: 'CMS Tampilan Login',
+      icon: Palette,
+      badge: 'CMS',
+      badgeType: 'info'
+    },
+    {
+      id: 'sidebar_management',
+      label: 'Manajemen Sidebar',
+      icon: Shield,
+      badge: 'RBAC',
+      badgeType: 'warning'
     }
   ];
+
+  // Use sidebar overrides for access filtering
+  const filteredNavItems = navItems.filter(item => hasAccessWithOverrides(currentRole, item.id, sidebarOverrides));
 
   return (
     <aside style={{
       width: '270px',
-      background: 'var(--bg-sidebar)',
-      borderRight: '1px solid var(--border-subtle)',
+      height: '100vh',
+      maxHeight: '100vh',
+      position: 'sticky',
+      top: 0,
+      left: 0,
+      zIndex: 50,
       display: 'flex',
       flexDirection: 'column',
       flexShrink: 0,
-      minHeight: '100vh',
-      position: 'sticky',
-      top: 0,
-      zIndex: 40
+      background: 'var(--bg-sidebar)',
+      borderRight: '1px solid var(--border-subtle)',
+      overflow: 'hidden'
     }}>
       {/* Brand Header */}
       <div style={{
@@ -100,7 +127,8 @@ export const Sidebar = () => {
         borderBottom: '1px solid var(--border-subtle)',
         display: 'flex',
         alignItems: 'center',
-        gap: '0.85rem'
+        gap: '0.85rem',
+        flexShrink: 0
       }}>
         <div style={{
           width: '42px',
@@ -125,7 +153,7 @@ export const Sidebar = () => {
             color: theme === 'light' ? '#0f172a' : '#ffffff',
             lineHeight: 1.2
           }}>
-            PT. BAHARIMAS
+            {siteConfig?.companyName || 'PT. BAHARIMAS'}
           </h1>
           <p style={{
             fontSize: '0.68rem',
@@ -134,24 +162,22 @@ export const Sidebar = () => {
             letterSpacing: '0.04em',
             textTransform: 'uppercase'
           }}>
-            Pelayaran Baharimas Kalimantan
+            {siteConfig?.companyTagline || 'Pelayaran Baharimas Kalimantan'}
           </p>
         </div>
       </div>
 
-      {/* Navigation Items (Filtered by Current Role) */}
-      <nav style={{ padding: '1rem 0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.3rem', overflowY: 'auto' }}>
+      {/* Navigation Items (Filtered by Current Role + Sidebar Overrides) */}
+      <nav style={{ padding: '1rem 0.75rem', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '0.3rem', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem' }}>
           <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Menu Navigasi
           </span>
           <span className="badge badge-info mono" style={{ fontSize: '0.62rem', padding: '0.1rem 0.45rem' }}>
-            {navItems.filter(item => hasAccess(currentRole, item.id)).length} Modul
+            {filteredNavItems.length} Modul
           </span>
         </div>
-        {navItems
-          .filter(item => hasAccess(currentRole, item.id))
-          .map(item => {
+        {filteredNavItems.map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
@@ -202,6 +228,7 @@ export const Sidebar = () => {
                 <span className={`badge ${
                   item.badgeType === 'danger' ? 'badge-danger' :
                   item.badgeType === 'danger-pulse' ? 'badge-danger-pulse' :
+                  item.badgeType === 'info' ? 'badge-info' :
                   'badge-warning'
                 }`} style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
                   {item.badge}
@@ -219,7 +246,8 @@ export const Sidebar = () => {
         background: theme === 'light' ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.65rem'
+        gap: '0.65rem',
+        flexShrink: 0
       }}>
         {/* Quick Theme Switcher */}
         <button
@@ -265,7 +293,7 @@ export const Sidebar = () => {
           background: theme === 'light' ? '#f8fafc' : 'var(--bg-surface-elevated)',
           border: '1px solid var(--border-subtle)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden', flex: 1 }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -296,26 +324,54 @@ export const Sidebar = () => {
             </div>
           </div>
 
-          <button
-            onClick={logout}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              padding: '0.35rem',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.15s ease'
-            }}
-            title="Keluar dari sistem"
-          >
-            <LogOut size={15} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0 }}>
+            {/* Profile Settings Button */}
+            <button
+              onClick={() => setShowProfileModal(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#0284c7',
+                cursor: 'pointer',
+                padding: '0.35rem',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease'
+              }}
+              title="Pengaturan Profil"
+            >
+              <UserCog size={15} />
+            </button>
+
+            <button
+              onClick={logout}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#ef4444',
+                cursor: 'pointer',
+                padding: '0.35rem',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease'
+              }}
+              title="Keluar dari sistem"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Profile Settings Modal */}
+      {showProfileModal && (
+        <ProfileSettingsModal onClose={() => setShowProfileModal(false)} />
+      )}
     </aside>
   );
 };
+

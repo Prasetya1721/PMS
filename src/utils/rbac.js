@@ -68,6 +68,8 @@ export const ROLE_PERMISSIONS = {
     'notifications',
     'reports',
     'master',
+    'settings',
+    'sidebar_management',
   ],
   'Fleet Manager': [
     'dashboard',
@@ -134,6 +136,25 @@ export const ROLE_PERMISSIONS = {
 export const hasAccess = (role, moduleId) => {
   if (!role) return false;
   if (role === 'Super Admin') return true;
+  const allowed = ROLE_PERMISSIONS[role] || [];
+  return allowed.includes(moduleId);
+};
+
+/**
+ * Periksa akses modul dengan mempertimbangkan sidebar overrides dari Super Admin
+ * @param {string} role Nama peran
+ * @param {string} moduleId ID modul
+ * @param {Object} sidebarOverrides Override map { role: [moduleId, ...] }
+ * @returns {boolean}
+ */
+export const hasAccessWithOverrides = (role, moduleId, sidebarOverrides) => {
+  if (!role) return false;
+  if (role === 'Super Admin') return true;
+  // If overrides exist for this role, use them instead of default
+  if (sidebarOverrides && sidebarOverrides[role] && Array.isArray(sidebarOverrides[role])) {
+    return sidebarOverrides[role].includes(moduleId);
+  }
+  // Fallback to default RBAC
   const allowed = ROLE_PERMISSIONS[role] || [];
   return allowed.includes(moduleId);
 };
