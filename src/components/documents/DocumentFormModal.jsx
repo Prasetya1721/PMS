@@ -821,22 +821,32 @@ export const DocumentFormModal = ({
   };
 
   const handleSurveyTypeSelect = (surveyVal, validityYears = null) => {
+    let years = validityYears;
+    if (!years && surveyVal) {
+      const lower = surveyVal.toLowerCase();
+      if (lower.includes('2.5') || lower.includes('intermediate') || lower.includes('docking')) years = 2.5;
+      else if (lower.includes('5 thn') || lower.includes('5 tahun') || lower.includes('special') || lower.includes('renewal')) years = 5;
+      else if (lower.includes('10 thn') || lower.includes('10 tahun') || lower.includes('surat ukur')) years = 10;
+      else if (lower.includes('6 bln') || lower.includes('6 bulan') || lower.includes('0.5') || lower.includes('sscec')) years = 0.5;
+      else if (lower.includes('annual') || lower.includes('1 thn') || lower.includes('1 tahun') || lower.includes('tahunan') || lower.includes('kelaiklautan') || lower.includes('safety equipment') || lower.includes('radio') || lower.includes('endorsement')) years = 1;
+    }
+
     setFormData(prev => {
       const updated = {
         ...prev,
         surveyType: surveyVal
       };
 
-      if (validityYears && prev.issueDate) {
+      if (years && prev.issueDate) {
         try {
           const d = new Date(prev.issueDate + 'T00:00:00');
           if (!isNaN(d.getTime())) {
-            if (validityYears === 2.5) {
+            if (years === 2.5) {
               d.setMonth(d.getMonth() + 30);
-            } else if (validityYears < 1) {
-              d.setMonth(d.getMonth() + Math.round(validityYears * 12));
+            } else if (years < 1) {
+              d.setMonth(d.getMonth() + Math.round(years * 12));
             } else {
-              d.setFullYear(d.getFullYear() + validityYears);
+              d.setFullYear(d.getFullYear() + years);
             }
             updated.expiryDate = d.toISOString().split('T')[0];
           }
@@ -1410,38 +1420,6 @@ export const DocumentFormModal = ({
               options={currentProfile.surveyTypes || []}
               placeholder={currentProfile.surveyPlaceholder || 'Pilih dari daftar survey atau ketik manual jenis survey...'}
             />
-
-            {/* Quick-Click Badges for Fast 1-Click Fill */}
-            {currentProfile.surveyPresets && currentProfile.surveyPresets.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.1rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', alignSelf: 'center', marginRight: '0.2rem' }}>
-                  Pilihan Cepat {currentProfile.shortLabel}:
-                </span>
-                {currentProfile.surveyPresets.map(st => {
-                  const isSelected = (formData.surveyType || '').toLowerCase().includes(st.label.toLowerCase());
-                  return (
-                    <button
-                      key={st.label}
-                      type="button"
-                      onClick={() => handleSurveyTypeSelect(st.full, st.years)}
-                      className="badge"
-                      style={{
-                        cursor: 'pointer',
-                        fontSize: '0.7rem',
-                        padding: '0.2rem 0.5rem',
-                        background: isSelected ? `${currentProfile.color}35` : 'rgba(255, 255, 255, 0.05)',
-                        border: `1px solid ${isSelected ? currentProfile.color : 'var(--border-subtle)'}`,
-                        color: isSelected ? currentProfile.color : 'var(--text-secondary)',
-                        transition: 'all 0.15s ease'
-                      }}
-                      title={`Pilih ${st.full} (Masa berlaku +${st.years} tahun)`}
-                    >
-                      {st.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
           </div>
 
           {/* 4. NAME & DOCUMENT NUMBER */}
