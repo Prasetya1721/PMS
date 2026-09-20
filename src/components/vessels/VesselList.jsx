@@ -42,6 +42,7 @@ export const VesselList = () => {
   const [formData, setFormData] = useState({
     name: '',
     regNo: '',
+    imo: '',
     callSign: '',
     type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
     ownershipStatus: 'As Owner & Operator',
@@ -70,8 +71,9 @@ export const VesselList = () => {
 
     const newShip = addVessel({
       ...formData,
-      imo: formData.regNo || `${Math.floor(10000 + Math.random() * 90000)}`,
-      callSign: formData.callSign || `YDB${(formData.regNo || '9999').substring(0, 4)}`
+      regNo: formData.regNo?.trim() || '',
+      imo: formData.imo?.trim() || '',
+      callSign: formData.callSign?.trim() || (formData.type?.toLowerCase().includes('tongkang') ? '-' : `YDB${(formData.regNo || '9999').substring(0, 4)}`)
     });
 
     setShowAddModal(false);
@@ -291,7 +293,7 @@ export const VesselList = () => {
                           <span className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>{v.type}</span>
                         </div>
                         <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                          No. Reg BKI: <strong className="mono" style={{ color: 'var(--text-main)' }}>{v.regNo || v.imo}</strong> • Bendera: <strong style={{ color: 'var(--text-main)' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
+                          No. Reg: <strong className="mono" style={{ color: 'var(--text-main)' }}>{v.regNo || '-'}</strong> {v.imo ? <> • IMO: <strong className="mono" style={{ color: 'var(--text-main)' }}>{v.imo}</strong></> : null} • Bendera: <strong style={{ color: 'var(--text-main)' }}>{v.flag}</strong> • Pelabuhan Pendaftaran:{' '}
                           <strong style={{ color: 'var(--text-main)' }}>{v.portOfRegistry}</strong> • Galangan:{' '}
                           <strong style={{ color: 'var(--text-main)' }}>{v.builder} ({v.yearBuilt})</strong>
                         </p>
@@ -332,9 +334,9 @@ export const VesselList = () => {
                     {/* Technical Specs Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1.25rem' }}>
                       <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>No. Registrasi / Call Sign</span>
-                        <p className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, marginTop: '0.15rem' }}>
-                          Reg: {v.regNo || v.imo} / {v.callSign}
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>No. Reg / IMO / Call Sign</span>
+                        <p className="mono" style={{ fontSize: '0.82rem', fontWeight: 700, marginTop: '0.15rem' }}>
+                          Reg: {v.regNo || '-'} {v.imo ? `• IMO: ${v.imo}` : ''} • {v.callSign || '-'}
                         </p>
                       </div>
                       <div style={{ padding: '0.65rem 0.85rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
@@ -454,30 +456,44 @@ export const VesselList = () => {
             </div>
 
             <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="field-label">Nama Kapal Armada *</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="Contoh: TB. BAHARIMAS 09"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="input-control"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label className="field-label">Nama Kapal (Nama Resmi) *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    placeholder="Contoh: TB. BAHARIMAS 09"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="input-control"
-                  />
-                </div>
-                <div>
-                  <label className="field-label">No. Registrasi / IMO *</label>
+                  <label className="field-label">No. Registrasi Kapal *</label>
                   <input
                     type="text"
                     name="regNo"
                     required
-                    placeholder="Contoh: 31890"
+                    placeholder="Contoh: 31890 atau PK.882/KL"
                     value={formData.regNo}
                     onChange={handleInputChange}
                     className="input-control"
                   />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>No. Akta / Tanda Selar / Buku Pendaftaran</span>
+                </div>
+                <div>
+                  <label className="field-label">Nomor IMO</label>
+                  <input
+                    type="text"
+                    name="imo"
+                    placeholder="Contoh: 9123456 (Kosongkan jika tongkang)"
+                    value={formData.imo}
+                    onChange={handleInputChange}
+                    className="input-control"
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>7 digit International Maritime Org (Opsional)</span>
                 </div>
               </div>
 

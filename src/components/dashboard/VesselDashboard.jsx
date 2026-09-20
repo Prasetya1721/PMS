@@ -341,8 +341,8 @@ export const VesselDashboard = () => {
                     <span className="badge badge-info">{currentShip.type}</span>
                   </div>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    No. Reg BKI: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.regNo || currentShip.imo}</strong> • Call Sign:{' '}
-                    <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.callSign}</strong> • Pelabuhan Pendaftaran:{' '}
+                    No. Reg: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.regNo || '-'}</strong> {currentShip.imo ? <> • IMO: <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.imo}</strong></> : null} • Call Sign:{' '}
+                    <strong className="mono" style={{ color: 'var(--text-main)' }}>{currentShip.callSign || '-'}</strong> • Pelabuhan Pendaftaran:{' '}
                     <strong style={{ color: 'var(--text-main)' }}>{currentShip.portOfRegistry}</strong> • Galangan: <strong style={{ color: 'var(--text-main)' }}>{currentShip.builder} ({currentShip.yearBuilt})</strong>
                   </p>
                 </div>
@@ -356,20 +356,24 @@ export const VesselDashboard = () => {
                     className="select-control"
                     style={{ width: '250px', fontSize: '0.825rem', fontWeight: 600, background: 'var(--bg-surface)' }}
                   >
-                    <optgroup label="⚓ AS OWNER (17 Kapal Milik)">
-                      {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
-                        <option key={v.id} value={v.id}>
-                          🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="⚙️ AS OPERATOR (11 Kapal Operasional)">
-                      {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
-                        <option key={v.id} value={v.id}>
-                          ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
-                        </option>
-                      ))}
-                    </optgroup>
+                    {vessels.some(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator') && (
+                      <optgroup label={`⚓ AS OWNER (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>
+                            🚢 {v.name} ({v.type.split(' ')[0]}) [Owner]
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') && (
+                      <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>
+                            ⚙️ {v.name} ({v.type.split(' ')[0]}) [Operator]
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               </div>

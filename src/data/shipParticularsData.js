@@ -10,7 +10,7 @@ export const createDefaultShipParticulars = (vessel = {}) => {
     vessel.id?.startsWith('v-op-') ||
     vessel.ownershipStatus === 'As Operator';
 
-  const regNo = vessel.regNo || vessel.imo || '24587';
+  const regNo = vessel.regNo || '-';
   const name = vessel.name || 'RP 2020';
   const yearBuilt = vessel.yearBuilt || 2020;
   const builder = vessel.builder || 'PT Dok & Perkapalan Baharimas Pontianak';
@@ -180,9 +180,9 @@ export const createDefaultShipParticulars = (vessel = {}) => {
     vesselType: vessel.type || `Tugboat (Kapal Tunda Twin Screw ${bhp} BHP)`,
     flag: flag,
     portOfRegistry: port,
-    officialNo: `${regNo} / Ba.${yearBuilt}`,
+    officialNo: regNo !== '-' ? `${regNo} / Ba.${yearBuilt}` : '-',
     callSign: callSign,
-    imoNumber: vessel.imo || regNo,
+    imoNumber: vessel.imo || '-',
     mmsi: `5250${regNo.padEnd(5, '0').slice(0, 5)}`,
     classification: 'Biro Klasifikasi Indonesia (BKI)',
     classNotation: singleScrew ? '+A100 (I) P Kapal Tunda, +SM' : '+A100 (I) P Kapal Tunda Twin Screw, +SM',

@@ -130,7 +130,7 @@ export const ParticularsModal = ({ vessel, isOpen, onClose, onSave }) => {
                 )}
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                No. Reg BKI: <strong className="mono" style={{ color: 'var(--text-main)' }}>{vessel.regNo || vessel.imo}</strong> • {vessel.type}
+                No. Reg: <strong className="mono" style={{ color: 'var(--text-main)' }}>{vessel.regNo || '-'}</strong> {vessel.imo ? <> • IMO: <strong className="mono" style={{ color: 'var(--text-main)' }}>{vessel.imo}</strong></> : null} • {vessel.type}
               </p>
             </div>
           </div>

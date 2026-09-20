@@ -303,7 +303,7 @@ export const FleetOverview = () => {
                   }}>
                     <h4 style={{ fontSize: '1.15rem', color: '#ffffff', fontWeight: 800 }}>{ship.name}</h4>
                     <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      IMO: <span className="mono">{ship.imo}</span> • Call Sign: <span className="mono">{ship.callSign}</span>
+                      No. Reg: <span className="mono">{ship.regNo || '-'}</span>{ship.imo ? <> • IMO: <span className="mono">{ship.imo}</span></> : null} • Call Sign: <span className="mono">{ship.callSign || '-'}</span>
                     </p>
                   </div>
                 </div>

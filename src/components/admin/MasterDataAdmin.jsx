@@ -930,8 +930,8 @@ export const MasterDataAdmin = () => {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 onClick={() => {
-                  exportToCSV('master_kapal_baharimas', ['ID', 'Nama Kapal', 'Kepemilikan', 'Tipe', 'No Reg BKI', 'Call Sign', 'GT', 'DWT', 'Galangan', 'Tahun', 'Status'],
-                    filteredVessels.map(v => [v.id, v.name, v.ownershipStatus || 'As Owner', v.type, v.regNo || v.imo, v.callSign, v.gt, v.dwt, v.builder, v.yearBuilt, v.status])
+                  exportToCSV('master_kapal_baharimas', ['ID', 'Nama Kapal', 'Kepemilikan', 'Tipe', 'No. Registrasi', 'Nomor IMO', 'Call Sign', 'GT', 'DWT', 'Galangan', 'Tahun', 'Status'],
+                    filteredVessels.map(v => [v.id, v.name, v.ownershipStatus || 'As Owner', v.type, v.regNo || '-', v.imo || '-', v.callSign || '-', v.gt, v.dwt, v.builder, v.yearBuilt, v.status])
                   );
                 }}
                 className="btn btn-secondary btn-sm"
@@ -1003,7 +1003,8 @@ export const MasterDataAdmin = () => {
                     <th>Nama Kapal</th>
                     <th>Status Kepemilikan</th>
                     <th>Tipe / Jenis Kapal</th>
-                    <th>No. Reg BKI / IMO</th>
+                    <th>No. Registrasi</th>
+                    <th>Nomor IMO</th>
                     <th>Call Sign</th>
                     <th>Gross Tonnage</th>
                     <th>Status Operasional</th>
@@ -1034,7 +1035,8 @@ export const MasterDataAdmin = () => {
                         </span>
                       </td>
                       <td style={{ fontSize: '0.825rem' }}>{v.type}</td>
-                      <td className="mono" style={{ fontSize: '0.8rem' }}>{v.regNo || v.imo}</td>
+                      <td className="mono" style={{ fontSize: '0.8rem' }}>{v.regNo || '-'}</td>
+                      <td className="mono" style={{ fontSize: '0.8rem' }}>{v.imo || '-'}</td>
                       <td className="mono" style={{ fontSize: '0.8rem' }}>{v.callSign || '-'}</td>
                       <td className="mono" style={{ fontSize: '0.825rem' }}>{v.gt} GT</td>
                       <td>
@@ -1062,7 +1064,7 @@ export const MasterDataAdmin = () => {
                                 name: v.name,
                                 type: v.type,
                                 ownershipStatus: v.ownershipStatus || 'As Owner',
-                                regNo: v.regNo || v.imo,
+                                regNo: v.regNo || '',
                                 imo: v.imo || '',
                                 callSign: v.callSign || '',
                                 gt: v.gt || 310,
@@ -2443,7 +2445,7 @@ export const MasterDataAdmin = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label className="field-label">Jenis / Tipe Kapal</label>
                   <input
@@ -2454,12 +2456,22 @@ export const MasterDataAdmin = () => {
                   />
                 </div>
                 <div>
-                  <label className="field-label">No. Registrasi BKI</label>
+                  <label className="field-label">No. Registrasi Kapal</label>
                   <input
                     type="text"
-                    placeholder="Contoh: 24587"
+                    placeholder="Contoh: 24587 atau PK.882"
                     value={vesselFormData.regNo}
                     onChange={(e) => setVesselFormData(prev => ({ ...prev, regNo: e.target.value }))}
+                    className="input-control"
+                  />
+                </div>
+                <div>
+                  <label className="field-label">Nomor IMO (Jika Ada)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 9123456"
+                    value={vesselFormData.imo}
+                    onChange={(e) => setVesselFormData(prev => ({ ...prev, imo: e.target.value }))}
                     className="input-control"
                   />
                 </div>

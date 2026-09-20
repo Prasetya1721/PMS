@@ -144,7 +144,7 @@ export const EditVesselPhotoModal = ({
             <div>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Edit Foto Kapal: {vessel.name}</h3>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                {vessel.type} • No. Reg: {vessel.regNo || vessel.imo}
+                {vessel.type} • No. Reg: {vessel.regNo || '-'}{vessel.imo ? ` • IMO: ${vessel.imo}` : ''}
               </p>
             </div>
           </div>
