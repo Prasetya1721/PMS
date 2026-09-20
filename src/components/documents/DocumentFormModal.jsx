@@ -25,7 +25,11 @@ import {
   UserCheck,
   ClipboardCheck,
   Info,
-  Award
+  Award,
+  RotateCcw,
+  ArrowLeft,
+  ArrowRight,
+  Layers
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES, DEMO_CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { usePMS } from '../../context/PMSContext';
@@ -697,9 +701,11 @@ export const DocumentFormModal = ({
   }, [contextTemplates, shipDocuments]);
 
   const isEditing = !!initialData?.id;
+  const [formStep, setFormStep] = useState(isEditing ? 2 : 1); // 1: Pilih Kategori, 2: Form Pengisian
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [isAddingNewCat, setIsAddingNewCat] = useState(!isEditing && activeCategories.length === 0);
+  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDesc, setNewCategoryDesc] = useState('');
   const [isAddingNewTemplate, setIsAddingNewTemplate] = useState(false);
   const [newTemplateCustomName, setNewTemplateCustomName] = useState('');
   const [newTemplateCategory, setNewTemplateCategory] = useState('');
@@ -1090,34 +1096,118 @@ export const DocumentFormModal = ({
 
   const currentProfile = getCategoryProfile(formData.category);
 
-  // Hanya pertahankan BKI sesuai instruksi user ("hilangkan dulu pertahankan BKI")
+  // Daftar kategori lengkap (BKI, KSOP, Statutory, Kesehatan, Asuransi + Kategori Kustom)
   const allCategoryList = useMemo(() => {
-    const list = [
+    const defaultStandards = [
       {
         id: 'BKI',
         label: 'BKI (Biro Klasifikasi Indonesia)',
+        shortLabel: 'BKI Klasifikasi',
         code: 'BKI',
         color: '#38bdf8',
-        bgColor: 'rgba(2, 132, 199, 0.12)',
-        borderColor: 'rgba(56, 189, 248, 0.35)'
+        bgColor: 'rgba(2, 132, 199, 0.15)',
+        borderColor: 'rgba(56, 189, 248, 0.45)',
+        description: 'Sertifikat klasifikasi lambung, mesin, garis muat kelas, dan siklus survei periodik 5 tahunan BKI.',
+        tagline: 'Survei kelas lambung & mesin 5 tahunan',
+        icon: Anchor
+      },
+      {
+        id: 'KSOP',
+        label: 'KSOP (Kesyahbandaran & Kelaiklautan)',
+        shortLabel: 'KSOP / Syahbandar',
+        code: 'KSOP',
+        color: '#f59e0b',
+        bgColor: 'rgba(245, 158, 11, 0.15)',
+        borderColor: 'rgba(245, 158, 11, 0.45)',
+        description: 'Kelaiklautan kapal, pas besar/kecil, surat ukur, izin trayek, dan sertifikat keselamatan pelayaran.',
+        tagline: 'Kelaiklautan, pas besar/kecil, surat ukur',
+        icon: Building2
+      },
+      {
+        id: 'Statutory',
+        label: 'Statutory (Ditkapel / Hubla / ISM Code)',
+        shortLabel: 'Statutori Hubla',
+        code: 'STATUTORY',
+        color: '#10b981',
+        bgColor: 'rgba(16, 185, 129, 0.15)',
+        borderColor: 'rgba(16, 185, 129, 0.45)',
+        description: 'Sistem Manajemen Keselamatan (ISM Code), Keamanan Kapal (ISPS), dan Pencegahan Polusi (MARPOL).',
+        tagline: 'SMC, DOC, ISSC, MARPOL / SNPP',
+        icon: ShieldCheck
+      },
+      {
+        id: 'Kesehatan',
+        label: 'Kesehatan (Port Health / KKP / BKK)',
+        shortLabel: 'Kesehatan / KKP',
+        code: 'KESEHATAN',
+        color: '#ec4899',
+        bgColor: 'rgba(236, 72, 153, 0.15)',
+        borderColor: 'rgba(236, 72, 153, 0.45)',
+        description: 'Pemeriksaan sanitasi kapal (SSCEC), kotak obat P3K, air minum kapal, dan karantina pelabuhan.',
+        tagline: 'Sanitasi kapal SSCEC & P3K kapal',
+        icon: HeartPulse
+      },
+      {
+        id: 'Asuransi',
+        label: 'Asuransi & Jaminan (Insurance / P&I / CLC)',
+        shortLabel: 'Asuransi & Jaminan',
+        code: 'ASURANSI',
+        color: '#a855f7',
+        bgColor: 'rgba(168, 85, 247, 0.15)',
+        borderColor: 'rgba(168, 85, 247, 0.45)',
+        description: 'Jaminan ganti rugi pencemaran laut (CLC Bunker), penyingkiran kerangka kapal (WRC), Polis H&M, P&I.',
+        tagline: 'CLC Bunker, Wreck Removal, Polis H&M, P&I',
+        icon: Shield
       }
     ];
 
-    // Jika sedang edit dokumen lama yang kategorinya bukan BKI, tetap sertakan agar dokumen tidak error
-    if (isEditing && initialData?.category && initialData.category !== 'BKI') {
-      const prof = getCategoryProfile(initialData.category);
-      list.push({
-        id: initialData.category,
-        label: prof.label || initialData.category,
-        code: initialData.category,
-        color: prof.color,
-        bgColor: prof.bgColor,
-        borderColor: prof.borderColor
-      });
+    const result = [...defaultStandards];
+
+    // Sertakan kategori kustom yang ada di Data Master
+    (contextCategories || []).forEach(cc => {
+      const matchIdx = result.findIndex(r => r.id.toLowerCase() === (cc.id || cc.code || cc.label || '').toLowerCase());
+      if (matchIdx >= 0) {
+        result[matchIdx] = { ...result[matchIdx], ...cc };
+      } else {
+        const prof = getCategoryProfile(cc.id || cc.code || cc.label);
+        result.push({
+          id: cc.id || cc.code || cc.label,
+          label: cc.label || cc.name || cc.id,
+          shortLabel: cc.shortLabel || cc.label || cc.id,
+          code: cc.code || cc.id,
+          color: cc.color || prof.color || '#38bdf8',
+          bgColor: cc.bgColor || prof.bgColor || 'rgba(56, 189, 248, 0.15)',
+          borderColor: cc.borderColor || prof.borderColor || 'rgba(56, 189, 248, 0.45)',
+          description: cc.description || prof.tagline || `Kategori sertifikat ${cc.label}`,
+          tagline: cc.tagline || cc.description || 'Kategori Kustom',
+          icon: prof.icon || FileText,
+          isCustom: true
+        });
+      }
+    });
+
+    // Jika sedang edit dokumen lama yang kategorinya belum ada di list
+    if (isEditing && initialData?.category) {
+      const exists = result.some(r => r.id.toLowerCase() === initialData.category.toLowerCase());
+      if (!exists) {
+        const prof = getCategoryProfile(initialData.category);
+        result.push({
+          id: initialData.category,
+          label: prof.label || initialData.category,
+          shortLabel: prof.shortLabel || initialData.category,
+          code: initialData.category,
+          color: prof.color || '#38bdf8',
+          bgColor: prof.bgColor || 'rgba(56, 189, 248, 0.15)',
+          borderColor: prof.borderColor || 'rgba(56, 189, 248, 0.45)',
+          description: prof.tagline || `Kategori sertifikat ${initialData.category}`,
+          tagline: 'Kategori Dokumen',
+          icon: prof.icon || FileText
+        });
+      }
     }
 
-    return list;
-  }, [isEditing, initialData]);
+    return result;
+  }, [contextCategories, isEditing, initialData]);
 
   return (
     <div style={{
@@ -1133,125 +1223,118 @@ export const DocumentFormModal = ({
     }}>
       <div className="glass-card" style={{
         width: '100%',
-        maxWidth: '820px',
+        maxWidth: formStep === 1 ? '880px' : '820px',
         maxHeight: '92vh',
         overflowY: 'auto',
         borderRadius: '16px',
         border: `1px solid ${currentProfile.borderColor || 'rgba(56, 189, 248, 0.35)'}`,
         boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px ${currentProfile.color}15`,
         padding: '1.75rem 2rem',
-        transition: 'border-color 0.25s ease, box-shadow 0.25s ease'
+        transition: 'all 0.25s ease'
       }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.25rem',
-          borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: '1rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* ========================================================================= */}
+        {/* STEP 1: PILIH KATEGORI SERTIFIKAT KAPAL (BKI, KSOP, STATUTORY, DLL.)      */}
+        {/* ========================================================================= */}
+        {formStep === 1 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Step 1 Header */}
             <div style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              background: currentProfile.bgColor,
-              border: `1px solid ${currentProfile.borderColor}`,
               display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              justifyContent: 'center',
-              color: currentProfile.color,
-              transition: 'all 0.25s ease'
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '1rem'
             }}>
-              {React.createElement(currentProfile.icon || FileText, { size: 24 })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.15)',
+                  border: '1px solid rgba(56, 189, 248, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8'
+                }}>
+                  <Layers size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>Pilih Kategori Sertifikat Kapal</span>
+                    <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                      Langkah 1 dari 2
+                    </span>
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Pilih kategori sertifikat (BKI, KSOP, Statutory, dll.) sebelum mengisi data formulir spesifik kapal.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary btn-sm"
+                style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={18} />
+              </button>
             </div>
+
+            {/* Kapal Terkait Selection in Step 1 */}
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span>{isEditing ? `Edit Dokumen: ${formData.name}` : 'Tambah Dokumen / Sertifikat Baru'}</span>
-                <span className="badge" style={{ fontSize: '0.7rem', background: currentProfile.bgColor, color: currentProfile.color, border: `1px solid ${currentProfile.borderColor}` }}>
-                  {currentProfile.shortLabel}
-                </span>
-              </h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Kategori Maritim: <strong style={{ color: currentProfile.color }}>{currentProfile.label}</strong>
-              </p>
+              <label className="field-label" style={{ fontWeight: 700 }}>Kapal Terkait *</label>
+              <select
+                value={formData.vesselId}
+                onChange={(e) => {
+                  const newVId = e.target.value;
+                  const selVessel = vessels.find(v => v.id === newVId);
+                  const portName = selVessel?.portOfRegistry?.split(',')[0]?.trim() || 'Pontianak';
+                  setFormData(prev => {
+                    const prof = getCategoryProfile(prev.category);
+                    const autoIssuer = prof.defaultIssuer ? prof.defaultIssuer(portName) : prev.issuer;
+                    return {
+                      ...prev,
+                      vesselId: newVId,
+                      issuer: autoIssuer
+                    };
+                  });
+                }}
+                className="select-control"
+                required
+              >
+                {vessels.length === 0 ? (
+                  <option value="" disabled>-- Belum ada kapal (Silakan daftarkan kapal dahulu) --</option>
+                ) : (
+                  <>
+                    {vessels.some(v => v.ownershipStatus !== 'As Operator') && (
+                      <optgroup label={`⚓ AS OWNER (${vessels.filter(v => v.ownershipStatus !== 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => v.ownershipStatus !== 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>🚢 {v.name} [Owner]</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {vessels.some(v => v.ownershipStatus === 'As Operator') && (
+                      <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.ownershipStatus === 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => v.ownershipStatus === 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>⚙️ {v.name} [Operator]</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
+                )}
+              </select>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
-            style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* 1. VESSEL SELECTION */}
-          <div>
-            <label className="field-label" style={{ fontWeight: 700 }}>Kapal Terkait *</label>
-            <select
-              value={formData.vesselId}
-              onChange={(e) => {
-                const newVId = e.target.value;
-                const selVessel = vessels.find(v => v.id === newVId);
-                const portName = selVessel?.portOfRegistry?.split(',')[0]?.trim() || 'Pontianak';
-                setFormData(prev => {
-                  const prof = getCategoryProfile(prev.category);
-                  const autoIssuer = prof.defaultIssuer ? prof.defaultIssuer(portName) : prev.issuer;
-                  return {
-                    ...prev,
-                    vesselId: newVId,
-                    issuer: (!prev.issuer || prev.issuer.includes('KSOP') || prev.issuer.includes('BKI') || prev.issuer.includes('KKP')) ? autoIssuer : prev.issuer
-                  };
-                });
-              }}
-              className="select-control"
-              required
-            >
-              {vessels.length === 0 ? (
-                <option value="" disabled>-- Belum ada kapal (Silakan daftarkan kapal dahulu) --</option>
-              ) : (
-                <>
-                  {vessels.some(v => v.ownershipStatus !== 'As Operator') && (
-                    <optgroup label={`⚓ AS OWNER (${vessels.filter(v => v.ownershipStatus !== 'As Operator').length} Kapal)`}>
-                      {vessels.filter(v => v.ownershipStatus !== 'As Operator').map(v => (
-                        <option key={v.id} value={v.id}>🚢 {v.name} [Owner]</option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {vessels.some(v => v.ownershipStatus === 'As Operator') && (
-                    <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.ownershipStatus === 'As Operator').length} Kapal)`}>
-                      {vessels.filter(v => v.ownershipStatus === 'As Operator').map(v => (
-                        <option key={v.id} value={v.id}>⚙️ {v.name} [Operator]</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </>
-              )}
-            </select>
-          </div>
-
-          {/* 2. DYNAMIC CATEGORY SELECTOR TABS (BKI, KSOP, Statutory, Kesehatan, Asuransi, etc.) */}
-          <div style={{
-            padding: '1rem',
-            borderRadius: '12px',
-            background: 'var(--bg-surface-elevated)',
-            border: '1px solid var(--border-subtle)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Heading & Tambah Kategori Manual Button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <label className="field-label" style={{ marginBottom: '0.1rem', fontWeight: 800, fontSize: '0.82rem', letterSpacing: '0.03em', color: currentProfile.color }}>
-                  KATEGORI SERTIFIKAT KAPAL
+                <label className="field-label" style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-main)', margin: 0 }}>
+                  DAFTAR KATEGORI SERTIFIKAT TERSEDIA
                 </label>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                  Formulir khusus sertifikasi BKI (Biro Klasifikasi Indonesia) - Lambung, Mesin, dan Survei Periodik.
+                  Klik salah satu kategori di bawah untuk langsung menuju formulir pengisian data sertifikat.
                 </span>
               </div>
 
@@ -1259,164 +1342,277 @@ export const DocumentFormModal = ({
                 <button
                   type="button"
                   onClick={() => setIsAddingNewCat(true)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', color: '#38bdf8', whiteSpace: 'nowrap' }}
+                  className="btn btn-sm"
+                  style={{
+                    fontSize: '0.78rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'rgba(56, 189, 248, 0.12)',
+                    color: '#38bdf8',
+                    border: '1px solid rgba(56, 189, 248, 0.35)',
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
                 >
-                  <Plus size={12} />
-                  <span>+ Kategori Lain</span>
+                  <Plus size={14} />
+                  <span>+ Tambah Kategori Manual</span>
                 </button>
               )}
             </div>
 
-            {/* Visual Category Tab Buttons */}
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.55rem'
-            }}>
-              {allCategoryList.map(cat => {
-                const prof = getCategoryProfile(cat.id);
-                const isSelected = (formData.category || '').toLowerCase() === cat.id.toLowerCase();
-                const IconComp = prof.icon || FileText;
-
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => handleCategoryChange(cat.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.55rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '10px',
-                      border: isSelected ? `2px solid ${prof.color}` : '1px solid var(--border-subtle)',
-                      background: isSelected ? prof.bgColor : 'rgba(255, 255, 255, 0.03)',
-                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                      textAlign: 'left',
-                      boxShadow: isSelected ? `0 0 16px ${prof.color}35` : 'none'
-                    }}
-                  >
-                    <div style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '8px',
-                      background: isSelected ? prof.color : 'rgba(255, 255, 255, 0.08)',
-                      color: isSelected ? '#0f172a' : prof.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <IconComp size={16} />
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                      <div style={{
-                        fontSize: '0.82rem',
-                        fontWeight: isSelected ? 800 : 600,
-                        color: isSelected ? prof.color : 'var(--text-main)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {prof.shortLabel || cat.label}
-                      </div>
-                      <div style={{ fontSize: '0.67rem', color: isSelected ? 'var(--text-secondary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {cat.id === 'BKI' ? 'Survei Kelas' : cat.id === 'KSOP' ? 'Kelaiklautan' : cat.id === 'Statutory' ? 'ISM & MARPOL' : cat.id === 'Kesehatan' ? 'Sanitasi SSCEC' : cat.id === 'Asuransi' ? 'P&I / H&M / CLC' : 'Dokumen'}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Manual New Category Form */}
+            {/* Form Tambah Kategori Manual Baru (Otomatis Tersimpan di Data Master) */}
             {isAddingNewCat && (
-              <div style={{
-                padding: '0.65rem 0.85rem',
-                borderRadius: '8px',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-glass)',
+              <div className="glass-card" style={{
+                padding: '1.25rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'rgba(56, 189, 248, 0.06)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.4rem',
-                marginTop: '0.2rem'
+                gap: '0.75rem'
               }}>
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Ketik nama kategori baru (contoh: Dishub / Sertifikat Radio)..."
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    className="input-control"
-                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
-                    autoFocus
-                  />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h5 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38bdf8', display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
+                    <Plus size={16} />
+                    <span>Tambah Kategori Manual Baru (Otomatis Tersimpan di Data Master)</span>
+                  </h5>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '0.75rem' }}>
+                  <div>
+                    <label className="field-label">Nama Kategori Baru *</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Bea Cukai / Dishub / Sertifikat Radio"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      className="input-control"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="field-label">Keterangan Singkat (Opsional)</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Dokumen kepabeanan & sertifikasi perizinan"
+                      value={newCategoryDesc}
+                      onChange={(e) => setNewCategoryDesc(e.target.value)}
+                      className="input-control"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingNewCat(false);
+                      setNewCategoryName('');
+                      setNewCategoryDesc('');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Batal
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       if (!newCategoryName.trim()) return;
-                      const created = addCertificateCategory({ label: newCategoryName.trim() });
+                      const created = addCertificateCategory({
+                        label: newCategoryName.trim(),
+                        description: newCategoryDesc.trim() || `Kategori dokumen ${newCategoryName.trim()}`
+                      });
                       handleCategoryChange(created.id);
                       setNewCategoryName('');
+                      setNewCategoryDesc('');
                       setIsAddingNewCat(false);
+                      setFormStep(2);
                     }}
                     className="btn btn-primary btn-sm"
-                    style={{ whiteSpace: 'nowrap', padding: '0.4rem 0.7rem', fontSize: '0.75rem' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
                   >
-                    Simpan Kategori
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddingNewCat(false);
-                      setNewCategoryName('');
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    Batal
+                    <CheckCircle2 size={15} />
+                    <span>Simpan ke Data Master & Lanjut ke Form</span>
                   </button>
                 </div>
-                <span style={{ fontSize: '0.68rem', color: '#10b981' }}>
-                  ✓ Kategori baru otomatis tersimpan di Data Master & tampil di form.
-                </span>
               </div>
             )}
 
-            {/* Active Mode Banner */}
+            {/* Grid Cards of Categories */}
             <div style={{
-              padding: '0.7rem 0.95rem',
-              borderRadius: '8px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+              gap: '0.85rem'
+            }}>
+              {allCategoryList.map(cat => {
+                const prof = getCategoryProfile(cat.id);
+                const IconComp = cat.icon || prof.icon || FileText;
+                const isSelected = (formData.category || '').toLowerCase() === cat.id.toLowerCase();
+
+                return (
+                  <div
+                    key={cat.id}
+                    onClick={() => {
+                      handleCategoryChange(cat.id);
+                      setFormStep(2);
+                    }}
+                    style={{
+                      padding: '1.2rem 1.1rem',
+                      borderRadius: '12px',
+                      border: isSelected ? `2px solid ${cat.color || prof.color}` : `1px solid ${cat.borderColor || 'var(--border-subtle)'}`,
+                      background: isSelected ? (cat.bgColor || prof.bgColor) : 'rgba(255, 255, 255, 0.03)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                      boxShadow: isSelected ? `0 0 20px ${cat.color || prof.color}35` : 'none',
+                      position: 'relative'
+                    }}
+                    className="category-card-item"
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '10px',
+                        background: cat.color || prof.color,
+                        color: '#0f172a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800
+                      }}>
+                        <IconComp size={22} />
+                      </div>
+                      {cat.isCustom ? (
+                        <span className="badge badge-warning" style={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                          Kategori Kustom
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
+                          Standar Resmi
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                        {cat.shortLabel || cat.label}
+                      </h4>
+                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: '1.4', minHeight: '38px', margin: 0 }}>
+                        {cat.description || cat.tagline || prof.tagline}
+                      </p>
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 'auto',
+                      paddingTop: '0.65rem',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: cat.color || prof.color
+                    }}>
+                      <span>Pilih Kategori Ini</span>
+                      <ArrowRight size={14} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* STEP 2: FORMULIR PENGISIAN DOKUMEN SPESIFIK KATEGORI                      */}
+        {/* ========================================================================= */}
+        {formStep === 2 && (
+          <div>
+            {/* Step 2 Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '12px',
+                  background: currentProfile.bgColor,
+                  border: `1px solid ${currentProfile.borderColor}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: currentProfile.color,
+                  transition: 'all 0.25s ease'
+                }}>
+                  {React.createElement(currentProfile.icon || FileText, { size: 24 })}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>{isEditing ? `Edit Dokumen: ${formData.name}` : 'Form Pengisian Dokumen Kapal'}</span>
+                    <span className="badge" style={{ fontSize: '0.7rem', background: currentProfile.bgColor, color: currentProfile.color, border: `1px solid ${currentProfile.borderColor}` }}>
+                      {currentProfile.shortLabel}
+                    </span>
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Kategori Maritim: <strong style={{ color: currentProfile.color }}>{currentProfile.label}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-secondary btn-sm"
+                style={{ width: '34px', height: '34px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Active Category Context Bar with Ganti Kategori Button */}
+            <div style={{
+              padding: '0.75rem 1rem',
+              borderRadius: '10px',
               background: currentProfile.bgColor,
               border: `1px solid ${currentProfile.borderColor}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              flexWrap: 'wrap',
               gap: '0.75rem',
-              marginTop: '0.25rem'
+              marginBottom: '1.25rem'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <div style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '7px',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
                   background: currentProfile.color,
                   color: '#0f172a',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexShrink: 0
+                  fontWeight: 800
                 }}>
-                  {React.createElement(currentProfile.icon || FileText, { size: 16 })}
+                  {React.createElement(currentProfile.icon || FileText, { size: 18 })}
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.83rem', fontWeight: 800, color: currentProfile.color, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span>Form Mode: {currentProfile.label}</span>
-                    <span className="badge" style={{ fontSize: '0.62rem', background: 'rgba(255, 255, 255, 0.15)', color: '#ffffff' }}>
-                      Aktif
+                  <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>Kategori Terpilih: {currentProfile.label}</span>
+                    <span className="badge" style={{ fontSize: '0.62rem', background: 'rgba(255, 255, 255, 0.2)', color: '#fff' }}>
+                      AKTIF
                     </span>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
@@ -1424,8 +1620,71 @@ export const DocumentFormModal = ({
                   </div>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setFormStep(1)}
+                className="btn btn-secondary btn-sm"
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  borderRadius: '6px'
+                }}
+                title="Kembali ke pemilihan kategori"
+              >
+                <RotateCcw size={13} />
+                <span>Ganti Kategori</span>
+              </button>
             </div>
-          </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* 1. VESSEL SELECTION */}
+              <div>
+                <label className="field-label" style={{ fontWeight: 700 }}>Kapal Terkait *</label>
+                <select
+                  value={formData.vesselId}
+                  onChange={(e) => {
+                    const newVId = e.target.value;
+                    const selVessel = vessels.find(v => v.id === newVId);
+                    const portName = selVessel?.portOfRegistry?.split(',')[0]?.trim() || 'Pontianak';
+                    setFormData(prev => {
+                      const prof = getCategoryProfile(prev.category);
+                      const autoIssuer = prof.defaultIssuer ? prof.defaultIssuer(portName) : prev.issuer;
+                      return {
+                        ...prev,
+                        vesselId: newVId,
+                        issuer: (!prev.issuer || prev.issuer.includes('KSOP') || prev.issuer.includes('BKI') || prev.issuer.includes('KKP')) ? autoIssuer : prev.issuer
+                      };
+                    });
+                  }}
+                  className="select-control"
+                  required
+                >
+                  {vessels.length === 0 ? (
+                    <option value="" disabled>-- Belum ada kapal (Silakan daftarkan kapal dahulu) --</option>
+                  ) : (
+                    <>
+                      {vessels.some(v => v.ownershipStatus !== 'As Operator') && (
+                        <optgroup label={`⚓ AS OWNER (${vessels.filter(v => v.ownershipStatus !== 'As Operator').length} Kapal)`}>
+                          {vessels.filter(v => v.ownershipStatus !== 'As Operator').map(v => (
+                            <option key={v.id} value={v.id}>🚢 {v.name} [Owner]</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {vessels.some(v => v.ownershipStatus === 'As Operator') && (
+                        <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.ownershipStatus === 'As Operator').length} Kapal)`}>
+                          {vessels.filter(v => v.ownershipStatus === 'As Operator').map(v => (
+                            <option key={v.id} value={v.id}>⚙️ {v.name} [Operator]</option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </>
+                  )}
+                </select>
+              </div>
 
           {/* 3. JENIS SURVEY / SIKLUS PEMERIKSAAN DOKUMEN KAPAL */}
           <div style={{
@@ -1980,11 +2239,25 @@ export const DocumentFormModal = ({
             alignItems: 'center',
             marginTop: '0.5rem',
             borderTop: '1px solid var(--border-subtle)',
-            paddingTop: '1.25rem'
+            paddingTop: '1.25rem',
+            flexWrap: 'wrap',
+            gap: '0.75rem'
           }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              * Data tersimpan terpusat di Master Data dan armada Baharimas
-            </div>
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={() => setFormStep(1)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem' }}
+              >
+                <ArrowLeft size={14} />
+                <span>Pilih Kategori Lain</span>
+              </button>
+            ) : (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                * Perubahan tersimpan di Master Data dan armada Baharimas
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
@@ -2010,6 +2283,8 @@ export const DocumentFormModal = ({
             </div>
           </div>
         </form>
+      </div>
+    )}
       </div>
 
       {/* Document Preview Modal */}
