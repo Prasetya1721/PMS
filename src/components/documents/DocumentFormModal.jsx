@@ -29,7 +29,8 @@ import {
   RotateCcw,
   ArrowLeft,
   ArrowRight,
-  Layers
+  Layers,
+  Tag
 } from 'lucide-react';
 import { CERTIFICATE_CATEGORIES, STANDARD_CERTIFICATE_TEMPLATES, DEMO_CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { usePMS } from '../../context/PMSContext';
@@ -675,6 +676,7 @@ export const DocumentFormModal = ({
   const {
     certificateCategories: contextCategories,
     addCertificateCategory,
+    deleteCertificateCategory,
     documentTemplates: contextTemplates,
     addDocumentTemplate,
     shipDocuments
@@ -704,6 +706,7 @@ export const DocumentFormModal = ({
   const [formStep, setFormStep] = useState(isEditing ? 2 : 1); // 1: Pilih Kategori, 2: Form Pengisian
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [isAddingNewCat, setIsAddingNewCat] = useState(false);
+  const [deletingCatId, setDeletingCatId] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDesc, setNewCategoryDesc] = useState('');
   const [isAddingNewTemplate, setIsAddingNewTemplate] = useState(false);
@@ -1096,99 +1099,33 @@ export const DocumentFormModal = ({
 
   const currentProfile = getCategoryProfile(formData.category);
 
-  // Daftar kategori lengkap (BKI, KSOP, Statutory, Kesehatan, Asuransi + Kategori Kustom)
+  // Daftar kategori sertifikat kapal disinkronkan 100% dengan Data Master
   const allCategoryList = useMemo(() => {
-    const defaultStandards = [
-      {
-        id: 'BKI',
-        label: 'BKI (Biro Klasifikasi Indonesia)',
-        shortLabel: 'BKI Klasifikasi',
-        code: 'BKI',
-        color: '#38bdf8',
-        bgColor: 'rgba(2, 132, 199, 0.15)',
-        borderColor: 'rgba(56, 189, 248, 0.45)',
-        description: 'Sertifikat klasifikasi lambung, mesin, garis muat kelas, dan siklus survei periodik 5 tahunan BKI.',
-        tagline: 'Survei kelas lambung & mesin 5 tahunan',
-        icon: Anchor
-      },
-      {
-        id: 'KSOP',
-        label: 'KSOP (Kesyahbandaran & Kelaiklautan)',
-        shortLabel: 'KSOP / Syahbandar',
-        code: 'KSOP',
-        color: '#f59e0b',
-        bgColor: 'rgba(245, 158, 11, 0.15)',
-        borderColor: 'rgba(245, 158, 11, 0.45)',
-        description: 'Kelaiklautan kapal, pas besar/kecil, surat ukur, izin trayek, dan sertifikat keselamatan pelayaran.',
-        tagline: 'Kelaiklautan, pas besar/kecil, surat ukur',
-        icon: Building2
-      },
-      {
-        id: 'Statutory',
-        label: 'Statutory (Ditkapel / Hubla / ISM Code)',
-        shortLabel: 'Statutori Hubla',
-        code: 'STATUTORY',
-        color: '#10b981',
-        bgColor: 'rgba(16, 185, 129, 0.15)',
-        borderColor: 'rgba(16, 185, 129, 0.45)',
-        description: 'Sistem Manajemen Keselamatan (ISM Code), Keamanan Kapal (ISPS), dan Pencegahan Polusi (MARPOL).',
-        tagline: 'SMC, DOC, ISSC, MARPOL / SNPP',
-        icon: ShieldCheck
-      },
-      {
-        id: 'Kesehatan',
-        label: 'Kesehatan (Port Health / KKP / BKK)',
-        shortLabel: 'Kesehatan / KKP',
-        code: 'KESEHATAN',
-        color: '#ec4899',
-        bgColor: 'rgba(236, 72, 153, 0.15)',
-        borderColor: 'rgba(236, 72, 153, 0.45)',
-        description: 'Pemeriksaan sanitasi kapal (SSCEC), kotak obat P3K, air minum kapal, dan karantina pelabuhan.',
-        tagline: 'Sanitasi kapal SSCEC & P3K kapal',
-        icon: HeartPulse
-      },
-      {
-        id: 'Asuransi',
-        label: 'Asuransi & Jaminan (Insurance / P&I / CLC)',
-        shortLabel: 'Asuransi & Jaminan',
-        code: 'ASURANSI',
-        color: '#a855f7',
-        bgColor: 'rgba(168, 85, 247, 0.15)',
-        borderColor: 'rgba(168, 85, 247, 0.45)',
-        description: 'Jaminan ganti rugi pencemaran laut (CLC Bunker), penyingkiran kerangka kapal (WRC), Polis H&M, P&I.',
-        tagline: 'CLC Bunker, Wreck Removal, Polis H&M, P&I',
-        icon: Shield
-      }
-    ];
+    const cats = Array.isArray(contextCategories) ? contextCategories : (CERTIFICATE_CATEGORIES || []);
 
-    const result = [...defaultStandards];
-
-    // Sertakan kategori kustom yang ada di Data Master
-    (contextCategories || []).forEach(cc => {
-      const matchIdx = result.findIndex(r => r.id.toLowerCase() === (cc.id || cc.code || cc.label || '').toLowerCase());
-      if (matchIdx >= 0) {
-        result[matchIdx] = { ...result[matchIdx], ...cc };
-      } else {
-        const prof = getCategoryProfile(cc.id || cc.code || cc.label);
-        result.push({
-          id: cc.id || cc.code || cc.label,
-          label: cc.label || cc.name || cc.id,
-          shortLabel: cc.shortLabel || cc.label || cc.id,
-          code: cc.code || cc.id,
-          color: cc.color || prof.color || '#38bdf8',
-          bgColor: cc.bgColor || prof.bgColor || 'rgba(56, 189, 248, 0.15)',
-          borderColor: cc.borderColor || prof.borderColor || 'rgba(56, 189, 248, 0.45)',
-          description: cc.description || prof.tagline || `Kategori sertifikat ${cc.label}`,
-          tagline: cc.tagline || cc.description || 'Kategori Kustom',
-          icon: prof.icon || FileText,
-          isCustom: true
-        });
-      }
+    const result = cats.map(cat => {
+      const catId = cat.id || cat.code || cat.label;
+      const prof = getCategoryProfile(catId);
+      return {
+        ...prof,
+        ...cat,
+        id: catId,
+        label: cat.label || prof.label || catId,
+        shortLabel: cat.shortLabel || prof.shortLabel || cat.label || catId,
+        code: cat.code || prof.code || catId,
+        color: cat.color || prof.color || '#38bdf8',
+        bgColor: cat.bgColor || prof.bgColor || 'rgba(56, 189, 248, 0.15)',
+        borderColor: cat.borderColor || prof.borderColor || 'rgba(56, 189, 248, 0.45)',
+        description: cat.description || prof.tagline || `Kategori sertifikat ${cat.label || catId}`,
+        tagline: cat.tagline || prof.tagline || cat.description,
+        icon: prof.icon || cat.icon || FileText,
+        isCustom: !!cat.isCustom
+      };
     });
 
-    // Jika sedang edit dokumen lama yang kategorinya belum ada di list
+    // Jika sedang edit dokumen lama yang kategorinya belum ada di Data Master
     if (isEditing && initialData?.category) {
-      const exists = result.some(r => r.id.toLowerCase() === initialData.category.toLowerCase());
+      const exists = result.some(r => (r.id || '').toLowerCase() === (initialData.category || '').toLowerCase());
       if (!exists) {
         const prof = getCategoryProfile(initialData.category);
         result.push({
@@ -1201,13 +1138,24 @@ export const DocumentFormModal = ({
           borderColor: prof.borderColor || 'rgba(56, 189, 248, 0.45)',
           description: prof.tagline || `Kategori sertifikat ${initialData.category}`,
           tagline: 'Kategori Dokumen',
-          icon: prof.icon || FileText
+          icon: prof.icon || FileText,
+          isCustom: true
         });
       }
     }
 
     return result;
   }, [contextCategories, isEditing, initialData]);
+
+  // Otomatis sinkronkan formData.category jika kategori saat ini dihapus dari Data Master
+  useEffect(() => {
+    if (allCategoryList.length > 0) {
+      const exists = allCategoryList.some(c => (c.id || '').toLowerCase() === (formData.category || '').toLowerCase());
+      if (!exists) {
+        handleCategoryChange(allCategoryList[0].id);
+      }
+    }
+  }, [allCategoryList, formData.category]);
 
   return (
     <div style={{
@@ -1442,90 +1390,200 @@ export const DocumentFormModal = ({
             )}
 
             {/* Grid Cards of Categories */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '0.85rem'
-            }}>
-              {allCategoryList.map(cat => {
-                const prof = getCategoryProfile(cat.id);
-                const IconComp = cat.icon || prof.icon || FileText;
-                const isSelected = (formData.category || '').toLowerCase() === cat.id.toLowerCase();
-
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => {
-                      handleCategoryChange(cat.id);
-                      setFormStep(2);
-                    }}
-                    style={{
-                      padding: '1.2rem 1.1rem',
-                      borderRadius: '12px',
-                      border: isSelected ? `2px solid ${cat.color || prof.color}` : `1px solid ${cat.borderColor || 'var(--border-subtle)'}`,
-                      background: isSelected ? (cat.bgColor || prof.bgColor) : 'rgba(255, 255, 255, 0.03)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.65rem',
-                      boxShadow: isSelected ? `0 0 20px ${cat.color || prof.color}35` : 'none',
-                      position: 'relative'
-                    }}
-                    className="category-card-item"
+            {allCategoryList.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem 1.5rem',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderRadius: '12px',
+                border: '1px dashed var(--border-subtle)'
+              }}>
+                <Tag size={40} style={{ color: '#38bdf8', opacity: 0.4, margin: '0 auto 0.75rem auto', display: 'block' }} />
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                  Belum Ada Kategori di Data Master
+                </h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto 1rem auto' }}>
+                  Semua kategori sertifikat telah dihapus dari Data Master. Silakan klik tombol <strong>+ Tambah Kategori Manual</strong> di atas untuk membuat kategori baru.
+                </p>
+                {!isAddingNewCat && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewCat(true)}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Plus size={15} />
+                    <span>+ Tambah Kategori Sekarang</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                gap: '0.85rem'
+              }}>
+                {allCategoryList.map(cat => {
+                  const prof = getCategoryProfile(cat.id);
+                  const IconComp = cat.icon || prof.icon || FileText;
+                  const isSelected = (formData.category || '').toLowerCase() === cat.id.toLowerCase();
+
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => {
+                        handleCategoryChange(cat.id);
+                        setFormStep(2);
+                      }}
+                      style={{
+                        padding: '1.2rem 1.1rem',
+                        borderRadius: '12px',
+                        border: isSelected ? `2px solid ${cat.color || prof.color}` : `1px solid ${cat.borderColor || 'var(--border-subtle)'}`,
+                        background: isSelected ? (cat.bgColor || prof.bgColor) : 'rgba(255, 255, 255, 0.03)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.65rem',
+                        boxShadow: isSelected ? `0 0 20px ${cat.color || prof.color}35` : 'none',
+                        position: 'relative'
+                      }}
+                      className="category-card-item"
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '10px',
+                          background: cat.color || prof.color,
+                          color: '#0f172a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800
+                        }}>
+                          <IconComp size={22} />
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          {cat.isCustom ? (
+                            <span className="badge badge-warning" style={{ fontSize: '0.65rem', fontWeight: 700 }}>
+                              Kategori Kustom
+                            </span>
+                          ) : (
+                            <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
+                              Standar Resmi
+                            </span>
+                          )}
+
+                          {/* Tombol Hapus Kategori Langsung (Sinkron ke Data Master) */}
+                          {deletingCatId === cat.id ? (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                padding: '0.15rem 0.35rem',
+                                borderRadius: '6px'
+                              }}
+                            >
+                              <span style={{ fontSize: '0.68rem', color: '#ef4444', fontWeight: 700 }}>Hapus?</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteCertificateCategory(cat.id);
+                                  setDeletingCatId(null);
+                                }}
+                                style={{
+                                  background: '#ef4444',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '0.15rem 0.35rem',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Ya
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingCatId(null);
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  color: 'var(--text-muted)',
+                                  border: 'none',
+                                  padding: '0.15rem 0.2rem',
+                                  fontSize: '0.65rem',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingCatId(cat.id);
+                              }}
+                              title={`Hapus kategori ${cat.label} dari Data Master`}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                color: '#ef4444',
+                                borderRadius: '6px',
+                                padding: '0.2rem 0.35rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                          {cat.shortLabel || cat.label}
+                        </h4>
+                        <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: '1.4', minHeight: '38px', margin: 0 }}>
+                          {cat.description || cat.tagline || prof.tagline}
+                        </p>
+                      </div>
+
                       <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '10px',
-                        background: cat.color || prof.color,
-                        color: '#0f172a',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800
+                        justifyContent: 'space-between',
+                        marginTop: 'auto',
+                        paddingTop: '0.65rem',
+                        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        color: cat.color || prof.color
                       }}>
-                        <IconComp size={22} />
+                        <span>Pilih Kategori Ini</span>
+                        <ArrowRight size={14} />
                       </div>
-                      {cat.isCustom ? (
-                        <span className="badge badge-warning" style={{ fontSize: '0.65rem', fontWeight: 700 }}>
-                          Kategori Kustom
-                        </span>
-                      ) : (
-                        <span className="badge" style={{ fontSize: '0.65rem', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-muted)' }}>
-                          Standar Resmi
-                        </span>
-                      )}
                     </div>
-
-                    <div>
-                      <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                        {cat.shortLabel || cat.label}
-                      </h4>
-                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: '1.4', minHeight: '38px', margin: 0 }}>
-                        {cat.description || cat.tagline || prof.tagline}
-                      </p>
-                    </div>
-
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginTop: 'auto',
-                      paddingTop: '0.65rem',
-                      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      color: cat.color || prof.color
-                    }}>
-                      <span>Pilih Kategori Ini</span>
-                      <ArrowRight size={14} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

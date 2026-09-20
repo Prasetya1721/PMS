@@ -155,17 +155,10 @@ export const PMSProvider = ({ children }) => {
   const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
   const [certificateCategories, setCertificateCategories] = useState(() => {
     const stored = loadStored('certificateCategories', null);
-    const standard = CERTIFICATE_CATEGORIES || [];
-    if (Array.isArray(stored) && stored.length > 0) {
-      const merged = [...standard];
-      stored.forEach(sc => {
-        const scId = (sc.id || sc.code || sc.label || '').toLowerCase();
-        const exists = merged.some(m => (m.id || m.code || m.label || '').toLowerCase() === scId);
-        if (!exists) merged.push(sc);
-      });
-      return merged;
+    if (Array.isArray(stored)) {
+      return stored;
     }
-    return standard;
+    return CERTIFICATE_CATEGORIES || [];
   });
   const [documentTemplates, setDocumentTemplates] = useState(() => {
     const stored = loadStored('documentTemplates', []);
