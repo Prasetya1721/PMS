@@ -22,13 +22,13 @@ import {
   Trash2,
   UserCheck
 } from 'lucide-react';
-import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { DocumentFormModal } from './DocumentFormModal';
 
 export const DocumentTracker = () => {
   const {
     crewCertificates,
     shipDocuments,
+    certificateCategories,
     vessels,
     sendWhatsAppReminder,
     openGoogleCalendar,
@@ -231,7 +231,7 @@ export const DocumentTracker = () => {
           >
             Semua ({shipDocuments.length})
           </button>
-          {CERTIFICATE_CATEGORIES.map(cat => {
+          {(certificateCategories || []).map(cat => {
             const count = shipDocuments.filter(d => d.category === cat.id).length;
             const isActive = categoryFilter === cat.id;
             return (
@@ -280,7 +280,29 @@ export const DocumentTracker = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredItems.map(item => {
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--text-subtle)' }}>
+                    <FileText size={42} style={{ opacity: 0.35, margin: '0 auto 0.75rem auto', display: 'block', color: '#38bdf8' }} />
+                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-main)', marginBottom: '0.35rem' }}>
+                      Belum Ada Dokumen / Sertifikat Kapal
+                    </div>
+                    <p style={{ fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto 1.25rem auto' }}>
+                      Database dokumen armada saat ini kosong. Silakan klik tombol di bawah untuk mulai menginput dokumen kapal atau sertifikat kru secara manual.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddDocModal(true)}
+                      className="btn btn-primary btn-sm"
+                      style={{ margin: '0 auto', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Plus size={14} />
+                      <span>+ Tambah Dokumen / Sertifikat Pertama</span>
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map(item => {
                 const ship = vessels.find(v => v.id === item.vesselId);
                 const docNo = item.certificateNo || item.documentNo;
                 const isExpired = item.status === 'Expired' || (item.daysUntilExpiry !== undefined && item.daysUntilExpiry <= 0);
@@ -497,7 +519,7 @@ export const DocumentTracker = () => {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

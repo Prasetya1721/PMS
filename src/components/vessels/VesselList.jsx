@@ -197,7 +197,30 @@ export const VesselList = () => {
 
       {/* Grid of Vessels */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {filteredVessels.map(v => {
+        {filteredVessels.length === 0 ? (
+          <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
+            <Ship size={48} style={{ opacity: 0.35, margin: '0 auto 1rem auto', color: '#38bdf8' }} />
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
+              {search ? 'Tidak Ditemukan Kapal yang Sesuai' : 'Belum Ada Kapal Terdaftar'}
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto 1.5rem auto', lineHeight: 1.6 }}>
+              {search
+                ? `Pencarian "${search}" tidak menemukan hasil. Silakan periksa kembali ejaan atau reset filter.`
+                : 'Sistem PMS armada saat ini dalam keadaan bersih tanpa data dummy. Silakan daftarkan kapal pertama Anda untuk mulai menguji input data kapal, sertifikat, dan kru.'}
+            </p>
+            {!search && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
+              >
+                <Plus size={16} />
+                <span>+ Daftarkan Kapal Baru</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredVessels.map(v => {
           const shipWO = allWorkOrders.filter(w => w.vesselId === v.id);
           const shipEquipment = allEquipment.filter(e => e.vesselId === v.id);
           const shipCrew = allCrew.filter(c => c.vesselId === v.id);
@@ -390,7 +413,7 @@ export const VesselList = () => {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* Manual Ship Creation Modal */}

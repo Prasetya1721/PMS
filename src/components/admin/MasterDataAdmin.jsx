@@ -59,6 +59,8 @@ export const MasterDataAdmin = () => {
     documentTemplates,
     addDocumentTemplate,
     deleteDocumentTemplate,
+    clearAllData,
+    loadDemoData,
     addVessel,
     updateVessel,
     deleteVessel,
@@ -604,6 +606,32 @@ export const MasterDataAdmin = () => {
 
           {/* Quick Actions */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                if (window.confirm('PERINGATAN: Apakah Anda yakin ingin MENGOSONGKAN seluruh data operasional & master (kapal, dokumen, peralatan, kru, kategori)? Semua data dummy akan dihapus bersih untuk pengujian input dari nol.')) {
+                  clearAllData();
+                }
+              }}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.35)' }}
+              title="Kosongkan seluruh data untuk pengujian input manual"
+            >
+              <Trash2 size={14} />
+              <span>Kosongkan Seluruh Data</span>
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm('Muat data contoh/demo (Armada 28 kapal, mesin, 29 sertifikat, dan audit ISM) ke dalam sistem?')) {
+                  loadDemoData();
+                }
+              }}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)' }}
+              title="Muat kembali data demo maritim lengkap"
+            >
+              <Database size={14} />
+              <span>Muat Data Demo</span>
+            </button>
             <button onClick={handleDownloadBackupJSON} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Download size={14} />
               <span>Backup Database JSON</span>
@@ -1620,43 +1648,54 @@ export const MasterDataAdmin = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(certificateCategories || []).map(c => {
-                    const count = allDocList.filter(d => d.category === c.id).length;
-                    const isCore = ['BKI', 'Statutory', 'Asuransi', 'KSOP', 'Kesehatan'].includes(c.id);
+                  {(!certificateCategories || certificateCategories.length === 0) ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-subtle)' }}>
+                        <Tag size={36} style={{ opacity: 0.35, margin: '0 auto 0.5rem auto', display: 'block', color: '#38bdf8' }} />
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                          Belum Ada Kategori Sertifikat
+                        </div>
+                        <p style={{ fontSize: '0.8rem', maxWidth: '400px', margin: '0 auto' }}>
+                          Kategori sertifikat saat ini kosong. Silakan gunakan form "Tambah Kategori Baru" di atas untuk menambahkan kategori manual.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    certificateCategories.map(c => {
+                      const count = allDocList.filter(d => d.category === c.id).length;
 
-                    return (
-                      <tr key={c.id}>
-                        <td>
-                          <span
-                            className="badge"
-                            style={{
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
-                              background: c.bgColor || 'rgba(56, 189, 248, 0.15)',
-                              color: c.color || '#38bdf8',
-                              border: `1px solid ${c.borderColor || 'rgba(56, 189, 248, 0.35)'}`
-                            }}
-                          >
-                            {c.label}
-                          </span>
-                        </td>
-                        <td className="mono" style={{ fontSize: '0.825rem' }}>{c.code || c.id}</td>
-                        <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{c.description || '-'}</td>
-                        <td>
-                          <span className="badge badge-neutral" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
-                            {count} Dokumen
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge ${isCore ? 'badge-info' : 'badge-warning'}`} style={{ fontSize: '0.7rem' }}>
-                            {isCore ? 'Standar Maritim' : 'Kustom Tambahan'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          {!isCore ? (
+                      return (
+                        <tr key={c.id}>
+                          <td>
+                            <span
+                              className="badge"
+                              style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                background: c.bgColor || 'rgba(56, 189, 248, 0.15)',
+                                color: c.color || '#38bdf8',
+                                border: `1px solid ${c.borderColor || 'rgba(56, 189, 248, 0.35)'}`
+                              }}
+                            >
+                              {c.label}
+                            </span>
+                          </td>
+                          <td className="mono" style={{ fontSize: '0.825rem' }}>{c.code || c.id}</td>
+                          <td style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>{c.description || '-'}</td>
+                          <td>
+                            <span className="badge badge-neutral" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                              {count} Dokumen
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
+                              {c.isCustom ? 'Kustom Tambahan' : 'Kategori Maritim'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
                             <button
                               onClick={() => {
-                                if (window.confirm(`Hapus kategori kustom "${c.label}"?`)) {
+                                if (window.confirm(`Hapus kategori "${c.label}"?`)) {
                                   deleteCertificateCategory(c.id);
                                 }
                               }}
@@ -1666,13 +1705,11 @@ export const MasterDataAdmin = () => {
                               <Trash2 size={13} />
                               <span>Hapus</span>
                             </button>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>Terkunci</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

@@ -43,13 +43,13 @@ import { WorkOrderModal } from '../maintenance/WorkOrderModal';
 import { ShipParticularsView } from '../vessels/ShipParticularsView';
 import { ParticularsModal } from '../vessels/ParticularsModal';
 import { EditVesselPhotoModal } from '../vessels/EditVesselPhotoModal';
-import { CERTIFICATE_CATEGORIES } from '../../data/shipCertificatesMaster';
 import { DocumentFormModal } from '../documents/DocumentFormModal';
 import { AuditReportModal } from '../audit/AuditReportModal';
 
 export const VesselDashboard = () => {
   const {
     vessels,
+    certificateCategories,
     selectedVesselId,
     setSelectedVesselId,
     equipment,
@@ -110,31 +110,15 @@ export const VesselDashboard = () => {
   });
 
   // Current vessel with safe fallback
-  const currentShip = (vessels && vessels.find(v => v.id === selectedVesselId)) || (vessels && vessels[0]) || {
-    id: 'v-001',
-    name: 'RP 2020',
-    type: 'Tugboat (Kapal Tunda Twin Screw 3200 BHP)',
-    ownershipStatus: 'As Owner',
-    imo: '24587',
-    regNo: '24587',
-    callSign: 'YDB2458',
-    portOfRegistry: 'Pontianak, Kalimantan Barat',
-    builder: 'PT Dok & Perkapalan Baharimas Pontianak',
-    yearBuilt: 2020,
-    speedKnots: 7.8,
-    gt: 310,
-    status: 'Operasional (Berlayar)',
-    currentLocation: 'Sungai Kapuas / Muara Jungkat (Pontianak)',
-    photo: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80'
-  };
+  const currentShip = (vessels && vessels.find(v => v.id === selectedVesselId)) || (vessels && vessels[0]) || null;
 
   // Specific data filtered for THIS ship with defensive checks
-  const shipCrew = (allCrew || []).filter(c => c.vesselId === currentShip.id);
-  const shipCrewCerts = (allCrewCertificates || crewCertificates || []).filter(c => c.vesselId === currentShip.id);
-  const shipDocs = (allShipDocuments || []).filter(d => d.vesselId === currentShip.id);
-  const shipEquipment = (allEquipment || []).filter(e => e.vesselId === currentShip.id);
-  const shipWOs = (allWorkOrders || []).filter(w => w.vesselId === currentShip.id);
-  const shipParts = (allSpareparts || []).filter(s => s.vesselId === currentShip.id);
+  const shipCrew = currentShip ? (allCrew || []).filter(c => c.vesselId === currentShip.id) : [];
+  const shipCrewCerts = currentShip ? (allCrewCertificates || crewCertificates || []).filter(c => c.vesselId === currentShip.id) : [];
+  const shipDocs = currentShip ? (allShipDocuments || []).filter(d => d.vesselId === currentShip.id) : [];
+  const shipEquipment = currentShip ? (allEquipment || []).filter(e => e.vesselId === currentShip.id) : [];
+  const shipWOs = currentShip ? (allWorkOrders || []).filter(w => w.vesselId === currentShip.id) : [];
+  const shipParts = currentShip ? (allSpareparts || []).filter(s => s.vesselId === currentShip.id) : [];
 
   const overdueWO = shipWOs.filter(w => w.status === 'Overdue');
   const inProgressWO = shipWOs.filter(w => w.status === 'In Progress');
@@ -145,7 +129,7 @@ export const VesselDashboard = () => {
     ...shipDocs.filter(d => d.status !== 'Active')
   ];
 
-  const shipAuditFindings = (allAuditFindings || []).filter(f => f.vesselId === currentShip.id);
+  const shipAuditFindings = currentShip ? (allAuditFindings || []).filter(f => f.vesselId === currentShip.id) : [];
   const shipOpenNC = shipAuditFindings.filter(f => f.status !== 'NC Close').length;
   const shipClosedNC = shipAuditFindings.filter(f => f.status === 'NC Close').length;
 
@@ -230,6 +214,52 @@ export const VesselDashboard = () => {
       leaveBalanceDays: 14
     });
   };
+
+  if (!currentShip || !vessels || vessels.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem 0' }}>
+        <div className="glass-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '20px',
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#38bdf8',
+            margin: '0 auto 1.5rem auto'
+          }}>
+            <Ship size={38} />
+          </div>
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
+            Belum Ada Kapal Terdaftar di Sistem Armada
+          </h2>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', maxWidth: '560px', margin: '0 auto 2rem auto', lineHeight: 1.6 }}>
+            Sistem PMS saat ini dalam keadaan bersih dari data dummy dan siap untuk pengujian input manual. Daftarkan kapal pertama Anda untuk mulai mengisi data peralatan mesin, sertifikat kelaikan, kru, dan anggaran operasional.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => setActiveTab('fleet')}
+              className="btn btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', fontSize: '0.95rem' }}
+            >
+              <Plus size={18} />
+              <span>+ Daftarkan Kapal Pertama</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('master')}
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.25rem', fontSize: '0.95rem' }}
+            >
+              <span>Buka Pusat Data Master</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
@@ -933,7 +963,7 @@ export const VesselDashboard = () => {
             >
               Semua ({shipDocs.length})
             </button>
-            {CERTIFICATE_CATEGORIES.map(cat => {
+            {(certificateCategories || []).map(cat => {
               const count = shipDocs.filter(d => d.category === cat.id).length;
               const isActive = shipDocCatFilter === cat.id;
               return (

@@ -2,7 +2,7 @@
 // PT. Pelayaran Baharimas Kalimantan
 // Categories: BKI, Statutory, Asuransi, KSOP, Kesehatan
 
-export const CERTIFICATE_CATEGORIES = [
+export const DEMO_CERTIFICATE_CATEGORIES = [
   {
     id: 'BKI',
     label: 'BKI (Biro Klasifikasi Indonesia)',
@@ -56,7 +56,7 @@ export const CERTIFICATE_CATEGORIES = [
 ];
 
 // 19 Official Certificates from Authority Checklist & Health Standards
-export const STANDARD_CERTIFICATE_TEMPLATES = [
+export const DEMO_STANDARD_CERTIFICATE_TEMPLATES = [
   // 1. KSOP
   {
     name: 'Pas Besar',
@@ -215,6 +215,10 @@ export const STANDARD_CERTIFICATE_TEMPLATES = [
   }
 ];
 
+// Clean state default: Kosong untuk diinput manual oleh pengguna
+export const CERTIFICATE_CATEGORIES = [];
+export const STANDARD_CERTIFICATE_TEMPLATES = [];
+
 // Helper to determine status and days until expiry relative to system reference date
 export const calculateDocStatus = (expiryDateStr, issueDateStr) => {
   if (!expiryDateStr) return { status: 'Active', daysUntilExpiry: 365 };
@@ -254,9 +258,9 @@ export const normalizeDocCategory = (doc) => {
 };
 
 // Builder to produce enriched certificate list across all vessels covering BKI, Statutory, Asuransi, KSOP, and Kesehatan
-export const buildComprehensiveFleetDocuments = (existingBkiSurveys, vessels) => {
+export const buildComprehensiveFleetDocuments = (existingBkiSurveys = [], vessels = [], templates = STANDARD_CERTIFICATE_TEMPLATES) => {
   // 1. Normalize existing surveys to BKI or Statutory with issueDate and expiryDate
-  const normalizedSurveys = existingBkiSurveys.map(doc => {
+  const normalizedSurveys = (existingBkiSurveys || []).map(doc => {
     const category = normalizeDocCategory(doc);
     const { status, daysUntilExpiry } = calculateDocStatus(doc.expiryDate, doc.issueDate);
     let issueDate = doc.issueDate;
@@ -277,14 +281,14 @@ export const buildComprehensiveFleetDocuments = (existingBkiSurveys, vessels) =>
   // 2. For each vessel, generate the official certificates from the standard templates
   const additionalDocs = [];
 
-  vessels.forEach(vessel => {
+  (vessels || []).forEach(vessel => {
     const existingNames = new Set(
       normalizedSurveys
         .filter(d => d.vesselId === vessel.id)
         .map(d => d.name.toLowerCase().trim())
     );
 
-    STANDARD_CERTIFICATE_TEMPLATES.forEach((tmpl, idx) => {
+    (templates || []).forEach((tmpl, idx) => {
       // Don't duplicate if already present in BKI surveys
       const isAlreadyPresent = Array.from(existingNames).some(n =>
         n.includes(tmpl.name.toLowerCase()) || tmpl.name.toLowerCase().includes(n)

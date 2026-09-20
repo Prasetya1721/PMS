@@ -193,8 +193,8 @@ export const ISM_SMC_ELEMENTS = [
   }
 ];
 
-// Seed Data Audit Realistis PT. Pelayaran Baharimas Kalimantan
-export const INITIAL_AUDITS = [
+// Seed Data Demo Audit Cadangan PT. Pelayaran Baharimas Kalimantan
+export const DEMO_AUDITS = [
   {
     "id": "aud-doc-001",
     "auditNo": "AUD-INT-DOC-2026/01",
@@ -279,7 +279,7 @@ export const INITIAL_AUDITS = [
   }
 ];
 
-export const INITIAL_AUDIT_FINDINGS = [
+export const DEMO_AUDIT_FINDINGS = [
   {
     "id": "nc-001",
     "auditId": "aud-doc-001",
@@ -387,3 +387,7 @@ export const INITIAL_AUDIT_FINDINGS = [
     }
   }
 ];
+
+// Clean state default: Kosong untuk diinput manual oleh pengguna
+export const INITIAL_AUDITS = [];
+export const INITIAL_AUDIT_FINDINGS = [];

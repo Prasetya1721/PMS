@@ -26,6 +26,7 @@ import {
   ISM_DOC_ELEMENTS,
   ISM_SMC_ELEMENTS
 } from '../data/auditMasterData';
+import * as DEMO_DATA from '../data/sampleSeedData';
 import { calculateNCRange } from '../utils/auditTimeUtils';
 import {
   DEFAULT_EMAIL_GATEWAY,
@@ -46,7 +47,7 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v12-kalbar-pontianak-pure';
+const PMS_STORAGE_VERSION = 'v14-clean-input-testing';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -83,28 +84,22 @@ export const PMSProvider = ({ children }) => {
         .replace(/Kalimantan Timur/gi, 'Kalimantan Barat')
         .replace(/Sungai Mahakam/gi, 'Sungai Kapuas');
       const parsed = JSON.parse(sanitized);
-      // Extra safeguard: if stored vessels array doesn't match fallback or lacks v-001, force reload fallback
+
       if (key === 'vessels') {
-        if (!Array.isArray(parsed) || parsed.length === 0 || !parsed.some(v => v.id === 'v-001')) {
-          return fallback;
-        }
+        if (!Array.isArray(parsed)) return fallback;
         return parsed.map(v => {
-          const fallbackVessel = fallback.find(fb => fb.id === v.id) || {};
-          let photo = v.photo || fallbackVessel.photo;
+          let photo = v.photo;
           if (!photo || photo.includes('photo-1544620347-c4fd4a3d5957')) {
             photo = 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80';
           }
           return {
-            ...fallbackVessel,
             ...v,
             photo,
-            particulars: v.particulars || fallbackVessel.particulars || createDefaultShipParticulars(v)
+            particulars: v.particulars || createDefaultShipParticulars(v)
           };
         });
       }
-      if (key === 'shipDocuments' && (!Array.isArray(parsed) || parsed.length < 215)) {
-        return fallback;
-      }
+
       if (key === 'notificationSettings') {
         if (!parsed || !parsed.thresholds || !parsed.autoSend || !parsed.thresholds.some(t => t.id === 'th-1d')) {
           return fallback;
@@ -287,47 +282,6 @@ export const PMSProvider = ({ children }) => {
     audits, auditFindings
   ]);
 
-  // Auto-heal state immediately if stale fleet data is present in memory
-  useEffect(() => {
-    const isStale =
-      vessels.length === 0 ||
-      !vessels.some(v => v.id === 'v-001') ||
-      vessels.some(v => v.id !== 'v-001');
-
-    if (isStale) {
-      console.log('Synchronizing fleet database to RP 2020 Owner (v-001)...');
-      setVessels(INITIAL_VESSELS);
-      setEquipment(INITIAL_EQUIPMENT);
-      setSchedules(INITIAL_MAINTENANCE_SCHEDULES);
-      setWorkOrders(INITIAL_WORK_ORDERS);
-      setSpareparts(INITIAL_SPAREPARTS);
-      setRequisitions(INITIAL_REQUISITIONS);
-      setCosts(INITIAL_COSTS);
-      setVesselBudgets(INITIAL_VESSEL_BUDGETS);
-      setCrew(INITIAL_CREW);
-      setLeaves(INITIAL_LEAVES);
-      setDrills(INITIAL_DRILLS);
-      setCrewCertificates(INITIAL_CREW_CERTIFICATES);
-      setShipDocuments(INITIAL_SHIP_DOCUMENTS);
-      setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
-      setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
-
-      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-      localStorage.setItem('pms_vessels', JSON.stringify(INITIAL_VESSELS));
-      localStorage.setItem('pms_equipment', JSON.stringify(INITIAL_EQUIPMENT));
-      localStorage.setItem('pms_schedules', JSON.stringify(INITIAL_MAINTENANCE_SCHEDULES));
-      localStorage.setItem('pms_workOrders', JSON.stringify(INITIAL_WORK_ORDERS));
-      localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
-      localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
-      localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
-      localStorage.setItem('pms_vessel_budgets', JSON.stringify(INITIAL_VESSEL_BUDGETS));
-      localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
-      localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
-      localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
-      localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
-      localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
-    }
-  }, [vessels, shipDocuments, equipment, crew]);
 
   const showToast = (msg, type = 'info') => {
     setToastMessage({ message: msg, type });
@@ -664,15 +618,29 @@ export const PMSProvider = ({ children }) => {
 
   // 3B. Finance & Vessel Budget Management Actions
   const updateVesselBudget = (budgetId, updatedBudgetData) => {
-    setVesselBudgets(prev => prev.map(b => {
-      if (b.id !== budgetId) return b;
-      return {
-        ...b,
-        ...updatedBudgetData,
-        lastUpdated: new Date().toISOString().split('T')[0]
-      };
-    }));
-    showToast(`Pagu anggaran kapal KM. RP 2020 berhasil diperbarui oleh Finance!`, 'success');
+    setVesselBudgets(prev => {
+      const exists = prev.some(b => b.id === budgetId || b.vesselId === updatedBudgetData.vesselId);
+      if (!exists) {
+        return [
+          {
+            ...updatedBudgetData,
+            id: budgetId || `bud-${Date.now()}`,
+            lastUpdated: new Date().toISOString().split('T')[0]
+          },
+          ...prev
+        ];
+      }
+      return prev.map(b => {
+        if (b.id !== budgetId && b.vesselId !== updatedBudgetData.vesselId) return b;
+        return {
+          ...b,
+          ...updatedBudgetData,
+          lastUpdated: new Date().toISOString().split('T')[0]
+        };
+      });
+    });
+    const shipName = updatedBudgetData.vesselName || 'kapal';
+    showToast(`Pagu anggaran ${shipName} berhasil diperbarui oleh Finance!`, 'success');
   };
 
   const addExpenseTransaction = (expenseData) => {
@@ -899,205 +867,7 @@ export const PMSProvider = ({ children }) => {
     };
 
     setVessels(prev => [newVessel, ...prev]);
-
-    // Automatically create initial equipment for this newly added ship
-    if (isBarge) {
-      setEquipment(prev => [
-        {
-          id: `eq-${Date.now()}-1`,
-          vesselId: newId,
-          code: 'AW-01',
-          name: 'Diesel Engine Anchor Windlass (Mesin Jangkar)',
-          category: 'Deck Machinery',
-          model: 'Dongnam Hydraulic/Diesel 15T',
-          serialNumber: `DN-AW-${newVessel.regNo || 'NEW'}`,
-          maker: 'Dongnam Marine',
-          location: 'Forecastle Deck',
-          runningHours: 100,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 500,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Brake Band', 'Hydraulic Motor']
-        },
-        {
-          id: `eq-${Date.now()}-2`,
-          vesselId: newId,
-          code: 'FP-01',
-          name: 'Emergency Diesel Fire Pump',
-          category: 'Sistem Keselamatan',
-          model: 'Portable Fire Pump 50 m3/h',
-          serialNumber: `FP-${newVessel.regNo || 'NEW'}`,
-          maker: 'Koshin Marine',
-          location: 'Forward Store',
-          runningHours: 40,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 250,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Impeller', 'Diesel Engine Starter']
-        },
-        ...prev
-      ]);
-    } else {
-      setEquipment(prev => [
-        {
-          id: `eq-${Date.now()}-1`,
-          vesselId: newId,
-          code: 'ME-01',
-          name: 'Main Engine Portside (Mesin Induk Kiri)',
-          category: 'Propulsi',
-          model: 'Marine Diesel Engine (1600 BHP)',
-          serialNumber: `ME-${newVessel.regNo || 'NEW'}-P`,
-          maker: 'Yanmar / Caterpillar',
-          location: 'Engine Room Port',
-          runningHours: 450,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 1000,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Turbocharger', 'Fuel Injection Pump', 'Cylinder Liners']
-        },
-        {
-          id: `eq-${Date.now()}-2`,
-          vesselId: newId,
-          code: 'ME-02',
-          name: 'Main Engine Starboard (Mesin Induk Kanan)',
-          category: 'Propulsi',
-          model: 'Marine Diesel Engine (1600 BHP)',
-          serialNumber: `ME-${newVessel.regNo || 'NEW'}-S`,
-          maker: 'Yanmar / Caterpillar',
-          location: 'Engine Room Starboard',
-          runningHours: 450,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 1000,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Turbocharger', 'Fuel Injection Pump', 'Cylinder Liners']
-        },
-        {
-          id: `eq-${Date.now()}-3`,
-          vesselId: newId,
-          code: 'AE-01',
-          name: 'Auxiliary Generator #1 (Genset Kiri)',
-          category: 'Kelistrikan',
-          model: 'Diesel Genset 120 kVA',
-          serialNumber: `AE-${newVessel.regNo || 'NEW'}-1`,
-          maker: 'Cummins Marine',
-          location: 'Engine Room Platform',
-          runningHours: 350,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 1000,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Alternator', 'Injectors']
-        },
-        {
-          id: `eq-${Date.now()}-4`,
-          vesselId: newId,
-          code: 'TW-01',
-          name: 'Hydraulic Towing Winch 45T',
-          category: 'Deck Machinery',
-          model: 'Plimsoll Hydraulic 45T',
-          serialNumber: `TW-${newVessel.regNo || 'NEW'}`,
-          maker: 'Plimsoll Marine',
-          location: 'Aft Main Deck',
-          runningHours: 200,
-          lastMaintenanceHours: 0,
-          nextServiceHours: 1000,
-          status: 'Normal',
-          criticality: 'Tinggi',
-          installedDate: new Date().toISOString().split('T')[0],
-          subComponents: ['Hydraulic Motor', 'Brake Band']
-        },
-        ...prev
-      ]);
-    }
-
-    // Automatically create initial Captain & Chief Engineer crew for this new vessel
-    if (newVessel.masterCaptain) {
-      setCrew(prev => [
-        {
-          id: `crew-${Date.now()}-cap`,
-          vesselId: newId,
-          name: newVessel.masterCaptain,
-          rank: isBarge ? "Barge Master" : "Nakhoda (Master)",
-          department: "Deck",
-          seamanBookNo: `B-${Math.floor(100000 + Math.random() * 900000)}-ID`,
-          phone: "081288990011",
-          whatsapp: "+6281288990011",
-          status: "Onboard",
-          signOnDate: new Date().toISOString().split('T')[0],
-          signOffPlanDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          contractDurationMonths: 6,
-          leaveBalanceDays: 14,
-          photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80"
-        },
-        ...prev
-      ]);
-    }
-
-    if (newVessel.chiefEngineer) {
-      setCrew(prev => [
-        {
-          id: `crew-${Date.now()}-kkm`,
-          vesselId: newId,
-          name: newVessel.chiefEngineer,
-          rank: isBarge ? "Teknisi Tongkang / Juru Mesin" : "Chief Engineer (KKM)",
-          department: "Engine",
-          seamanBookNo: `B-${Math.floor(100000 + Math.random() * 900000)}-ID`,
-          phone: "081377881122",
-          whatsapp: "+6281377881122",
-          status: "Onboard",
-          signOnDate: new Date().toISOString().split('T')[0],
-          signOffPlanDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          contractDurationMonths: 6,
-          leaveBalanceDays: 14,
-          photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80"
-        },
-        ...prev
-      ]);
-    }
-
-    // Automatically create initial Special Survey & Annual Survey document templates
-    setShipDocuments(prev => [
-      {
-        id: `doc-s-${Date.now()}-ss`,
-        vesselId: newId,
-        category: "Classification",
-        name: "Special Survey (SS) - Pembaruan Kelas BKI",
-        documentNo: `BKI-SS-${newVessel.regNo || 'NEW'}`,
-        issuer: "Biro Klasifikasi Indonesia (BKI)",
-        issueDate: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: "Active",
-        daysUntilExpiry: 1825,
-        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Pontianak'}`,
-        scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_ss.pdf`
-      },
-      {
-        id: `doc-s-${Date.now()}-as`,
-        vesselId: newId,
-        category: "Classification",
-        name: "Annual Survey (AS) - Survei Tahunan Lambung & Mesin",
-        documentNo: `BKI-AS-${newVessel.regNo || 'NEW'}`,
-        issuer: "Biro Klasifikasi Indonesia (BKI)",
-        issueDate: new Date().toISOString().split('T')[0],
-        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        status: "Active",
-        daysUntilExpiry: 365,
-        mandatoryAuditor: `BKI Surveyor ${newVessel.portOfRegistry?.split(',')[0] || 'Pontianak'}`,
-        scanFile: `bki_${newVessel.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_as.pdf`
-      },
-      ...prev
-    ]);
-
-    showToast(`Kapal ${newVessel.name} berhasil ditambahkan manual ke database armada!`, 'success');
+    showToast(`Kapal ${newVessel.name} berhasil didaftarkan ke sistem armada!`, 'success');
     return newVessel;
   };
 
@@ -1271,17 +1041,12 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteCertificateCategory = (catId) => {
-    const coreIds = ['BKI', 'Statutory', 'Asuransi', 'KSOP', 'Kesehatan'];
-    if (coreIds.includes(catId)) {
-      showToast(`Kategori standar maritim ${catId} tidak dapat dihapus.`, 'warning');
-      return false;
-    }
     setCertificateCategories(prev => {
       const next = prev.filter(c => c.id !== catId);
       localStorage.setItem('pms_certificateCategories', JSON.stringify(next));
       return next;
     });
-    showToast('Kategori kustom berhasil dihapus.', 'info');
+    showToast('Kategori dokumen berhasil dihapus.', 'info');
     return true;
   };
 
@@ -2343,52 +2108,113 @@ export const PMSProvider = ({ children }) => {
     showToast(`Peringatan berhasil dieskalasi ke Fleet Manager!`, 'warning');
   };
 
-  // Reset to default seed data
-  const resetToSeedData = () => {
-    setVessels(INITIAL_VESSELS);
-    setEquipment(INITIAL_EQUIPMENT);
-    setSchedules(INITIAL_MAINTENANCE_SCHEDULES);
-    setWorkOrders(INITIAL_WORK_ORDERS);
-    setSpareparts(INITIAL_SPAREPARTS);
-    setRequisitions(INITIAL_REQUISITIONS);
-    setCosts(INITIAL_COSTS);
-    setVesselBudgets(INITIAL_VESSEL_BUDGETS);
-    setCrew(INITIAL_CREW);
-    setLeaves(INITIAL_LEAVES);
-    setDrills(INITIAL_DRILLS);
-    setCrewCertificates(INITIAL_CREW_CERTIFICATES);
-    setShipDocuments(INITIAL_SHIP_DOCUMENTS);
-    setNotificationSettings(INITIAL_NOTIFICATION_SETTINGS);
-    setNotificationLogs(INITIAL_NOTIFICATION_LOGS);
-    setUsers(INITIAL_USERS);
-    setAudits(INITIAL_AUDITS);
-    setAuditFindings(INITIAL_AUDIT_FINDINGS);
+  // Clear all operational & master dummy data to clean state
+  const clearAllData = () => {
+    setVessels([]);
+    setEquipment([]);
+    setSchedules([]);
+    setWorkOrders([]);
+    setSpareparts([]);
+    setRequisitions([]);
+    setCosts([]);
+    setVesselBudgets([]);
+    setCrew([]);
+    setLeaves([]);
+    setDrills([]);
+    setCrewCertificates([]);
+    setShipDocuments([]);
+    setCertificateCategories([]);
+    setDocumentTemplates([]);
+    setNotificationLogs([]);
+    setAudits([]);
+    setAuditFindings([]);
+    setSelectedVesselId('all');
 
-    const preservedUser = localStorage.getItem('pms_current_user');
-    localStorage.clear();
-    if (preservedUser) {
-      localStorage.setItem('pms_current_user', preservedUser);
-    }
-    localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-    localStorage.setItem('pms_vessels', JSON.stringify(INITIAL_VESSELS));
-    localStorage.setItem('pms_equipment', JSON.stringify(INITIAL_EQUIPMENT));
-    localStorage.setItem('pms_schedules', JSON.stringify(INITIAL_MAINTENANCE_SCHEDULES));
-    localStorage.setItem('pms_workOrders', JSON.stringify(INITIAL_WORK_ORDERS));
-    localStorage.setItem('pms_spareparts', JSON.stringify(INITIAL_SPAREPARTS));
-    localStorage.setItem('pms_requisitions', JSON.stringify(INITIAL_REQUISITIONS));
-    localStorage.setItem('pms_costs', JSON.stringify(INITIAL_COSTS));
-    localStorage.setItem('pms_vessel_budgets', JSON.stringify(INITIAL_VESSEL_BUDGETS));
-    localStorage.setItem('pms_crew', JSON.stringify(INITIAL_CREW));
-    localStorage.setItem('pms_leaves', JSON.stringify(INITIAL_LEAVES));
-    localStorage.setItem('pms_drills', JSON.stringify(INITIAL_DRILLS));
-    localStorage.setItem('pms_crewCertificates', JSON.stringify(INITIAL_CREW_CERTIFICATES));
-    localStorage.setItem('pms_shipDocuments', JSON.stringify(INITIAL_SHIP_DOCUMENTS));
-    localStorage.setItem('pms_users', JSON.stringify(INITIAL_USERS));
-    localStorage.setItem('pms_audits', JSON.stringify(INITIAL_AUDITS));
-    localStorage.setItem('pms_auditFindings', JSON.stringify(INITIAL_AUDIT_FINDINGS));
+    localStorage.setItem('pms_vessels', JSON.stringify([]));
+    localStorage.setItem('pms_equipment', JSON.stringify([]));
+    localStorage.setItem('pms_schedules', JSON.stringify([]));
+    localStorage.setItem('pms_workOrders', JSON.stringify([]));
+    localStorage.setItem('pms_spareparts', JSON.stringify([]));
+    localStorage.setItem('pms_requisitions', JSON.stringify([]));
+    localStorage.setItem('pms_costs', JSON.stringify([]));
+    localStorage.setItem('pms_vessel_budgets', JSON.stringify([]));
+    localStorage.setItem('pms_crew', JSON.stringify([]));
+    localStorage.setItem('pms_leaves', JSON.stringify([]));
+    localStorage.setItem('pms_drills', JSON.stringify([]));
+    localStorage.setItem('pms_crewCertificates', JSON.stringify([]));
+    localStorage.setItem('pms_shipDocuments', JSON.stringify([]));
+    localStorage.setItem('pms_certificateCategories', JSON.stringify([]));
+    localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
+    localStorage.setItem('pms_notificationLogs', JSON.stringify([]));
+    localStorage.setItem('pms_audits', JSON.stringify([]));
+    localStorage.setItem('pms_auditFindings', JSON.stringify([]));
 
-    showToast('Data armada kapal RP 2020 Owner (29 dokumen, jadwal PMS, audit ISM) berhasil di-sinkronisasi ulang!', 'info');
+    showToast('Seluruh data dummy berhasil dikosongkan. Sistem bersih dan siap diinput dari nol!', 'info');
   };
+
+  // Load demo seed data for evaluation / review
+  const loadDemoData = () => {
+    const dVessels = DEMO_DATA.INITIAL_VESSELS || [];
+    const dEquip = DEMO_DATA.INITIAL_EQUIPMENT || [];
+    const dSched = DEMO_DATA.INITIAL_MAINTENANCE_SCHEDULES || [];
+    const dWO = DEMO_DATA.INITIAL_WORK_ORDERS || [];
+    const dParts = DEMO_DATA.INITIAL_SPAREPARTS || [];
+    const dReq = DEMO_DATA.INITIAL_REQUISITIONS || [];
+    const dCosts = DEMO_DATA.INITIAL_COSTS || [];
+    const dBudgets = DEMO_DATA.INITIAL_VESSEL_BUDGETS || [];
+    const dCrew = DEMO_DATA.INITIAL_CREW || [];
+    const dLeaves = DEMO_DATA.INITIAL_LEAVES || [];
+    const dDrills = DEMO_DATA.INITIAL_DRILLS || [];
+    const dCrewCerts = DEMO_DATA.INITIAL_CREW_CERTIFICATES || [];
+    const dShipDocs = DEMO_DATA.INITIAL_SHIP_DOCUMENTS || [];
+    const dCategories = DEMO_DATA.DEMO_CERTIFICATE_CATEGORIES || [];
+    const dTemplates = DEMO_DATA.DEMO_STANDARD_CERTIFICATE_TEMPLATES || [];
+    const dLogs = DEMO_DATA.INITIAL_NOTIFICATION_LOGS || [];
+    const dAudits = DEMO_DATA.DEMO_AUDITS || [];
+    const dFindings = DEMO_DATA.DEMO_AUDIT_FINDINGS || [];
+
+    setVessels(dVessels);
+    setEquipment(dEquip);
+    setSchedules(dSched);
+    setWorkOrders(dWO);
+    setSpareparts(dParts);
+    setRequisitions(dReq);
+    setCosts(dCosts);
+    setVesselBudgets(dBudgets);
+    setCrew(dCrew);
+    setLeaves(dLeaves);
+    setDrills(dDrills);
+    setCrewCertificates(dCrewCerts);
+    setShipDocuments(dShipDocs);
+    setCertificateCategories(dCategories);
+    setDocumentTemplates(dTemplates);
+    setNotificationLogs(dLogs);
+    setAudits(dAudits);
+    setAuditFindings(dFindings);
+
+    localStorage.setItem('pms_vessels', JSON.stringify(dVessels));
+    localStorage.setItem('pms_equipment', JSON.stringify(dEquip));
+    localStorage.setItem('pms_schedules', JSON.stringify(dSched));
+    localStorage.setItem('pms_workOrders', JSON.stringify(dWO));
+    localStorage.setItem('pms_spareparts', JSON.stringify(dParts));
+    localStorage.setItem('pms_requisitions', JSON.stringify(dReq));
+    localStorage.setItem('pms_costs', JSON.stringify(dCosts));
+    localStorage.setItem('pms_vessel_budgets', JSON.stringify(dBudgets));
+    localStorage.setItem('pms_crew', JSON.stringify(dCrew));
+    localStorage.setItem('pms_leaves', JSON.stringify(dLeaves));
+    localStorage.setItem('pms_drills', JSON.stringify(dDrills));
+    localStorage.setItem('pms_crewCertificates', JSON.stringify(dCrewCerts));
+    localStorage.setItem('pms_shipDocuments', JSON.stringify(dShipDocs));
+    localStorage.setItem('pms_certificateCategories', JSON.stringify(dCategories));
+    localStorage.setItem('pms_documentTemplates', JSON.stringify(dTemplates));
+    localStorage.setItem('pms_notificationLogs', JSON.stringify(dLogs));
+    localStorage.setItem('pms_audits', JSON.stringify(dAudits));
+    localStorage.setItem('pms_auditFindings', JSON.stringify(dFindings));
+
+    showToast('Data contoh/demo berhasil dimuat ke sistem!', 'success');
+  };
+
+  const resetToSeedData = clearAllData;
 
   // Filtered views by selected vessel
   const filteredEquipment = selectedVesselId === 'all'
@@ -2630,6 +2456,8 @@ export const PMSProvider = ({ children }) => {
         updateAutoSendConfig,
         setTestScheduleTimeNowPlusOneMinute,
         resetToSeedData,
+        clearAllData,
+        loadDemoData,
         showToast,
 
         // Audit Actions

@@ -56,7 +56,27 @@ export const CostOverview = () => {
   const [editBudgetForm, setEditBudgetForm] = useState(null);
 
   const openEditBudgetModal = () => {
-    if (!currentBudget) return;
+    if (!currentBudget) {
+      const selectedShip = vessels.find(v => v.id === selectedVesselId);
+      const defaultCategories = [
+        { code: '5101-ENG', name: 'Main Engine Overhaul & Maintenance', allocated: 250000000, spent: 0 },
+        { code: '5102-AUX', name: 'Auxiliary Engine / Generator Service', allocated: 120000000, spent: 0 },
+        { code: '5103-DECK', name: 'Deck Machinery & Hull Preservation', allocated: 180000000, spent: 0 },
+        { code: '5104-ELEC', name: 'Electrical & Navigation Systems', allocated: 75000000, spent: 0 },
+        { code: '5105-DOCK', name: 'BKI Special Survey / Annual Drydock', allocated: 350000000, spent: 0 }
+      ];
+      const initialTotal = defaultCategories.reduce((s, c) => s + c.allocated, 0);
+      setEditBudgetForm({
+        id: `bud-${selectedVesselId || 'v-new'}`,
+        vesselId: selectedVesselId || vessels[0]?.id || '',
+        vesselName: selectedShip ? selectedShip.name : 'Armada Terpilih',
+        fiscalYear: new Date().getFullYear(),
+        totalBudget: initialTotal,
+        categories: defaultCategories
+      });
+      setShowEditBudgetModal(true);
+      return;
+    }
     setEditBudgetForm({
       ...currentBudget,
       categories: (currentBudget.categories || []).map(cat => ({ ...cat }))

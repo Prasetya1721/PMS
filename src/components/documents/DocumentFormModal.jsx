@@ -140,12 +140,12 @@ export const DocumentFormModal = ({
     addDocumentTemplate
   } = usePMS();
 
-  const activeCategories = contextCategories && contextCategories.length > 0 ? contextCategories : CERTIFICATE_CATEGORIES;
-  const activeTemplates = contextTemplates && contextTemplates.length > 0 ? contextTemplates : STANDARD_CERTIFICATE_TEMPLATES;
+  const activeCategories = contextCategories || [];
+  const activeTemplates = contextTemplates || [];
 
   const isEditing = !!initialData?.id;
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [isAddingNewCat, setIsAddingNewCat] = useState(false);
+  const [isAddingNewCat, setIsAddingNewCat] = useState(!isEditing && activeCategories.length === 0);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isAddingNewTemplate, setIsAddingNewTemplate] = useState(false);
   const [newTemplateCustomName, setNewTemplateCustomName] = useState('');
@@ -161,14 +161,14 @@ export const DocumentFormModal = ({
   const [uploadError, setUploadError] = useState(null);
 
   const [formData, setFormData] = useState({
-    vesselId: defaultVesselId || vessels[0]?.id || 'v-001',
-    category: 'KSOP',
+    vesselId: defaultVesselId || vessels[0]?.id || '',
+    category: activeCategories[0]?.id || '',
     name: '',
     documentNo: '',
-    issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
+    issuer: '',
     issueDate: new Date().toISOString().split('T')[0],
     expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    mandatoryAuditor: 'Syahbandar KSOP Pontianak',
+    mandatoryAuditor: '',
     status: 'Active',
     notificationReminders: DEFAULT_REMINDERS,
     fileUrl: null,
@@ -218,14 +218,14 @@ export const DocumentFormModal = ({
       if (existingReminders.manualCustomDate) setManualCustomDate(existingReminders.manualCustomDate);
     } else {
       setFormData({
-        vesselId: defaultVesselId || vessels[0]?.id || 'v-001',
-        category: 'KSOP',
+        vesselId: defaultVesselId || vessels[0]?.id || '',
+        category: activeCategories[0]?.id || '',
         name: '',
         documentNo: '',
-        issuer: 'Kantor Kesyahbandaran dan Otoritas Pelabuhan (KSOP)',
+        issuer: '',
         issueDate: new Date().toISOString().split('T')[0],
         expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        mandatoryAuditor: 'Syahbandar KSOP Pontianak',
+        mandatoryAuditor: '',
         status: 'Active',
         notificationReminders: DEFAULT_REMINDERS,
         fileUrl: null,
@@ -591,16 +591,26 @@ export const DocumentFormModal = ({
                 className="select-control"
                 required
               >
-                <optgroup label="⚓ AS OWNER (17 Kapal Milik)">
-                  {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
-                    <option key={v.id} value={v.id}>🚢 {v.name} [Owner]</option>
-                  ))}
-                </optgroup>
-                <optgroup label="⚙️ AS OPERATOR (11 Kapal Operasional)">
-                  {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
-                    <option key={v.id} value={v.id}>⚙️ {v.name} [Operator]</option>
-                  ))}
-                </optgroup>
+                {vessels.length === 0 ? (
+                  <option value="" disabled>-- Belum ada kapal (Silakan daftarkan kapal dahulu) --</option>
+                ) : (
+                  <>
+                    {vessels.some(v => v.ownershipStatus !== 'As Operator') && (
+                      <optgroup label={`⚓ AS OWNER (${vessels.filter(v => v.ownershipStatus !== 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => v.ownershipStatus !== 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>🚢 {v.name} [Owner]</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {vessels.some(v => v.ownershipStatus === 'As Operator') && (
+                      <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.ownershipStatus === 'As Operator').length} Kapal)`}>
+                        {vessels.filter(v => v.ownershipStatus === 'As Operator').map(v => (
+                          <option key={v.id} value={v.id}>⚙️ {v.name} [Operator]</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
+                )}
               </select>
             </div>
 
@@ -634,10 +644,14 @@ export const DocumentFormModal = ({
                   style={{ fontWeight: 700 }}
                   required
                 >
-                  <optgroup label="Kategori Maritim Standar & Kustom">
-                    {activeCategories.map(c => (
-                      <option key={c.id} value={c.id}>{c.label}</option>
-                    ))}
+                  <optgroup label="Kategori Maritim">
+                    {activeCategories.length === 0 ? (
+                      <option value="" disabled>-- Belum ada kategori (Klik + Kategori Baru) --</option>
+                    ) : (
+                      activeCategories.map(c => (
+                        <option key={c.id} value={c.id}>{c.label}</option>
+                      ))
+                    )}
                   </optgroup>
                   <option value="__ADD_NEW__">➕ + Tambah Kategori Baru (Manual)...</option>
                 </select>
