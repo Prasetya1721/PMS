@@ -137,7 +137,7 @@ export const MaintenanceList = () => {
       )}
 
       {/* Main Tab Navigation */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-subtle)', gap: '0.5rem' }}>
+      <div className="tabs-nav">
         <button
           onClick={() => { setActiveMainTab('technical_wo'); setStatusTab('ALL'); }}
           className={`tab-btn ${activeMainTab === 'technical_wo' ? 'active' : ''}`}

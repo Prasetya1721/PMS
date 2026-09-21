@@ -257,11 +257,7 @@ export const VesselDashboard = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Vessel Profile Hero Card */}
       <div className="glass-card no-print" style={{ overflow: 'hidden' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '360px 1fr',
-          minHeight: '230px'
-        }}>
+        <div className="vessel-hero-grid">
           {/* Photo & Status */}
           <div style={{ position: 'relative', overflow: 'hidden' }}>
             <img
@@ -400,7 +396,7 @@ export const VesselDashboard = () => {
             </div>
 
             {/* Action Bar */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '0.85rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', marginTop: '1.25rem', alignItems: 'center', borderTop: '1px solid var(--border-glass)', paddingTop: '0.85rem' }}>
               <button
                 onClick={() => setShowNewWOModal(true)}
                 className="btn btn-primary btn-sm"

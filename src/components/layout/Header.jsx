@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
   Ship,
   UserCheck,
@@ -7,7 +8,9 @@ import {
   Bell,
   RefreshCw,
   Sun,
-  Moon
+  Moon,
+  Menu,
+  X
 } from 'lucide-react';
 
 export const Header = () => {
@@ -25,185 +28,232 @@ export const Header = () => {
     resetToSeedData,
     setActiveTab,
     theme,
-    toggleTheme
+    toggleTheme,
+    toggleMobileSidebar,
+    isMobileSidebarOpen
   } = usePMS();
+
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const totalUrgent = overdueWOCount + expiredDocsCount + openNCCount;
 
+  // Render Vessel Select Options Helper
+  const renderVesselOptions = () => (
+    <>
+      <option value="all">🌐 Seluruh Armada ({vessels.length} Kapal)</option>
+      {vessels.some(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator') && (
+        <optgroup label={`⚓ AS OWNER (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal Milik)`}>
+          {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
+            <option key={v.id} value={v.id}>
+              🚢 {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Owner]
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') && (
+        <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal Operasional)`}>
+          {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
+            <option key={v.id} value={v.id}>
+              ⚙️ {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Operator]
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  );
+
   return (
-    <header style={{
-      height: '70px',
-      background: 'var(--bg-header)',
-      backdropFilter: 'var(--glass-blur)',
-      borderBottom: '1px solid var(--border-subtle)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 30,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 2rem'
-    }}>
-      {/* Left: Vessel Selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Ship size={20} color="#38bdf8" />
-          <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal:</span>
+    <header className="app-header no-print">
+      {/* Tier 1: Main Header Bar */}
+      <div className="header-inner">
+        {/* Left: Hamburger & Brand Emblem */}
+        <div className="header-left">
+          {/* Hamburger Menu Button (visible <= 1024px) */}
+          <button
+            onClick={toggleMobileSidebar}
+            className={`header-hamburger-btn ${isMobileSidebarOpen ? 'active' : ''}`}
+            aria-label="Buka Menu Navigasi"
+            title="Menu Navigasi"
+            type="button"
+          >
+            <Menu size={20} />
+          </button>
+
+          {/* Brand Logo & Name */}
+          <div className="header-brand-box">
+            <BaharimasEmblem size={24} />
+            <div className="header-brand-text-wrapper">
+              <span className="header-brand-title">BAHARIMAS</span>
+              <span className="header-brand-subtitle">PMS</span>
+            </div>
+          </div>
+
+          {/* Desktop/Tablet Vessel Selector */}
+          <div className="header-vessel-container desktop-vessel">
+            <Ship size={18} color="#38bdf8" className="header-vessel-icon" />
+            <span className="header-vessel-label">Kapal:</span>
+            <select
+              value={selectedVesselId}
+              onChange={(e) => setSelectedVesselId(e.target.value)}
+              className="select-control header-vessel-select"
+              aria-label="Pilih Kapal"
+            >
+              {renderVesselOptions()}
+            </select>
+          </div>
+
+          {/* Desktop/Tablet Global Search */}
+          <div className="header-search-wrapper desktop-search">
+            <Search size={15} color="var(--text-subtle)" className="header-search-icon" />
+            <input
+              type="text"
+              placeholder="Cari equipment, crew, dokumen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-control header-search-input"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="header-search-clear"
+                type="button"
+                aria-label="Bersihkan pencarian"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Actions */}
+        <div className="header-right">
+          {/* Mobile Search Toggle Button */}
+          <button
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+            className={`btn-icon mobile-search-toggle ${showMobileSearch ? 'active' : ''}`}
+            title="Cari"
+            type="button"
+            aria-label="Buka Pencarian"
+          >
+            {showMobileSearch ? <X size={17} /> : <Search size={17} />}
+          </button>
+
+          {/* Role Switcher (Desktop & Tablet) */}
+          <div className="header-role-container">
+            <UserCheck size={15} color="#06b6d4" />
+            <span className="header-role-label">Peran:</span>
+            <select
+              value={currentRole}
+              onChange={(e) => setCurrentRole(e.target.value)}
+              className="header-role-select"
+              aria-label="Ganti Peran"
+            >
+              <option value="Super Admin">Super Admin</option>
+              <option value="Fleet Manager">Fleet Manager</option>
+              <option value="Admin Kapal / Nakhoda">Admin Kapal / Nakhoda</option>
+              <option value="Teknisi / Chief Engineer">Teknisi / Chief Engineer</option>
+              <option value="Crew / ABK">Crew / ABK</option>
+              <option value="HR / Personalia">HR / Personalia</option>
+              <option value="Finance">Finance</option>
+            </select>
+          </div>
+
+          {/* Theme Toggle Button (Light / Dark Mode) */}
+          <button
+            onClick={toggleTheme}
+            className="btn btn-secondary btn-sm header-theme-btn"
+            title={theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+            type="button"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun size={15} color="#f59e0b" />
+                <span className="header-action-label">Mode Terang</span>
+              </>
+            ) : (
+              <>
+                <Moon size={15} color="#0284c7" />
+                <span className="header-action-label">Mode Gelap</span>
+              </>
+            )}
+          </button>
+
+          {/* Reset Seed Button (Desktop) */}
+          <button
+            onClick={resetToSeedData}
+            className="btn btn-secondary btn-sm header-reset-btn desktop-reset"
+            title="Reset ke data awal maritim"
+            type="button"
+          >
+            <RefreshCw size={14} />
+            <span className="header-action-label">Reset Data</span>
+          </button>
+
+          {/* Urgent Notification Bell */}
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className="header-bell-btn"
+            title={`${totalUrgent} item mendesak / expired`}
+            type="button"
+            aria-label="Pusat Notifikasi"
+          >
+            <Bell size={18} />
+            {totalUrgent > 0 && (
+              <span className="header-bell-badge">
+                {totalUrgent}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tier 2: Dedicated Mobile Vessel Selector Bar (Visible on mobile <= 768px) */}
+      <div className="mobile-vessel-bar">
+        <div className="mobile-vessel-bar-inner">
+          <Ship size={16} color="#38bdf8" style={{ flexShrink: 0 }} />
           <select
             value={selectedVesselId}
             onChange={(e) => setSelectedVesselId(e.target.value)}
-            className="select-control"
-            style={{ width: '275px', fontWeight: 600, background: 'var(--bg-surface)' }}
+            className="mobile-vessel-select"
+            aria-label="Pilih Kapal Aktif"
           >
-            <option value="all">🌐 Seluruh Armada ({vessels.length} Kapal)</option>
-            {vessels.some(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator') && (
-              <optgroup label={`⚓ AS OWNER (${vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} Kapal Milik)`}>
-                {vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').map(v => (
-                  <option key={v.id} value={v.id}>
-                    🚢 {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Owner]
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') && (
-              <optgroup label={`⚙️ AS OPERATOR (${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} Kapal Operasional)`}>
-                {vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').map(v => (
-                  <option key={v.id} value={v.id}>
-                    ⚙️ {v.name} ({(v.type || '').split(' ')[0] || v.type || 'Kapal'}) [Operator]
-                  </option>
-                ))}
-              </optgroup>
-            )}
+            {renderVesselOptions()}
           </select>
+          <button
+            onClick={resetToSeedData}
+            className="mobile-reset-btn"
+            title="Reset data percontohan"
+            type="button"
+            aria-label="Reset Data"
+          >
+            <RefreshCw size={13} />
+          </button>
         </div>
+      </div>
 
-        {/* Global Search */}
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={16} color="var(--text-subtle)" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)' }} />
+      {/* Mobile Expandable Search Bar Drawer */}
+      {showMobileSearch && (
+        <div className="mobile-search-tray">
+          <Search size={16} color="var(--primary-light)" />
           <input
             type="text"
-            placeholder="Cari equipment, crew, dokumen..."
+            placeholder="Cari kapal, dokumen, WO, equipment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-control"
-            style={{ paddingLeft: '2.4rem', fontSize: '0.825rem' }}
+            className="mobile-search-input"
+            autoFocus
           />
-        </div>
-      </div>
-
-      {/* Right: Role Switcher, Reset, Alert Bell */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {/* Role Switcher (RBAC Tester) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-surface-elevated)', padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-          <UserCheck size={16} color="#06b6d4" />
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 500 }}>Peran:</span>
-          <select
-            value={currentRole}
-            onChange={(e) => setCurrentRole(e.target.value)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#38bdf8',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              outline: 'none'
-            }}
-          >
-            <option value="Super Admin" style={{ background: 'var(--bg-surface)' }}>Super Admin</option>
-            <option value="Fleet Manager" style={{ background: 'var(--bg-surface)' }}>Fleet Manager</option>
-            <option value="Admin Kapal / Nakhoda" style={{ background: 'var(--bg-surface)' }}>Admin Kapal / Nakhoda</option>
-            <option value="Teknisi / Chief Engineer" style={{ background: 'var(--bg-surface)' }}>Teknisi / Chief Engineer</option>
-            <option value="Crew / ABK" style={{ background: 'var(--bg-surface)' }}>Crew / ABK</option>
-            <option value="HR / Personalia" style={{ background: 'var(--bg-surface)' }}>HR / Personalia</option>
-            <option value="Finance" style={{ background: 'var(--bg-surface)' }}>Finance</option>
-          </select>
-        </div>
-
-        {/* Theme Toggle Button (Light / Dark Mode) */}
-        <button
-          onClick={toggleTheme}
-          className="btn btn-secondary btn-sm"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.45rem 0.75rem',
-            fontSize: '0.78rem',
-            borderRadius: '8px',
-            color: theme === 'light' ? '#b45309' : '#38bdf8',
-            borderColor: theme === 'light' ? '#fde68a' : 'var(--border-subtle)',
-            background: theme === 'light' ? '#fffbeb' : 'var(--bg-surface-elevated)',
-            boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.15)' : 'none'
-          }}
-          title={theme === 'dark' ? 'Beralih ke Mode Terang (Light Mode)' : 'Beralih ke Mode Gelap (Dark Mode)'}
-        >
-          {theme === 'dark' ? (
-            <>
-              <Sun size={15} color="#f59e0b" />
-              <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>Mode Terang</span>
-            </>
-          ) : (
-            <>
-              <Moon size={15} color="#0284c7" />
-              <span style={{ color: '#0f172a', fontWeight: 600 }}>Mode Gelap</span>
-            </>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mobile-search-clear"
+              type="button"
+            >
+              <X size={15} />
+            </button>
           )}
-        </button>
-
-        {/* Reset Seed Button */}
-        <button
-          onClick={resetToSeedData}
-          className="btn btn-secondary btn-sm"
-          title="Reset ke data awal maritim"
-          style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem' }}
-        >
-          <RefreshCw size={14} />
-          <span>Reset Data</span>
-        </button>
-
-        {/* Urgent Notification Bell */}
-        <button
-          onClick={() => setActiveTab('notifications')}
-          style={{
-            position: 'relative',
-            background: 'var(--bg-surface-elevated)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '8px',
-            width: '38px',
-            height: '38px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: 'var(--text-main)',
-            transition: 'all 0.15s ease'
-          }}
-          title={`${totalUrgent} item mendesak / expired`}
-        >
-          <Bell size={18} />
-          {totalUrgent > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              background: '#ef4444',
-              color: '#fff',
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)'
-            }}>
-              {totalUrgent}
-            </span>
-          )}
-        </button>
-      </div>
+        </div>
+      )}
     </header>
   );
 };

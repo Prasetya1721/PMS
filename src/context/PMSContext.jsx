@@ -428,7 +428,18 @@ export const PMSProvider = ({ children }) => {
     } catch {}
     return 'Super Admin';
   });
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabRaw] = useState('dashboard');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
+  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
+  const openMobileSidebar = () => setIsMobileSidebarOpen(true);
+
+  const setActiveTab = (tab) => {
+    setActiveTabRaw(tab);
+    setIsMobileSidebarOpen(false); // Auto close sidebar on mobile navigation
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -3168,6 +3179,11 @@ export const PMSProvider = ({ children }) => {
         roleDefinitions: ROLE_DEFINITIONS,
         activeTab,
         setActiveTab,
+        isMobileSidebarOpen,
+        setIsMobileSidebarOpen,
+        toggleMobileSidebar,
+        closeMobileSidebar,
+        openMobileSidebar,
         searchQuery,
         setSearchQuery,
         toastMessage,

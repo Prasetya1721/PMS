@@ -3,6 +3,7 @@ import { PMSProvider, usePMS } from './context/PMSContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { UrgencyBanner } from './components/layout/UrgencyBanner';
 import { FleetOverview } from './components/dashboard/FleetOverview';
 import { VesselDashboard } from './components/dashboard/VesselDashboard';
@@ -185,6 +186,9 @@ const AppContent = () => {
           </main>
         </div>
       </ErrorBoundary>
+
+      {/* Thumb-friendly Mobile Bottom Navigation */}
+      <MobileBottomNav />
 
       {/* Toast Alert Notification */}
       {toastMessage && (

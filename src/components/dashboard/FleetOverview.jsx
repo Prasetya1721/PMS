@@ -54,31 +54,31 @@ export const FleetOverview = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Fleet Hero Header */}
-      <div className="glass-card" style={{
+      <div className="glass-card fleet-hero-card" style={{
         padding: '1.75rem 2rem',
         background: 'linear-gradient(135deg, rgba(15, 28, 53, 0.8) 0%, rgba(2, 132, 199, 0.15) 100%)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1.5rem'
+        gap: '1.25rem'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
             <span className="badge badge-info">Fleet Control Center</span>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               Monitoring {vessels.length} Kapal ({vessels.filter(v => !v.id.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length} As Owner{vessels.some(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator') ? ` & ${vessels.filter(v => v.id.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length} As Operator` : ''})
             </span>
           </div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 800, lineHeight: 1.25 }}>
             Dashboard Armada Maritim Terpadu
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '680px', marginTop: '0.3rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', maxWidth: '680px', marginTop: '0.4rem', lineHeight: 1.5 }}>
             Pemantauan kepatuhan Planned Maintenance System (PMS), kelaiklautan dokumen legal kapal, sertifikasi kru STCW, dan ketersediaan suku cadang.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="fleet-hero-actions">
           <button onClick={() => setActiveTab('maintenance')} className="btn btn-primary">
             <Wrench size={16} />
             <span>Lihat Semua Work Order</span>

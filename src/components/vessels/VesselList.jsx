@@ -280,11 +280,7 @@ export const VesselList = () => {
               overflow: 'hidden',
               border: isOperator ? '1px solid rgba(56, 189, 248, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)'
             }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '320px 1fr',
-                minHeight: '220px'
-              }}>
+              <div className="vessel-list-card-grid">
                 {/* Photo */}
                 <div style={{ position: 'relative' }}>
                   <img
@@ -312,12 +308,12 @@ export const VesselList = () => {
                 </div>
 
                 {/* Details */}
-                <div style={{ padding: '1.5rem 2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="vessel-list-card-details">
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                          <h3 style={{ fontSize: '1.55rem', fontWeight: 800 }}>{v.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                          <h3 style={{ fontSize: '1.45rem', fontWeight: 800 }}>{v.name}</h3>
                           <span
                             className="badge"
                             style={{
