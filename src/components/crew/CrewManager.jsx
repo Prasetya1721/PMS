@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
   Users,
-  CalendarCheck,
   CalendarX,
   Flame,
   LifeBuoy,
@@ -10,11 +9,11 @@ import {
   CheckCircle,
   XCircle,
   Phone,
-  MessageSquare,
-  Clock,
-  Shield,
-  FileCheck
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
+import { SafeManningMatrixModal } from './SafeManningMatrixModal';
 
 export const CrewManager = () => {
   const {
@@ -22,10 +21,12 @@ export const CrewManager = () => {
     leaves,
     drills,
     vessels,
+    selectedVesselId,
     approveLeave,
     submitLeave,
     addDrill,
     addCrew,
+    getSafeManningStatus,
     currentRole,
     canAction
   } = usePMS();
@@ -33,6 +34,12 @@ export const CrewManager = () => {
   const [crewTab, setCrewTab] = useState('list'); // 'list' | 'leaves' | 'drills'
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showDrillModal, setShowDrillModal] = useState(false);
+  const [showManningModal, setShowManningModal] = useState(false);
+
+  const targetVesselId = selectedVesselId !== 'all' ? selectedVesselId : vessels[0]?.id;
+  const manningStatus = useMemo(() => {
+    return targetVesselId && getSafeManningStatus ? getSafeManningStatus(targetVesselId) : null;
+  }, [targetVesselId, getSafeManningStatus]);
 
   // Form states
   const [leaveForm, setLeaveForm] = useState({
@@ -85,7 +92,18 @@ export const CrewManager = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowManningModal(true)}
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', borderColor: '#0284c7', color: '#0284c7', fontWeight: 600 }}
+            title="Inspeksi sertifikat kru & kepatuhan Safe Manning Matrix"
+          >
+            <ShieldCheck size={16} />
+            <span>Safe Manning Matrix (STCW)</span>
+          </button>
+
           <button
             onClick={() => setCrewTab('list')}
             className={`btn ${crewTab === 'list' ? 'btn-primary' : 'btn-secondary'}`}
@@ -109,6 +127,48 @@ export const CrewManager = () => {
           </button>
         </div>
       </div>
+
+      {/* Safe Manning Compliance Alert Banner */}
+      {manningStatus && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '10px',
+          backgroundColor: manningStatus.isCompliant ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+          border: `1px solid ${manningStatus.isCompliant ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+          fontSize: '0.85rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {manningStatus.isCompliant ? (
+              <CheckCircle2 size={20} color="#10b981" />
+            ) : (
+              <AlertTriangle size={20} color="#ef4444" />
+            )}
+            <div>
+              <div style={{ fontWeight: 700 }}>
+                Status Safe Manning ({vessels.find(v => v.id === targetVesselId)?.name || 'Armada Kapal'}):
+              </div>
+              <div style={{ color: manningStatus.isCompliant ? '#10b981' : '#ef4444', fontWeight: 600 }}>
+                {manningStatus.isCompliant
+                  ? 'Kualifikasi & Jumlah Awak Memenuhi Syarat Minimum Berlayar STCW / Syahbandar'
+                  : `Terdapat ${manningStatus.deficiencies.length} defisiensi formasi jabatan awak / masa berlaku sertifikat`}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowManningModal(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontWeight: 700, borderColor: '#0284c7', color: '#0284c7' }}
+          >
+            Inspeksi Detail Matrix &rarr;
+          </button>
+        </div>
+      )}
 
       {/* Tab 1: Crew Directory */}
       {crewTab === 'list' && (
@@ -520,6 +580,14 @@ export const CrewManager = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODAL 3: Safe Manning Matrix & STCW Certificate Modal */}
+      {showManningModal && (
+        <SafeManningMatrixModal
+          selectedVesselId={targetVesselId}
+          onClose={() => setShowManningModal(false)}
+        />
       )}
     </div>
   );

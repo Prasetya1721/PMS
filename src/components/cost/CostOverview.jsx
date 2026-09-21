@@ -1,27 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
-  DollarSign,
-  TrendingUp,
   PieChart,
   Calendar,
-  Filter,
-  ArrowUpRight,
-  Download,
-  Building2,
   Plus,
   Edit2,
   Trash2,
-  CheckCircle,
   AlertTriangle,
   FileSpreadsheet,
-  Layers,
   Ship,
   Users,
-  ShieldCheck,
-  X,
-  Clock,
-  Sparkles
+  X
 } from 'lucide-react';
 
 export const CostOverview = () => {

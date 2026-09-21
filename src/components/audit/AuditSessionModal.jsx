@@ -5,13 +5,9 @@ import {
   ShieldCheck,
   Building2,
   Ship,
-  Calendar,
   UserCheck,
-  Users,
   FileCheck,
-  AlertCircle,
   Save,
-  Clock,
   Maximize2,
   Minimize2,
   Plus,
@@ -19,13 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Package,
-  FileText,
-  Check,
-  Edit2,
   Code,
-  MapPin,
-  ExternalLink,
-  ChevronRight,
   Printer
 } from 'lucide-react';
 import { AuditReportModal } from './AuditReportModal';

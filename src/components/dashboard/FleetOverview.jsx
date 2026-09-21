@@ -5,15 +5,10 @@ import {
   Wrench,
   FileCheck,
   AlertTriangle,
-  CheckCircle2,
   Clock,
   DollarSign,
-  TrendingUp,
-  Package,
-  Users,
   ArrowUpRight,
-  ShieldCheck,
-  Calendar
+  ShieldCheck
 } from 'lucide-react';
 
 export const FleetOverview = () => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePMS } from '../../context/PMSContext';
-import { AlertTriangle, ArrowRight, ShieldAlert } from 'lucide-react';
+import { ArrowRight, ShieldAlert } from 'lucide-react';
 
 export const UrgencyBanner = () => {
   const { overdueWOCount, expiredDocsCount, dueSoonDocsCount, openNCCount, setActiveTab } = usePMS();

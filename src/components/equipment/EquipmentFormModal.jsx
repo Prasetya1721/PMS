@@ -7,14 +7,10 @@ import {
   Clock,
   Ship,
   Save,
-  AlertTriangle,
-  CheckCircle2,
   Maximize2,
   Minimize2,
   Plus,
-  Trash2,
   Layers,
-  Sparkles,
   Tag,
   FileText
 } from 'lucide-react';

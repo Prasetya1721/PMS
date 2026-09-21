@@ -720,6 +720,8 @@ export const DocumentFormModal = ({
       name: initialData?.name || '',
       documentNo: initialData?.documentNo || initialData?.certificateNo || '',
       issuer: initIssuer,
+      placeOfIssue: initialData?.placeOfIssue || (port || 'Pontianak'),
+      certificateTerm: initialData?.certificateTerm || 'Full Term (Definitif)',
       issueDate: initialData?.issueDate || new Date().toISOString().split('T')[0],
       expiryDate: initialData?.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       mandatoryAuditor: initialData?.mandatoryAuditor || '',
@@ -752,6 +754,8 @@ export const DocumentFormModal = ({
         name: initialData.name || '',
         documentNo: initialData.documentNo || initialData.certificateNo || '',
         issuer,
+        placeOfIssue: initialData.placeOfIssue || (port || 'Pontianak'),
+        certificateTerm: initialData.certificateTerm || 'Full Term (Definitif)',
         issueDate: initialData.issueDate || new Date().toISOString().split('T')[0],
         expiryDate: initialData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         mandatoryAuditor: initialData.mandatoryAuditor || '',
@@ -794,6 +798,8 @@ export const DocumentFormModal = ({
         name: '',
         documentNo: '',
         issuer,
+        placeOfIssue: port || 'Pontianak',
+        certificateTerm: 'Full Term (Definitif)',
         issueDate: new Date().toISOString().split('T')[0],
         expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         mandatoryAuditor: '',
@@ -1158,6 +1164,31 @@ export const DocumentFormModal = ({
 
     return Array.from(namesSet);
   }, [contextTemplates, shipDocuments, formData?.category]);
+
+  // Kalkulasi Jendela Survei Maritim Tahunan (IMO SOLAS & BKI Annual Survey Window ±3 Bulan)
+  const surveyWindow = useMemo(() => {
+    if (!formData.expiryDate) return null;
+    try {
+      const exp = new Date(formData.expiryDate + 'T00:00:00');
+      if (isNaN(exp.getTime())) return null;
+      const day = exp.getDate();
+      const monthNames = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      const expMonth = exp.getMonth();
+      const anniversaryLabel = `${day} ${monthNames[expMonth]}`;
+      const startMonthIdx = (expMonth - 3 + 12) % 12;
+      const endMonthIdx = (expMonth + 3) % 12;
+      return {
+        anniversaryLabel,
+        windowStart: `${day} ${monthNames[startMonthIdx]}`,
+        windowEnd: `${day} ${monthNames[endMonthIdx]}`
+      };
+    } catch {
+      return null;
+    }
+  }, [formData.expiryDate]);
 
   // Daftar kategori sertifikat kapal disinkronkan 100% dengan Data Master
   const allCategoryList = useMemo(() => {
@@ -1965,49 +1996,114 @@ export const DocumentFormModal = ({
             </div>
           </div>
 
-          {/* 5. TANGGAL PENERBITAN & TANGGAL EXPIRED */}
+          {/* 5. TANGGAL PENERBITAN, TEMPAT TERBIT, EXPIRED & SIFAT SERTIFIKAT */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1rem',
-            padding: '1rem',
-            borderRadius: '10px',
+            padding: '1.1rem 1.25rem',
+            borderRadius: '12px',
             background: 'rgba(2, 132, 199, 0.05)',
-            border: '1px solid rgba(56, 189, 248, 0.2)'
+            border: '1px solid rgba(56, 189, 248, 0.25)'
           }}>
-            <div>
-              <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8' }}>
-                <Calendar size={14} />
-                <span>Tanggal Penerbitan (Issue Date) *</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.issueDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
-                className="input-control mono"
-              />
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                Tanggal resmi dokumen diterbitkan oleh instansi
-              </span>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '1rem'
+            }}>
+              <div>
+                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8' }}>
+                  <Calendar size={14} />
+                  <span>Tanggal Penerbitan (Issue Date) *</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.issueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
+                  className="input-control mono"
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
+                  Tanggal resmi dokumen diterbitkan oleh instansi
+                </span>
+              </div>
+
+              <div>
+                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8' }}>
+                  <Anchor size={14} />
+                  <span>Tempat Diterbitkan (Place of Issue)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Pontianak / Jakarta / Balikpapan"
+                  value={formData.placeOfIssue || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, placeOfIssue: e.target.value }))}
+                  className="input-control"
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
+                  Kota / pelabuhan tempat sertifikat ditandatangani
+                </span>
+              </div>
+
+              <div>
+                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b' }}>
+                  <Calendar size={14} />
+                  <span>Tanggal Expired (Jatuh Tempo) *</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+                  className="input-control mono"
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
+                  Batas akhir masa berlaku / survei berkala
+                </span>
+              </div>
+
+              <div>
+                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#a855f7' }}>
+                  <ShieldCheck size={14} />
+                  <span>Sifat Masa Berlaku (Certificate Term) *</span>
+                </label>
+                <select
+                  value={formData.certificateTerm || 'Full Term (Definitif)'}
+                  onChange={(e) => setFormData(prev => ({ ...prev, certificateTerm: e.target.value }))}
+                  className="select-control"
+                  style={{ fontWeight: 600 }}
+                >
+                  <option value="Full Term (Definitif)">Full Term (Definitif / 5 Thn / 1 Thn Penuh)</option>
+                  <option value="Interim (Sementara / Provisional)">Interim (Sementara / Provisional - Max 5 Bulan)</option>
+                  <option value="Short Term / Extension">Short Term / Extension (Dispensasi Perpanjangan)</option>
+                </select>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
+                  Status keabsahan: Definitif resmi atau sertifikat sementara
+                </span>
+              </div>
             </div>
 
-            <div>
-              <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b' }}>
-                <Calendar size={14} />
-                <span>Tanggal Expired (Jatuh Tempo) *</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.expiryDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                className="input-control mono"
-              />
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                Batas akhir masa berlaku / survei berkala
-              </span>
-            </div>
+            {/* Visual Helper: Jendela Survei Maritim (IMO SOLAS & BKI Survey Window ±3 Bulan) */}
+            {surveyWindow && (
+              <div style={{
+                padding: '0.65rem 0.95rem',
+                borderRadius: '8px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                fontSize: '0.76rem',
+                color: 'var(--text-main)'
+              }}>
+                <Anchor size={15} color="#38bdf8" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Jendela Survei Maritim (IMO SOLAS & BKI ±3 Bulan):</strong>{' '}
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>{surveyWindow.windowStart} s/d {surveyWindow.windowEnd}</span>{' '}
+                  <span style={{ color: 'var(--text-muted)' }}>(Ulang Tahun Tahunan: {surveyWindow.anniversaryLabel})</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 6. MENU UPLOAD DOKUMEN (FILE SCAN SERTIFIKAT) - CRUCIAL USER REQUIREMENT */}

@@ -4,7 +4,11 @@ import {
   INITIAL_VESSELS,
   INITIAL_EQUIPMENT,
   INITIAL_MAINTENANCE_SCHEDULES,
+  INITIAL_TECHNICAL_WORK_ORDERS,
   INITIAL_WORK_ORDERS,
+  INITIAL_DAILY_MACHINERY_LOGS,
+  INITIAL_CRITICAL_EQUIPMENT_TESTS,
+  DEFAULT_SAFE_MANNING_STANDARDS,
   INITIAL_SPAREPARTS,
   INITIAL_REQUISITIONS,
   INITIAL_VESSEL_BUDGETS,
@@ -21,7 +25,6 @@ import {
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
 import {
   CERTIFICATE_CATEGORIES,
-  STANDARD_CERTIFICATE_TEMPLATES,
   DEFAULT_MASTER_SURVEY_TYPES,
   DEFAULT_MASTER_CERTIFICATE_NAMES
 } from '../data/shipCertificatesMaster';
@@ -44,7 +47,6 @@ import {
 } from '../services/emailService';
 import {
   hasAccess,
-  getAllowedTabs,
   canPerformAction,
   ROLE_DEFINITIONS,
   ROLE_PERMISSIONS
@@ -149,6 +151,26 @@ export const PMSProvider = ({ children }) => {
   const [equipment, setEquipment] = useState(() => loadStored('equipment', INITIAL_EQUIPMENT));
   const [schedules, setSchedules] = useState(() => loadStored('schedules', INITIAL_MAINTENANCE_SCHEDULES));
   const [workOrders, setWorkOrders] = useState(() => loadStored('workOrders', INITIAL_WORK_ORDERS));
+  const [technicalWorkOrders, setTechnicalWorkOrders] = useState(() => {
+    const stored = loadStored('technicalWorkOrders', null);
+    if (Array.isArray(stored)) return stored;
+    return DEMO_DATA.INITIAL_TECHNICAL_WORK_ORDERS || INITIAL_TECHNICAL_WORK_ORDERS || [];
+  });
+  const [dailyMachineryLogs, setDailyMachineryLogs] = useState(() => {
+    const stored = loadStored('dailyMachineryLogs', null);
+    if (Array.isArray(stored)) return stored;
+    return DEMO_DATA.INITIAL_DAILY_MACHINERY_LOGS || INITIAL_DAILY_MACHINERY_LOGS || [];
+  });
+  const [criticalEquipmentTests, setCriticalEquipmentTests] = useState(() => {
+    const stored = loadStored('criticalEquipmentTests', null);
+    if (Array.isArray(stored)) return stored;
+    return DEMO_DATA.INITIAL_CRITICAL_EQUIPMENT_TESTS || INITIAL_CRITICAL_EQUIPMENT_TESTS || [];
+  });
+  const [safeManningStandards, setSafeManningStandards] = useState(() => {
+    const stored = loadStored('safeManningStandards', null);
+    if (Array.isArray(stored)) return stored;
+    return DEFAULT_SAFE_MANNING_STANDARDS || [];
+  });
   const [spareparts, setSpareparts] = useState(() => loadStored('spareparts', INITIAL_SPAREPARTS));
   const [requisitions, setRequisitions] = useState(() => loadStored('requisitions', INITIAL_REQUISITIONS));
   const [costs, setCosts] = useState(() => loadStored('costs', INITIAL_COSTS));
@@ -490,6 +512,10 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_equipment', JSON.stringify(equipment || []));
       localStorage.setItem('pms_schedules', JSON.stringify(schedules || []));
       localStorage.setItem('pms_workOrders', JSON.stringify(workOrders || []));
+      localStorage.setItem('pms_technicalWorkOrders', JSON.stringify(technicalWorkOrders || []));
+      localStorage.setItem('pms_dailyMachineryLogs', JSON.stringify(dailyMachineryLogs || []));
+      localStorage.setItem('pms_criticalEquipmentTests', JSON.stringify(criticalEquipmentTests || []));
+      localStorage.setItem('pms_safeManningStandards', JSON.stringify(safeManningStandards || []));
       localStorage.setItem('pms_spareparts', JSON.stringify(spareparts || []));
       localStorage.setItem('pms_requisitions', JSON.stringify(requisitions || []));
       localStorage.setItem('pms_costs', JSON.stringify(costs || []));
@@ -512,8 +538,8 @@ export const PMSProvider = ({ children }) => {
       console.error('[PMS] Failed to sync state to localStorage:', err);
     }
   }, [
-    vessels, equipment, schedules, workOrders, spareparts, requisitions,
-    costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
+    vessels, equipment, schedules, workOrders, technicalWorkOrders, dailyMachineryLogs, criticalEquipmentTests, safeManningStandards,
+    spareparts, requisitions, costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
     certificateCategories, documentTemplates, notificationSettings, notificationLogs, users,
     audits, auditFindings, siteConfig, sidebarOverrides
   ]);
@@ -675,6 +701,355 @@ export const PMSProvider = ({ children }) => {
     };
     setWorkOrders(prev => [generated, ...prev]);
     showToast(`Permintaan barang baru berhasil dibuat: ${generated.id}`, 'success');
+  };
+
+  // 2B. Technical Work Orders (Closed-Loop Maintenance System)
+  const addTechnicalWorkOrder = (newWO) => {
+    const nextId = `WO-${new Date().getFullYear()}-${String(technicalWorkOrders.length + 1).padStart(3, '0')}`;
+    const item = {
+      ...newWO,
+      id: newWO.id || nextId,
+      status: newWO.status || 'Scheduled',
+      createdAt: new Date().toISOString()
+    };
+    setTechnicalWorkOrders(prev => [item, ...prev]);
+    showToast(`Perintah kerja servis teknis ${item.id} berhasil diterbitkan!`, 'success');
+    return item;
+  };
+
+  const updateTechnicalWorkOrder = (woId, updatedData) => {
+    setTechnicalWorkOrders(prev => prev.map(w => w.id === woId ? { ...w, ...updatedData } : w));
+    showToast(`Data Work Order ${woId} berhasil diperbarui!`, 'success');
+  };
+
+  const completeTechnicalWorkOrder = (woId, completionData) => {
+    const targetWO = technicalWorkOrders.find(w => w.id === woId);
+    const eqId = targetWO?.equipmentId || completionData.equipmentId;
+
+    // 1. Update WO status to 'Completed'
+    setTechnicalWorkOrders(prev => prev.map(w => {
+      if (w.id !== woId) return w;
+      return {
+        ...w,
+        ...completionData,
+        status: 'Completed',
+        completionDate: completionData.completionDate || new Date().toISOString().split('T')[0]
+      };
+    }));
+
+    // 2. Closed-loop: Update target equipment running hours and next service hours
+    if (eqId) {
+      setEquipment(prev => prev.map(eq => {
+        if (eq.id !== eqId) return eq;
+        const executedHours = Number(completionData.executedRunningHours) || eq.runningHours || 0;
+        const sched = schedules.find(s => s.id === targetWO?.scheduleId);
+        const interval = sched?.intervalHours || 500;
+        const nextService = executedHours + interval;
+
+        return {
+          ...eq,
+          runningHours: executedHours,
+          lastMaintenanceHours: executedHours,
+          nextServiceHours: nextService,
+          status: 'Normal'
+        };
+      }));
+    }
+
+    // 3. Closed-loop: Consume onboard spareparts
+    if (completionData.sparepartsConsumed && completionData.sparepartsConsumed.length > 0) {
+      completionData.sparepartsConsumed.forEach(part => {
+        if (part.sparepartId && part.qty > 0) {
+          consumeStockOnboard(part.sparepartId, part.qty, `Servis ${woId} (${targetWO?.title || ''})`);
+        }
+      });
+    }
+
+    // 4. Closed-loop: Post service cost to vessel expense transactions if cost > 0
+    if (completionData.serviceCost > 0) {
+      const vId = targetWO?.vesselId || selectedVesselId;
+      addExpenseTransaction({
+        vesselId: vId,
+        transactionDate: completionData.completionDate || new Date().toISOString().split('T')[0],
+        category: 'Perawatan & Servis Kapal',
+        description: `Jasa servis/teknisi eksternal WO ${woId}: ${targetWO?.title || ''}`,
+        amount: Number(completionData.serviceCost) || 0,
+        linkedWorkOrderId: woId
+      });
+    }
+
+    confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+    showToast(`Work Order ${woId} berhasil diselesaikan! Siklus servis mesin & stok suku cadang telah disinkronkan.`, 'success');
+  };
+
+  const deleteTechnicalWorkOrder = (woId) => {
+    setTechnicalWorkOrders(prev => prev.filter(w => w.id !== woId));
+    showToast(`Work Order ${woId} berhasil dihapus.`, 'info');
+  };
+
+  // 2C. Buku Jurnal Harian Mesin (Daily Machinery Logs Batch Entry)
+  const batchLogMachineryHours = (vesselId, logDate, entries, metadata = {}) => {
+    let overdueCount = 0;
+
+    // Update running hours on each equipment
+    setEquipment(prev => prev.map(eq => {
+      const entry = entries.find(e => e.equipmentId === eq.id);
+      if (!entry) return eq;
+
+      const added = Number(entry.addedHours) || 0;
+      const newHours = (eq.runningHours || 0) + added;
+      const hoursToNext = eq.nextServiceHours - newHours;
+      let newStatus = 'Normal';
+      if (hoursToNext <= 0) {
+        newStatus = 'Overdue';
+        overdueCount++;
+      } else if (hoursToNext <= 200) {
+        newStatus = 'Due Soon';
+      }
+
+      return {
+        ...eq,
+        runningHours: newHours,
+        status: newStatus
+      };
+    }));
+
+    // Record log into dailyMachineryLogs
+    const newLog = {
+      id: `dml-${Date.now()}`,
+      vesselId,
+      logDate,
+      loggedBy: metadata.loggedBy || 'Masinis Jaga',
+      chiefEngineer: metadata.chiefEngineer || 'Chief Engineer',
+      verifiedByCaptain: false,
+      entries
+    };
+
+    setDailyMachineryLogs(prev => [newLog, ...prev]);
+
+    if (overdueCount > 0) {
+      showToast(`Buku jurnal harian disimpan! PERHATIAN: ${overdueCount} mesin telah mencapai batas servis berkala (Overdue).`, 'warning');
+    } else {
+      showToast(`Buku jurnal harian ${logDate} berhasil disimpan! Jam jalan ${entries.length} mesin diperbarui.`, 'success');
+    }
+  };
+
+  // 2D. Critical Equipment & Emergency Standby Test (ISM 10.3)
+  const logCriticalEquipmentTest = (testData) => {
+    const newTest = {
+      ...testData,
+      id: `cet-${Date.now()}`,
+      recordedAt: new Date().toISOString()
+    };
+    setCriticalEquipmentTests(prev => [newTest, ...prev]);
+
+    const isPass = testData.testResult?.includes('Pass');
+    if (isPass) {
+      showToast(`Uji darurat ${testData.testTitle} tercatat: BERFUNGSI BAIK (PASS).`, 'success');
+    } else {
+      showToast(`PERINGATAN: Uji darurat ${testData.testTitle} dinyatakan DEFECTIVE. Harap segera terbitkan Work Order perbaikan!`, 'danger');
+    }
+    return newTest;
+  };
+
+  // 2E. Safe Manning Compliance Evaluation
+  const getSafeManningStatus = (vId) => {
+    const targetVessel = vessels.find(v => v.id === vId);
+    if (!targetVessel) return { isCompliant: true, deficiencies: [], totalRequired: 0, totalOnboard: 0 };
+
+    const vType = targetVessel.type?.toLowerCase() || '';
+    const standards = safeManningStandards || [];
+
+    const foundStandard = standards.find(s => {
+      const stType = s.vesselType.toLowerCase();
+      if (vType.includes('tug') && stType.includes('tug')) return true;
+      if (vType.includes('tongkang') && stType.includes('tongkang')) return true;
+      if (vType.includes('lct') && stType.includes('lct')) return true;
+      return stType === vType;
+    }) || standards[0];
+
+    if (!foundStandard?.positions) return { isCompliant: true, deficiencies: [], totalRequired: 0, totalOnboard: 0 };
+
+    const onboard = (crew || []).filter(c => c.vesselId === vId && c.status === 'Onboard');
+    const deficiencies = [];
+    let totalReq = 0;
+
+    foundStandard.positions.forEach(reqPos => {
+      if (reqPos.mandatory) totalReq += reqPos.count;
+      const matched = onboard.filter(c => {
+        const cRank = c.rank.toLowerCase();
+        const pTitle = reqPos.rankTitle.toLowerCase();
+        if (pTitle.includes('nakhoda') && (cRank.includes('nakhoda') || cRank.includes('master'))) return true;
+        if (pTitle.includes('mualim') && (cRank.includes('mualim') || cRank.includes('chief mate'))) return true;
+        if (pTitle.includes('kkm') && (cRank.includes('kkm') || cRank.includes('chief engineer'))) return true;
+        if (pTitle.includes('masinis') && cRank.includes('masinis')) return true;
+        if (pTitle.includes('juru mudi') && (cRank.includes('juru mudi') || cRank.includes('kelasi') || cRank.includes('abk'))) return true;
+        if (pTitle.includes('juru minyak') && (cRank.includes('juru minyak') || cRank.includes('oiler'))) return true;
+        return cRank === pTitle;
+      });
+
+      if (matched.length < reqPos.count && reqPos.mandatory) {
+        deficiencies.push(`Kekurangan ${reqPos.rankTitle} (dibutuhkan ${reqPos.count}, ada ${matched.length})`);
+      }
+    });
+
+    return {
+      isCompliant: deficiencies.length === 0,
+      deficiencies,
+      totalRequired: totalReq,
+      totalOnboard: onboard.length,
+      vesselName: targetVessel.name
+    };
+  };
+
+  // 2F. Ship-to-Shore Sync & Full Database Backup/Restore
+  const exportShipSyncPackage = (vId) => {
+    const vessel = vessels.find(v => v.id === vId) || vessels[0];
+    const vesselEquipmentList = (equipment || []).filter(e => e.vesselId === vId);
+    const vesselWOs = (technicalWorkOrders || []).filter(w => w.vesselId === vId);
+    const vesselLogs = (dailyMachineryLogs || []).filter(l => l.vesselId === vId);
+    const vesselTests = (criticalEquipmentTests || []).filter(t => t.vesselId === vId);
+    const vesselSparepartsList = (spareparts || []).filter(s => s.vesselId === vId);
+
+    const syncPackage = {
+      packageType: 'PMS_VESSEL_SYNC_PACKAGE',
+      version: PMS_STORAGE_VERSION,
+      timestamp: new Date().toISOString(),
+      vesselId: vId,
+      vesselName: vessel?.name,
+      equipment: vesselEquipmentList,
+      technicalWorkOrders: vesselWOs,
+      dailyMachineryLogs: vesselLogs,
+      criticalEquipmentTests: vesselTests,
+      spareparts: vesselSparepartsList
+    };
+
+    const blob = new Blob([JSON.stringify(syncPackage, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `PMS_SYNC_${(vessel?.name || 'VESSEL').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(`Paket sinkronisasi kapal ${vessel?.name} berhasil diekspor!`, 'success');
+  };
+
+  const exportFullDatabaseBackup = () => {
+    const fullBackup = {
+      backupType: 'PMS_FULL_SYSTEM_BACKUP',
+      version: PMS_STORAGE_VERSION,
+      timestamp: new Date().toISOString(),
+      vessels,
+      equipment,
+      schedules,
+      technicalWorkOrders,
+      workOrders,
+      dailyMachineryLogs,
+      criticalEquipmentTests,
+      safeManningStandards,
+      spareparts,
+      requisitions,
+      costs,
+      vesselBudgets,
+      crew,
+      leaves,
+      drills,
+      crewCertificates,
+      shipDocuments,
+      certificateCategories,
+      documentTemplates,
+      masterSurveyTypes,
+      notificationSettings,
+      notificationLogs,
+      users,
+      audits,
+      auditFindings
+    };
+
+    const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `PMS_FULL_BACKUP_BAHARIMAS_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast('Cadangan penuh basis data berhasil diunduh!', 'success');
+  };
+
+  const importSyncPackage = (pkg) => {
+    if (!pkg || typeof pkg !== 'object') {
+      showToast('Paket sinkronisasi tidak valid!', 'danger');
+      return;
+    }
+
+    if (pkg.packageType === 'PMS_VESSEL_SYNC_PACKAGE') {
+      const vId = pkg.vesselId;
+      if (pkg.equipment && Array.isArray(pkg.equipment)) {
+        setEquipment(prev => {
+          const other = prev.filter(e => e.vesselId !== vId);
+          return [...other, ...pkg.equipment];
+        });
+      }
+      if (pkg.technicalWorkOrders && Array.isArray(pkg.technicalWorkOrders)) {
+        setTechnicalWorkOrders(prev => {
+          const other = prev.filter(w => w.vesselId !== vId);
+          return [...other, ...pkg.technicalWorkOrders];
+        });
+      }
+      if (pkg.dailyMachineryLogs && Array.isArray(pkg.dailyMachineryLogs)) {
+        setDailyMachineryLogs(prev => {
+          const other = prev.filter(l => l.vesselId !== vId);
+          return [...other, ...pkg.dailyMachineryLogs];
+        });
+      }
+      if (pkg.criticalEquipmentTests && Array.isArray(pkg.criticalEquipmentTests)) {
+        setCriticalEquipmentTests(prev => {
+          const other = prev.filter(t => t.vesselId !== vId);
+          return [...other, ...pkg.criticalEquipmentTests];
+        });
+      }
+      if (pkg.spareparts && Array.isArray(pkg.spareparts)) {
+        setSpareparts(prev => {
+          const other = prev.filter(s => s.vesselId !== vId);
+          return [...other, ...pkg.spareparts];
+        });
+      }
+
+      showToast(`Pembaruan data kapal ${pkg.vesselName || vId} berhasil digabungkan ke sistem kantor darat!`, 'success');
+    } else {
+      showToast('Tipe paket tidak dikenali untuk sinkronisasi kapal.', 'warning');
+    }
+  };
+
+  const restoreFullDatabase = (backup) => {
+    if (!backup || typeof backup !== 'object') {
+      showToast('File backup database tidak valid!', 'danger');
+      return;
+    }
+
+    if (backup.vessels) setVessels(backup.vessels);
+    if (backup.equipment) setEquipment(backup.equipment);
+    if (backup.schedules) setSchedules(backup.schedules);
+    if (backup.technicalWorkOrders) setTechnicalWorkOrders(backup.technicalWorkOrders);
+    if (backup.workOrders) setWorkOrders(backup.workOrders);
+    if (backup.dailyMachineryLogs) setDailyMachineryLogs(backup.dailyMachineryLogs);
+    if (backup.criticalEquipmentTests) setCriticalEquipmentTests(backup.criticalEquipmentTests);
+    if (backup.safeManningStandards) setSafeManningStandards(backup.safeManningStandards);
+    if (backup.spareparts) setSpareparts(backup.spareparts);
+    if (backup.requisitions) setRequisitions(backup.requisitions);
+    if (backup.costs) setCosts(backup.costs);
+    if (backup.vesselBudgets) setVesselBudgets(backup.vesselBudgets);
+    if (backup.crew) setCrew(backup.crew);
+    if (backup.leaves) setLeaves(backup.leaves);
+    if (backup.drills) setDrills(backup.drills);
+    if (backup.crewCertificates) setCrewCertificates(backup.crewCertificates);
+    if (backup.shipDocuments) setShipDocuments(backup.shipDocuments);
+    if (backup.audits) setAudits(backup.audits);
+    if (backup.auditFindings) setAuditFindings(backup.auditFindings);
+
+    showToast('Seluruh database berhasil dipulihkan dari file backup!', 'success');
   };
 
   // 3. Sparepart, Logistics & Inventory Actions
@@ -2538,6 +2913,9 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_notificationLogs', JSON.stringify([]));
     localStorage.setItem('pms_audits', JSON.stringify([]));
     localStorage.setItem('pms_auditFindings', JSON.stringify([]));
+    localStorage.setItem('pms_technicalWorkOrders', JSON.stringify([]));
+    localStorage.setItem('pms_dailyMachineryLogs', JSON.stringify([]));
+    localStorage.setItem('pms_criticalEquipmentTests', JSON.stringify([]));
 
     showToast('Seluruh data dummy berhasil dikosongkan. Sistem bersih dan siap diinput dari nol!', 'info');
   };
@@ -2548,6 +2926,9 @@ export const PMSProvider = ({ children }) => {
     const dEquip = DEMO_DATA.INITIAL_EQUIPMENT || [];
     const dSched = DEMO_DATA.INITIAL_MAINTENANCE_SCHEDULES || [];
     const dWO = DEMO_DATA.INITIAL_WORK_ORDERS || [];
+    const dTechWO = DEMO_DATA.INITIAL_TECHNICAL_WORK_ORDERS || [];
+    const dDailyLogs = DEMO_DATA.INITIAL_DAILY_MACHINERY_LOGS || [];
+    const dCritTests = DEMO_DATA.INITIAL_CRITICAL_EQUIPMENT_TESTS || [];
     const dParts = DEMO_DATA.INITIAL_SPAREPARTS || [];
     const dReq = DEMO_DATA.INITIAL_REQUISITIONS || [];
     const dCosts = DEMO_DATA.INITIAL_COSTS || [];
@@ -2567,6 +2948,9 @@ export const PMSProvider = ({ children }) => {
     setEquipment(dEquip);
     setSchedules(dSched);
     setWorkOrders(dWO);
+    setTechnicalWorkOrders(dTechWO);
+    setDailyMachineryLogs(dDailyLogs);
+    setCriticalEquipmentTests(dCritTests);
     setSpareparts(dParts);
     setRequisitions(dReq);
     setCosts(dCosts);
@@ -2587,6 +2971,9 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_equipment', JSON.stringify(dEquip));
     localStorage.setItem('pms_schedules', JSON.stringify(dSched));
     localStorage.setItem('pms_workOrders', JSON.stringify(dWO));
+    localStorage.setItem('pms_technicalWorkOrders', JSON.stringify(dTechWO));
+    localStorage.setItem('pms_dailyMachineryLogs', JSON.stringify(dDailyLogs));
+    localStorage.setItem('pms_criticalEquipmentTests', JSON.stringify(dCritTests));
     localStorage.setItem('pms_spareparts', JSON.stringify(dParts));
     localStorage.setItem('pms_requisitions', JSON.stringify(dReq));
     localStorage.setItem('pms_costs', JSON.stringify(dCosts));
@@ -2716,6 +3103,13 @@ export const PMSProvider = ({ children }) => {
         schedules,
         workOrders: filteredWorkOrders,
         allWorkOrders: workOrders,
+        technicalWorkOrders: selectedVesselId === 'all' ? technicalWorkOrders : technicalWorkOrders.filter(w => w.vesselId === selectedVesselId),
+        allTechnicalWorkOrders: technicalWorkOrders,
+        dailyMachineryLogs: selectedVesselId === 'all' ? dailyMachineryLogs : dailyMachineryLogs.filter(l => l.vesselId === selectedVesselId),
+        allDailyMachineryLogs: dailyMachineryLogs,
+        criticalEquipmentTests: selectedVesselId === 'all' ? criticalEquipmentTests : criticalEquipmentTests.filter(t => t.vesselId === selectedVesselId),
+        allCriticalEquipmentTests: criticalEquipmentTests,
+        safeManningStandards,
         spareparts: filteredSpareparts,
         allSpareparts: spareparts,
         requisitions,
@@ -2805,6 +3199,18 @@ export const PMSProvider = ({ children }) => {
         updateWorkOrderStatus,
         addWorkOrder,
         updateWorkOrder,
+        addTechnicalWorkOrder,
+        updateTechnicalWorkOrder,
+        completeTechnicalWorkOrder,
+        deleteTechnicalWorkOrder,
+        batchLogMachineryHours,
+        logCriticalEquipmentTest,
+        setSafeManningStandards,
+        getSafeManningStatus,
+        exportShipSyncPackage,
+        exportFullDatabaseBackup,
+        importSyncPackage,
+        restoreFullDatabase,
         updateSparepartStock,
         transferStockToVessel,
         consumeStockOnboard,

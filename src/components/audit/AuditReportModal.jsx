@@ -4,21 +4,11 @@ import { usePMS } from '../../context/PMSContext';
 import {
   Printer,
   X,
-  ShieldCheck,
-  Award,
   CheckCircle2,
   FileText,
-  Calendar,
-  User,
-  Building2,
-  Ship,
-  Clock,
-  AlertTriangle,
-  Download,
-  Share2,
-  Check
+  Ship
 } from 'lucide-react';
-import { calculateNCRange, formatIndoDate } from '../../utils/auditTimeUtils';
+import { formatIndoDate } from '../../utils/auditTimeUtils';
 
 export const AuditReportModal = ({
   session,
@@ -292,7 +282,7 @@ export const AuditReportModal = ({
           {/* A4 PAPER CANVAS                                                         */}
           {/* ======================================================================= */}
           <div
-            className="audit-report-sheet"
+            className="audit-report-sheet maritime-print-sheet"
             style={{
               width: '100%',
               maxWidth: '860px',

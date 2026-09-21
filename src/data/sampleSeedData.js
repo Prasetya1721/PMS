@@ -204,6 +204,207 @@ export const INITIAL_MAINTENANCE_SCHEDULES = [
   }
 ];
 
+// Perintah Kerja Pemeliharaan Teknis Mesin (Technical Work Orders - Closed Loop)
+export const INITIAL_TECHNICAL_WORK_ORDERS = [
+  {
+    "id": "WO-2026-001",
+    "vesselId": "v-001",
+    "equipmentId": "eq-105",
+    "scheduleId": "sch-02",
+    "workOrderType": "Preventive Maintenance (PM)",
+    "title": "Servis 500 Jam & Pembersihan Katup Kompresor Udara Sperre #1",
+    "priority": "Tinggi",
+    "status": "Scheduled",
+    "plannedDate": "2026-09-22",
+    "dueDate": "2026-09-26",
+    "targetRunningHours": 2500,
+    "assignedTechnician": "Kurniawan",
+    "assignedRole": "Masinis 2",
+    "chiefEngineerApprover": "Ir. Bambang Wijaya (KKM)",
+    "captainApprover": "Capt. Hendra Gunawan, M.Mar",
+    "description": "Bongkar suction & delivery valve plate, bersihkan carbon deposit, kuras air kondensat tabung angin, dan ganti oli pelumas kompresor.",
+    "sopSteps": [
+      { "id": "step-1", "title": "Isolasi kelistrikan & kunci MCB breaker kompresor (LOTO)", "done": true },
+      { "id": "step-2", "title": "Kuras tekanan angin di dalam silinder hingga 0 bar", "done": true },
+      { "id": "step-3", "title": "Buka cover valve plate LP dan HP serta periksa keausan dudukan klep", "done": false },
+      { "id": "step-4", "title": "Ganti gasket & pasang valve plate baru sesuai torsi pabrikan", "done": false },
+      { "id": "step-5", "title": "Ganti oli pelumas kompresor Shell Corena 10 liter", "done": false },
+      { "id": "step-6", "title": "Running test 15 menit, periksa kenaikan tekanan hingga 30 bar dan safety valve cut-off", "done": false }
+    ],
+    "sparepartsRequired": [
+      { "sparepartId": "sp-101", "name": "Valve Plate Set Sperre HL2/90", "qty": 1, "unit": "Set" },
+      { "sparepartId": "sp-103", "name": "Oli Kompresor Shell Corena S4 R 68", "qty": 10, "unit": "Liter" }
+    ],
+    "measuredParameters": {
+      "runningHours": 2490,
+      "dischargePressureBar": 30,
+      "oilPressureBar": 4.2,
+      "airTempC": 68
+    },
+    "serviceCost": 0
+  },
+  {
+    "id": "WO-2026-002",
+    "vesselId": "v-001",
+    "equipmentId": "eq-103",
+    "scheduleId": "sch-03",
+    "workOrderType": "Preventive Maintenance (PM)",
+    "title": "Inspeksi Berkala 500 Jam & Ganti Filter Genset Cummins #1",
+    "priority": "Tinggi",
+    "status": "In Progress",
+    "plannedDate": "2026-09-20",
+    "dueDate": "2026-09-25",
+    "targetRunningHours": 2500,
+    "assignedTechnician": "Kurniawan",
+    "assignedRole": "Masinis 2",
+    "chiefEngineerApprover": "Ir. Bambang Wijaya (KKM)",
+    "captainApprover": "Capt. Hendra Gunawan, M.Mar",
+    "description": "Penggantian filter oli, filter solar primer & sekunder, pengecekan ketegangan V-belt dan sistem charging baterai alternator.",
+    "sopSteps": [
+      { "id": "step-1", "title": "Pindahkan beban listrik ke Genset #2 sebelum mematikan Genset #1", "done": true },
+      { "id": "step-2", "title": "Tutup kran suplai bahan bakar harian (daily fuel valve)", "done": true },
+      { "id": "step-3", "title": "Ganti lube oil filter & fuel filter cartridge baru", "done": true },
+      { "id": "step-4", "title": "Cek air aki & tegangan alternator 24V", "done": false },
+      { "id": "step-5", "title": "Start genset tanpa beban, cek kebocoran oli, lalu sinkronisasi beban", "done": false }
+    ],
+    "sparepartsRequired": [
+      { "sparepartId": "sp-102", "name": "Fuel Filter Fleetguard FF5052", "qty": 2, "unit": "Pcs" },
+      { "sparepartId": "sp-105", "name": "Oil Filter Fleetguard LF3349", "qty": 2, "unit": "Pcs" }
+    ],
+    "measuredParameters": {
+      "runningHours": 2480,
+      "voltageV": 380,
+      "frequencyHz": 50.1,
+      "oilPressureBar": 4.5
+    },
+    "serviceCost": 0
+  },
+  {
+    "id": "WO-2026-003",
+    "vesselId": "v-001",
+    "equipmentId": "eq-101",
+    "scheduleId": "sch-01",
+    "workOrderType": "Preventive Maintenance (PM)",
+    "title": "Servis 500 Jam Mesin Utama Kiri (Yanmar 6EY26W)",
+    "priority": "Tinggi",
+    "status": "Completed",
+    "plannedDate": "2026-08-28",
+    "dueDate": "2026-09-02",
+    "completionDate": "2026-09-01",
+    "targetRunningHours": 4000,
+    "executedRunningHours": 4000,
+    "assignedTechnician": "Ir. Bambang Wijaya (KKM)",
+    "assignedRole": "Teknisi / Chief Engineer",
+    "chiefEngineerApprover": "Ir. Bambang Wijaya (KKM)",
+    "captainApprover": "Capt. Hendra Gunawan, M.Mar",
+    "description": "Penggantian filter oli pelumas Yanmar, periksa clearance klep intake/exhaust, dan kuras kotoran separator solar.",
+    "sopSteps": [
+      { "id": "step-1", "title": "Stop mesin dan pasang turning gear", "done": true },
+      { "id": "step-2", "title": "Ganti elemen filter pelumas & bersihkan strainer", "done": true },
+      { "id": "step-3", "title": "Cek kelonggaran celah klep (intake 0.40mm, exhaust 0.50mm)", "done": true },
+      { "id": "step-4", "title": "Running test pada putaran 750 RPM selama 30 menit", "done": true }
+    ],
+    "sparepartsRequired": [
+      { "sparepartId": "sp-105", "name": "Oil Filter Fleetguard LF3349", "qty": 4, "unit": "Pcs" }
+    ],
+    "measuredParameters": {
+      "runningHours": 4000,
+      "oilPressureBar": 4.8,
+      "coolingWaterTempC": 78,
+      "exhaustAvgTempC": 340
+    },
+    "workDoneSummary": "Servis 500 jam selesai dengan hasil memuaskan. Tekanan oli stabil di 4.8 bar. Seluruh celah klep disetel ulang sesuai standar manual maker Yanmar.",
+    "serviceCost": 0
+  }
+];
+
+// Buku Jurnal Harian Mesin (Daily Machinery Logbook)
+export const INITIAL_DAILY_MACHINERY_LOGS = [
+  {
+    "id": "dml-2026-09-20",
+    "vesselId": "v-001",
+    "logDate": "2026-09-20",
+    "chiefEngineer": "Ir. Bambang Wijaya (KKM)",
+    "loggedBy": "Kurniawan (Masinis 2)",
+    "verifiedByCaptain": true,
+    "entries": [
+      { "equipmentId": "eq-101", "name": "Main Engine Port", "addedHours": 14, "cumulativeHours": 4200, "oilPressure": 4.8, "waterTemp": 78, "exhaustTemp": 340, "notes": "Operasi normal towing tongkang" },
+      { "equipmentId": "eq-102", "name": "Main Engine Starboard", "addedHours": 14, "cumulativeHours": 4350, "oilPressure": 4.7, "waterTemp": 79, "exhaustTemp": 345, "notes": "Operasi normal putaran 720 RPM" },
+      { "equipmentId": "eq-103", "name": "Auxiliary Generator #1", "addedHours": 18, "cumulativeHours": 2480, "oilPressure": 4.5, "waterTemp": 80, "exhaustTemp": 290, "notes": "Beban listrik 65 kVA stabil" },
+      { "equipmentId": "eq-105", "name": "Air Compressor #1", "addedHours": 2, "cumulativeHours": 2490, "oilPressure": 4.2, "waterTemp": 65, "exhaustTemp": 70, "notes": "Pengisian tabung angin 30 bar" }
+    ]
+  }
+];
+
+// Pengujian Peralatan Kritis & Darurat (Critical Equipment Test ISM 10.3)
+export const INITIAL_CRITICAL_EQUIPMENT_TESTS = [
+  {
+    "id": "cet-01",
+    "vesselId": "v-001",
+    "equipmentId": "eq-103",
+    "equipmentName": "Emergency Generator Cummins 120 kVA",
+    "testCategory": "Generator Darurat (Emergency Generator)",
+    "testTitle": "Pengujian Mingguan Auto-Start & Beban Generator Darurat",
+    "testDate": "2026-09-18",
+    "intervalDays": 7,
+    "nextTestDue": "2026-09-25",
+    "conductedBy": "Kurniawan (Masinis 2)",
+    "verifiedByChief": "Ir. Bambang Wijaya (KKM)",
+    "testResult": "Pass / Berfungsi Baik",
+    "loadTestDurationMinutes": 30,
+    "voltageObserved": 380,
+    "frequencyObserved": 50.2,
+    "observations": "Simulasi pemadaman (blackout) berhasil. Generator darurat auto-start dalam 12 detik. Beban lampu darurat & radio bekerja normal."
+  },
+  {
+    "id": "cet-02",
+    "vesselId": "v-001",
+    "equipmentId": "eq-106",
+    "equipmentName": "Emergency Fire Pump Yanmar Diesel",
+    "testCategory": "Pompa Pemadam Darurat (Fire Pump)",
+    "testTitle": "Uji Pompa Pemadam Darurat & Tekanan Hydrant Geladak",
+    "testDate": "2026-09-15",
+    "intervalDays": 14,
+    "nextTestDue": "2026-09-29",
+    "conductedBy": "Suryadi Pratama (ABK)",
+    "verifiedByChief": "Ir. Bambang Wijaya (KKM)",
+    "testResult": "Pass / Berfungsi Baik",
+    "loadTestDurationMinutes": 20,
+    "pressureObservedBar": 6.5,
+    "observations": "Pancaran air nozel hydrant geladak utama mencapai lebih dari 15 meter. Mesin diesel pompa darurat menyala lancar tarikan pertama."
+  },
+  {
+    "id": "cet-03",
+    "vesselId": "v-001",
+    "equipmentId": "eq-107",
+    "equipmentName": "Quick Closing Valve Tangki Harian BBM",
+    "testCategory": "Quick Closing Valve (QCV)",
+    "testTitle": "Uji Tarik Kawat Pneumatik Emergency Fuel Shut-off",
+    "testDate": "2026-09-10",
+    "intervalDays": 30,
+    "nextTestDue": "2026-10-10",
+    "conductedBy": "Ir. Bambang Wijaya (KKM)",
+    "verifiedByChief": "Capt. Hendra Gunawan, M.Mar",
+    "testResult": "Pass / Berfungsi Baik",
+    "observations": "Klep penutup cepat tangki solar harian menutup rapat seketika saat tuas darurat luar kamar mesin ditarik."
+  },
+  {
+    "id": "cet-04",
+    "vesselId": "v-001",
+    "equipmentId": "eq-108",
+    "equipmentName": "Steering Gear Dual Hydraulic Pump",
+    "testCategory": "Sistem Kemudi Darurat (Emergency Steering)",
+    "testTitle": "Uji Transisi Pompa Kemudi Darurat & Waktu Cikar Kemudi",
+    "testDate": "2026-09-12",
+    "intervalDays": 30,
+    "nextTestDue": "2026-10-12",
+    "conductedBy": "Kurniawan (Masinis 2)",
+    "verifiedByChief": "Capt. Hendra Gunawan, M.Mar",
+    "testResult": "Pass / Berfungsi Baik",
+    "observations": "Waktu pergerakan daun kemudi dari cikar kanan 35° ke cikar kiri 30° tercapai dalam 22 detik (standar SOLAS maks 28 detik)."
+  }
+];
+
 export const INITIAL_WORK_ORDERS = [
   {
     "id": "REQ-2026-001",

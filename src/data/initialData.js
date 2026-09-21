@@ -19,8 +19,64 @@ export const INITIAL_EQUIPMENT = [];
 // 3. Aturan Interval Jadwal PMS - Kosong
 export const INITIAL_MAINTENANCE_SCHEDULES = [];
 
-// 4. Perintah Kerja (Work Orders) - Kosong
+// 4. Perintah Kerja Teknis Servis Mesin (Technical Work Orders) - Kosong
+export const INITIAL_TECHNICAL_WORK_ORDERS = [];
+
+// Legacy Work Orders (kompatibilitas backward)
 export const INITIAL_WORK_ORDERS = [];
+
+// 4B. Buku Jurnal Harian Mesin (Daily Machinery Logs) - Kosong
+export const INITIAL_DAILY_MACHINERY_LOGS = [];
+
+// 4C. Pengujian Peralatan Kritis & Darurat (ISM 10.3 Critical Tests) - Kosong
+export const INITIAL_CRITICAL_EQUIPMENT_TESTS = [];
+
+// 4D. Standar Safe Manning Pengawakan Kapal (BKI / DJPL)
+export const DEFAULT_SAFE_MANNING_STANDARDS = [
+  {
+    vesselType: 'Tugboat',
+    grossTonnageRange: '100 - 500 GT',
+    enginePowerRange: '> 1000 BHP',
+    positions: [
+      { id: 'sm-tb-1', rankTitle: 'Nakhoda / Master', requiredCoc: 'ANT-IV / ANT-III', requiredCop: 'BST, AFF, MEFA, SCRB', count: 1, department: 'Deck', mandatory: true },
+      { id: 'sm-tb-2', rankTitle: 'Mualim I / Chief Mate', requiredCoc: 'ANT-IV', requiredCop: 'BST, AFF, SCRB', count: 1, department: 'Deck', mandatory: true },
+      { id: 'sm-tb-3', rankTitle: 'KKM / Chief Engineer', requiredCoc: 'ATT-IV / ATT-III', requiredCop: 'BST, AFF, MEFA, SCRB', count: 1, department: 'Engine', mandatory: true },
+      { id: 'sm-tb-4', rankTitle: 'Masinis II / Second Engineer', requiredCoc: 'ATT-IV', requiredCop: 'BST, AFF', count: 1, department: 'Engine', mandatory: true },
+      { id: 'sm-tb-5', rankTitle: 'Juru Mudi / Able Seafarer Deck', requiredCoc: 'Rating Deck', requiredCop: 'BST, Watchkeeping Deck', count: 2, department: 'Deck', mandatory: true },
+      { id: 'sm-tb-6', rankTitle: 'Juru Minyak / Oiler Engine', requiredCoc: 'Rating Engine', requiredCop: 'BST, Watchkeeping Engine', count: 1, department: 'Engine', mandatory: true },
+      { id: 'sm-tb-7', rankTitle: 'Koki / Cook / Juru Masak', requiredCoc: 'Food Handling / Sertifikat Koki', requiredCop: 'BST', count: 1, department: 'Galley', mandatory: false }
+    ]
+  },
+  {
+    vesselType: 'Tongkang 300 Feet',
+    grossTonnageRange: 'Non-Self Propelled',
+    enginePowerRange: 'Unmanned / Non-Propelled',
+    positions: [
+      { id: 'sm-tk-1', rankTitle: 'Juru Mudi / Kelasi Tambat (Rigger)', requiredCoc: 'Rating Deck', requiredCop: 'BST', count: 2, department: 'Deck', mandatory: false }
+    ]
+  },
+  {
+    vesselType: 'Tongkang 330 Feet',
+    grossTonnageRange: 'Non-Self Propelled',
+    enginePowerRange: 'Unmanned / Non-Propelled',
+    positions: [
+      { id: 'sm-tk-2', rankTitle: 'Juru Mudi / Kelasi Tambat (Rigger)', requiredCoc: 'Rating Deck', requiredCop: 'BST', count: 2, department: 'Deck', mandatory: false }
+    ]
+  },
+  {
+    vesselType: 'LCT (Landing Craft Tank)',
+    grossTonnageRange: '500 - 1500 GT',
+    enginePowerRange: '> 1200 BHP',
+    positions: [
+      { id: 'sm-lct-1', rankTitle: 'Nakhoda / Master', requiredCoc: 'ANT-III', requiredCop: 'BST, AFF, MEFA, SCRB', count: 1, department: 'Deck', mandatory: true },
+      { id: 'sm-lct-2', rankTitle: 'Mualim I / Chief Mate', requiredCoc: 'ANT-IV / ANT-III', requiredCop: 'BST, AFF, SCRB', count: 1, department: 'Deck', mandatory: true },
+      { id: 'sm-lct-3', rankTitle: 'KKM / Chief Engineer', requiredCoc: 'ATT-III', requiredCop: 'BST, AFF, MEFA, SCRB', count: 1, department: 'Engine', mandatory: true },
+      { id: 'sm-lct-4', rankTitle: 'Masinis II / Second Engineer', requiredCoc: 'ATT-IV', requiredCop: 'BST, AFF', count: 1, department: 'Engine', mandatory: true },
+      { id: 'sm-lct-5', rankTitle: 'Juru Mudi / Able Seafarer Deck', requiredCoc: 'Rating Deck', requiredCop: 'BST, Watchkeeping', count: 2, department: 'Deck', mandatory: true },
+      { id: 'sm-lct-6', rankTitle: 'Juru Minyak / Oiler Engine', requiredCoc: 'Rating Engine', requiredCop: 'BST, Watchkeeping', count: 1, department: 'Engine', mandatory: true }
+    ]
+  }
+];
 
 // 5. Inventaris Suku Cadang & Logistik (Spareparts) - Kosong
 export const INITIAL_SPAREPARTS = [];

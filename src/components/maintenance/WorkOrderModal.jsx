@@ -5,8 +5,6 @@ import {
   Package,
   X,
   CheckCircle,
-  Clock,
-  User,
   Plus,
   Trash2,
   Printer,
@@ -16,12 +14,7 @@ import {
   FileText,
   Ship,
   Users,
-  AlertTriangle,
-  Calendar,
-  MapPin,
-  Sparkles,
-  ArrowLeft,
-  ChevronDown
+  ArrowLeft
 } from 'lucide-react';
 
 export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
@@ -968,7 +961,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
             {/* PRINTABLE LETTER CONTAINER */}
             <div className="modal-body" style={{ padding: '1.25rem' }}>
               <div
-                className="particulars-sheet"
+                className="particulars-sheet maritime-print-sheet"
                 style={{
                   background: '#ffffff',
                   color: '#0f172a',

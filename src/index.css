@@ -755,7 +755,7 @@ input::-webkit-calendar-picker-indicator {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm;
+    margin: 10mm 12mm 10mm 12mm;
   }
 
   *,
@@ -763,28 +763,37 @@ input::-webkit-calendar-picker-indicator {
   *::after {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
   html,
   body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 10pt;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    font-size: 9.5pt !important;
+    line-height: 1.35 !important;
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
-  /* 1. KETIKA MODAL AUDIT REPORT AKTIF: SEMBUNYIKAN 100% ELEMEN APLIKASI DI BACKGROUND */
+  /* 1. SEMBUNYIKAN KONTEN APLIKASI BACKGROUND JIKA SEDANG MENCETAK MODAL / SHEET RESMI */
   body.audit-report-printing-active #root,
   body.audit-report-printing-active .app-container,
-  body.audit-report-printing-active .main-content,
-  body.audit-report-printing-active .page-body,
-  body:has(.audit-report-portal) #root,
-  body:has(.audit-report-portal) .app-container,
-  body:has(.audit-report-sheet) #root,
-  body:has(.audit-report-sheet) .app-container {
+  body.particulars-printing-active #root > .app-container > aside,
+  body.particulars-printing-active #root > .app-container > header,
+  body:has(.maritime-print-sheet) #root > .app-container > aside,
+  body:has(.maritime-print-sheet) #root > .app-container > header,
+  body:has(.maritime-print-sheet) #root > .app-container > nav,
+  body:has(.maritime-print-sheet) .sidebar,
+  body:has(.maritime-print-sheet) .top-navbar,
+  body:has(.maritime-print-sheet) .urgency-banner,
+  body:has(.maritime-print-sheet) .navbar {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -794,30 +803,37 @@ input::-webkit-calendar-picker-indicator {
     overflow: hidden !important;
   }
 
-  /* 2. SEMBUNYIKAN ELEMEN KONTROL SCREEN LAINNYA */
+  /* 2. SEMBUNYIKAN SEMUA TOMBOL, NAVIGASI, & KONTROL LAYAR */
   .no-print,
   aside,
   header,
   nav,
   .sidebar,
   .urgency-banner,
+  .top-navbar,
   .navbar,
   button,
   .tab-btn,
+  .btn,
+  .btn-primary,
+  .btn-secondary,
   input,
   select,
   textarea {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* Sembunyikan modal overlay lain yang bukan audit report */
-  .modal-overlay:not(.audit-report-portal):not(:has(.particulars-sheet)) {
-    display: none !important;
-  }
-
-  /* 3. FLATTEN PORTAL & MODAL OVERLAY UNTUK PRINT BERSIH */
-  .audit-report-portal,
-  .audit-report-portal.modal-overlay {
+  /* 3. FLATTEN MODAL OVERLAY & CONTAINER UNTUK SEMUA SHEET CETAK MARITIM */
+  .modal-overlay,
+  .modal-overlay.audit-report-portal,
+  .modal-overlay:has(.maritime-print-sheet),
+  .modal-overlay:has(.particulars-sheet),
+  .modal-overlay:has(.technical-wo-print-sheet),
+  .modal-overlay:has(.safe-manning-print-sheet),
+  .modal-overlay:has(.critical-equipment-print-sheet),
+  .modal-overlay:has(.fleet-report-print-sheet),
+  .modal-overlay:has(.audit-report-sheet) {
     position: static !important;
     display: block !important;
     background: #ffffff !important;
@@ -835,6 +851,15 @@ input::-webkit-calendar-picker-indicator {
     z-index: auto !important;
   }
 
+  /* Sembunyikan modal overlay lain yang TIDAK memiliki dokumen cetak aktif */
+  .modal-overlay:not(:has(.maritime-print-sheet, .particulars-sheet, .technical-wo-print-sheet, .safe-manning-print-sheet, .critical-equipment-print-sheet, .fleet-report-print-sheet, .audit-report-sheet)):not(.audit-report-portal) {
+    display: none !important;
+  }
+
+  /* Flatten modal dialog inside */
+  .modal-dialog,
+  .modal-overlay .modal-dialog,
+  .modal-overlay .glass-card,
   .audit-report-portal .modal-dialog {
     position: static !important;
     display: block !important;
@@ -851,6 +876,20 @@ input::-webkit-calendar-picker-indicator {
     height: auto !important;
   }
 
+  .modal-header,
+  .modal-footer {
+    display: none !important;
+  }
+
+  .modal-body {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Container wrapper audit report */
   .audit-print-container {
     background: #ffffff !important;
     padding: 0 !important;
@@ -861,7 +900,13 @@ input::-webkit-calendar-picker-indicator {
     max-height: none !important;
   }
 
-  /* 4. A4 PAPER SHEET ISOLATION */
+  /* 4. SHEET DOKUMEN MARITIM A4 RESMI */
+  .maritime-print-sheet,
+  .particulars-sheet,
+  .technical-wo-print-sheet,
+  .safe-manning-print-sheet,
+  .critical-equipment-print-sheet,
+  .fleet-report-print-sheet,
   .audit-report-sheet {
     box-shadow: none !important;
     max-width: 100% !important;
@@ -873,40 +918,53 @@ input::-webkit-calendar-picker-indicator {
     color: #0f172a !important;
     overflow: visible !important;
     page-break-inside: auto;
+    display: block !important;
   }
 
-  /* 5. PAGE BREAK PROTECTION (PENCEGAH HALAMAN TERPOTONG) */
-  .audit-report-kop {
+  /* 5. PROTEKSI KOP & SECTION PENCEGAH HALAMAN TERPOTONG */
+  .audit-report-kop,
+  .particulars-kop,
+  .maritime-print-kop,
+  .maritime-kop-container {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
-    margin-bottom: 14px !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 12px !important;
+    border-bottom: 3px double #0f172a !important;
   }
 
-  .audit-report-title {
+  .audit-report-title,
+  .maritime-report-title {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: avoid !important;
     break-after: avoid !important;
-    margin-bottom: 14px !important;
+    margin-bottom: 12px !important;
   }
 
-  .audit-section-header {
+  .audit-section-header,
+  .maritime-section-header {
     page-break-after: avoid !important;
     break-after: avoid !important;
   }
 
-  .audit-signature-block {
+  .audit-signature-block,
+  .particulars-signatures,
+  .maritime-signature-block,
+  .maritime-sign-grid {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    margin-top: 20px !important;
+    margin-top: 18px !important;
   }
 
-  .audit-footer-note {
+  .audit-footer-note,
+  .particulars-footer-note,
+  .maritime-footer-note {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    margin-top: 24px !important;
+    margin-top: 16px !important;
   }
 
   .audit-watermark {
@@ -915,7 +973,7 @@ input::-webkit-calendar-picker-indicator {
     color: rgba(16, 185, 129, 0.25) !important;
   }
 
-  /* 6. TABEL DAN KOTAK METRIK */
+  /* 6. TABEL & ELEMEN DATA CETAK RESMI */
   table {
     page-break-inside: auto;
     border-collapse: collapse !important;
@@ -923,11 +981,11 @@ input::-webkit-calendar-picker-indicator {
   }
 
   thead {
-    display: table-header-group;
+    display: table-header-group !important;
   }
 
   tfoot {
-    display: table-footer-group;
+    display: table-footer-group !important;
   }
 
   tr {
@@ -940,36 +998,9 @@ input::-webkit-calendar-picker-indicator {
     border-color: #cbd5e1 !important;
   }
 
-  /* 7. DUKUNGAN CETAK DOKUMEN PARTICULARS KAPAL RESMI (A4 MARITIM) */
+  /* 7. DUKUNGAN KHUSUS PARTICULARS KAPAL */
   .particular-section-screen-hidden {
     display: block !important;
-  }
-
-  body:has(.particulars-sheet) aside,
-  body:has(.particulars-sheet) header,
-  body:has(.particulars-sheet) nav,
-  body:has(.particulars-sheet) .sidebar,
-  body:has(.particulars-sheet) .urgency-banner,
-  body:has(.particulars-sheet) .top-navbar,
-  body:has(.particulars-sheet) .navbar,
-  body:has(.particulars-sheet) .glass-card.no-print,
-  body:has(.particulars-sheet) .no-print,
-  body.particulars-printing-active aside,
-  body.particulars-printing-active header,
-  body.particulars-printing-active nav,
-  body.particulars-printing-active .sidebar,
-  body.particulars-printing-active .urgency-banner,
-  body.particulars-printing-active .top-navbar,
-  body.particulars-printing-active .navbar,
-  body.particulars-printing-active .glass-card.no-print,
-  body.particulars-printing-active .no-print {
-    display: none !important;
-    visibility: hidden !important;
-    height: 0 !important;
-    max-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
   }
 
   body:has(.particulars-sheet) .main-content,
@@ -986,29 +1017,6 @@ input::-webkit-calendar-picker-indicator {
     width: 100% !important;
     max-width: 100% !important;
     overflow: visible !important;
-  }
-
-  .particulars-sheet {
-    box-shadow: none !important;
-    border: none !important;
-    background: #ffffff !important;
-    color: #0f172a !important;
-    padding: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    page-break-inside: auto;
-  }
-
-  .particulars-kop {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    page-break-after: avoid !important;
-    break-after: avoid !important;
-    padding-bottom: 12px !important;
-    margin-bottom: 14px !important;
-    border-bottom: 3px double #0f172a !important;
   }
 
   .particulars-showcase {
@@ -1059,18 +1067,15 @@ input::-webkit-calendar-picker-indicator {
     font-weight: 700 !important;
   }
 
-  .particulars-signatures {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    margin-top: 18px !important;
-    border-top: 1.5px dashed #94a3b8 !important;
-    padding-top: 12px !important;
+  /* Utility Page Breaks */
+  .print-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
   }
 
-  .particulars-footer-note {
+  .print-avoid-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    margin-top: 20px !important;
   }
 
   .glass-card {

@@ -11,9 +11,7 @@ import {
   Radio,
   Shield,
   Users,
-  Search,
-  Check,
-  AlertCircle
+  Search
 } from 'lucide-react';
 import { PARTICULAR_SECTIONS, createDefaultShipParticulars } from '../../data/shipParticularsData';
 

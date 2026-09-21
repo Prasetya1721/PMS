@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Download, ExternalLink, FileText, ZoomIn, ZoomOut, RotateCw, CheckCircle, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Download, ExternalLink, FileText, ZoomIn, ZoomOut, RotateCw, ShieldCheck } from 'lucide-react';
 
 export const DocumentPreviewModal = ({ document: doc, onClose }) => {
   const [zoom, setZoom] = useState(1);

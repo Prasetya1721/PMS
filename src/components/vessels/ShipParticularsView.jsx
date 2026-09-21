@@ -13,10 +13,6 @@ import {
   Shield,
   Users,
   FileText,
-  Clock,
-  ShieldCheck,
-  CheckCircle2,
-  AlertTriangle,
   Award
 } from 'lucide-react';
 import { PARTICULAR_SECTIONS, createDefaultShipParticulars } from '../../data/shipParticularsData';
@@ -159,7 +155,7 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
       </div>
 
       {/* Official Certificate Card Container */}
-      <div className="glass-card particulars-sheet" style={{
+      <div className="glass-card particulars-sheet maritime-print-sheet" style={{
         padding: '2rem 2.25rem',
         borderRadius: '16px',
         border: '1px solid rgba(56, 189, 248, 0.25)',

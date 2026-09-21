@@ -1,28 +1,30 @@
 import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
-  Wrench,
   Clock,
   Plus,
   Search,
   Filter,
   AlertTriangle,
-  CheckCircle,
   Cpu,
-  Layers,
-  Sparkles,
   Edit2,
   Trash2,
   Ship,
   CheckCircle2,
   Activity,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 import { RunningHoursModal } from './RunningHoursModal';
 import { EquipmentFormModal } from './EquipmentFormModal';
+import { DailyMachineryLogModal } from './DailyMachineryLogModal';
+import { CriticalEquipmentView } from './CriticalEquipmentView';
 
 export const EquipmentList = () => {
   const { equipment, vessels, selectedVesselId, deleteEquipment, theme } = usePMS();
+  const [activeTab, setActiveTab] = useState('machinery'); // 'machinery' | 'critical'
+  const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [vesselFilter, setVesselFilter] = useState('ALL');
@@ -90,12 +92,23 @@ export const EquipmentList = () => {
             </span>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-            Pelacakan jam kerja mesin, interval servis PMS terstandarisasi, hierarki komponen suku cadang, dan formulir master mesin
+            Pelacakan jam kerja mesin, interval servis PMS terstandarisasi, pengujian mesin kritis ISM Code 10.3, dan log harian
           </p>
         </div>
 
-        {/* Action Button: Tambah Equipment */}
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setIsDailyLogModalOpen(true)}
+            className="btn btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 1.1rem', fontWeight: 600 }}
+            title="Catat jam kerja harian serentak untuk semua mesin di kapal"
+          >
+            <BookOpen size={17} color="#0284c7" />
+            <span>Buku Jurnal Harian (Daily Log)</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -110,6 +123,35 @@ export const EquipmentList = () => {
           </button>
         </div>
       </div>
+
+      {/* Sub Tabs: Machinery List vs Critical Equipment (ISM Code 10.3) */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('machinery')}
+          className={`btn ${activeTab === 'machinery' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.88rem' }}
+        >
+          <Cpu size={16} />
+          <span>Daftar Mesin & Running Hours</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('critical')}
+          className={`btn ${activeTab === 'critical' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.88rem' }}
+        >
+          <ShieldAlert size={16} />
+          <span>Peralatan Kritis & Uji Darurat (ISM 10.3)</span>
+        </button>
+      </div>
+
+      {/* Render active subtab */}
+      {activeTab === 'critical' ? (
+        <CriticalEquipmentView selectedVesselId={selectedVesselId} />
+      ) : (
+        <>
 
       {/* KPI Cards Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
@@ -456,6 +498,9 @@ export const EquipmentList = () => {
         </div>
       </div>
 
+        </>
+      )}
+
       {/* MODAL 1: Log Running Hours Modal */}
       {selectedEqForHours && (
         <RunningHoursModal
@@ -473,6 +518,14 @@ export const EquipmentList = () => {
             setIsFormModalOpen(false);
             setEditingEquipment(null);
           }}
+        />
+      )}
+
+      {/* MODAL 3: Batch Daily Machinery Logbook Modal */}
+      {isDailyLogModalOpen && (
+        <DailyMachineryLogModal
+          initialVesselId={selectedVesselId !== 'all' ? selectedVesselId : undefined}
+          onClose={() => setIsDailyLogModalOpen(false)}
         />
       )}
     </div>

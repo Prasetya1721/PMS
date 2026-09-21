@@ -13,30 +13,19 @@ import {
   Edit2,
   Trash2,
   Download,
-  CheckCircle2,
   AlertTriangle,
-  XCircle,
-  Clock,
   RefreshCw,
-  FileSpreadsheet,
-  Layers,
   ClipboardCheck,
   FileText,
   Wrench,
-  Package,
-  Calendar,
   X,
   Save,
-  Check,
   UserCheck,
   UserPlus,
   Key,
-  Lock,
   Eye,
   EyeOff,
-  Shield,
   ChevronRight,
-  Copy,
   Mail,
   Phone
 } from 'lucide-react';
@@ -44,8 +33,8 @@ import { DocumentFormModal } from '../documents/DocumentFormModal';
 import { DocumentPreviewModal } from '../documents/DocumentPreviewModal';
 import { ParticularsModal } from '../vessels/ParticularsModal';
 import { MasterCombobox } from '../common/MasterCombobox';
+import { DataSyncModal } from './DataSyncModal';
 import {
-  DEFAULT_MASTER_SURVEY_TYPES,
   DEFAULT_MASTER_CERTIFICATE_NAMES,
   SAMPLE_MARITIME_SURVEY_PRESETS
 } from '../../data/shipCertificatesMaster';
@@ -100,6 +89,9 @@ export const MasterDataAdmin = () => {
   } = usePMS();
 
   const [activeTab, setActiveTab] = useState('audit'); // 'vessels' | 'crew' | 'documents' | 'categories' | 'surveyTypes' | 'certNames' | 'users' | 'audit'
+
+  // Ship-to-shore sync & DB backup modal
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   // In-app Action Confirmation Modal State (No window.confirm!)
   const [actionConfirmModal, setActionConfirmModal] = useState(null);
@@ -818,9 +810,26 @@ export const MasterDataAdmin = () => {
               <Database size={14} />
               <span>Muat Data Demo</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setShowSyncModal(true)}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                borderColor: '#0284c7',
+                color: '#0284c7',
+                fontWeight: 600
+              }}
+              title="Sinkronisasi paket data offline kapal-darat (IMO ISM) dan restore/backup database penuh"
+            >
+              <RefreshCw size={14} />
+              <span>Sinkronisasi Kapal-Darat & Backup</span>
+            </button>
             <button onClick={handleDownloadBackupJSON} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <Download size={14} />
-              <span>Backup Database JSON</span>
+              <span>Backup JSON Cepat</span>
             </button>
             <button onClick={handleReaudit} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <RefreshCw size={14} className={isReauditing ? 'spin-animation' : ''} />
@@ -3841,6 +3850,11 @@ export const MasterDataAdmin = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal: Ship-to-Shore Sync & Full Database Backup */}
+      {showSyncModal && (
+        <DataSyncModal onClose={() => setShowSyncModal(false)} />
       )}
     </div>
   );

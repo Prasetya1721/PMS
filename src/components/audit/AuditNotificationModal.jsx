@@ -8,15 +8,10 @@ import {
   Copy,
   Clock,
   CheckCircle2,
-  AlertTriangle,
-  User,
-  Phone,
-  Ship,
-  Building2,
   Check,
   Zap
 } from 'lucide-react';
-import { calculateNCRange, formatIndoDate } from '../../utils/auditTimeUtils';
+import { calculateNCRange } from '../../utils/auditTimeUtils';
 
 export const AuditNotificationModal = ({ finding, onClose }) => {
   const { vessels, sendAuditWhatsAppNotification, sendAuditEmailNotification, showToast, theme } = usePMS();

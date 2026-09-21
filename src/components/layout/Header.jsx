@@ -6,8 +6,6 @@ import {
   Search,
   Bell,
   RefreshCw,
-  SlidersHorizontal,
-  Compass,
   Sun,
   Moon
 } from 'lucide-react';
