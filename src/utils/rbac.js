@@ -53,18 +53,18 @@ export const ROLE_DEFINITIONS = {
 };
 
 // Matriks Hak Akses Modul per Peran (12 Modul)
-// 'dashboard' | 'fleet' | 'audit' | 'equipment' | 'maintenance' | 'spareparts' | 'costs' | 'crew' | 'documents' | 'notifications' | 'reports' | 'master'
+// 'dashboard' | 'fleet' | 'audit' | 'documents' | 'equipment' | 'maintenance' | 'spareparts' | 'costs' | 'crew' | 'notifications' | 'reports' | 'master'
 export const ROLE_PERMISSIONS = {
   'Super Admin': [
     'dashboard',
     'fleet',
     'audit',
+    'documents',
     'equipment',
     'maintenance',
     'spareparts',
     'costs',
     'crew',
-    'documents',
     'notifications',
     'reports',
     'master',
@@ -75,12 +75,12 @@ export const ROLE_PERMISSIONS = {
     'dashboard',
     'fleet',
     'audit',
+    'documents',
     'equipment',
     'maintenance',
     'spareparts',
     'costs',
     'crew',
-    'documents',
     'notifications',
     'reports',
   ],
@@ -88,11 +88,11 @@ export const ROLE_PERMISSIONS = {
     'dashboard',
     'fleet',
     'audit',
+    'documents',
     'equipment',
     'maintenance',
     'spareparts',
     'crew',
-    'documents',
     'notifications',
     'reports',
   ],

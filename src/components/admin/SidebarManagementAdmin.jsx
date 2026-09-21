@@ -14,13 +14,13 @@ import { ROLE_DEFINITIONS, ROLE_PERMISSIONS } from '../../utils/rbac';
 const ALL_MODULES = [
   { id: 'dashboard', label: 'Dashboard Utama & Ringkasan', desc: 'Statistik armada, peta radar kapal, grafik operasional' },
   { id: 'fleet', label: 'Daftar Armada Kapal', desc: 'Database kapal tunda (tugboat), tongkang, sertifikat & spesifikasi' },
+  { id: 'audit', label: 'Audit ISM & Safety Internal', desc: 'Checklist kepatuhan ISM Code, temuan inspeksi kapal, verifikasi' },
+  { id: 'documents', label: 'Radar Sertifikat & Dokumen', desc: 'Pelacak masa berlaku sertifikat kapal (BKI, Hubla) & kru (STCW)' },
   { id: 'equipment', label: 'Peralatan & Running Hours', desc: 'Jam kerja mesin utama, genset, kompresor, dan pompa' },
   { id: 'maintenance', label: 'Maintenance & Work Orders', desc: 'Jadwal servis berkala, checklist perawatan, penugasan teknisi' },
   { id: 'spareparts', label: 'Inventaris & Spare Parts', desc: 'Stok suku cadang kamar mesin, minimum buffer, purchasing request' },
   { id: 'costs', label: 'Manajemen Biaya & Anggaran', desc: 'Pencatatan pengeluaran servis, docking, spareparts per kapal' },
   { id: 'crew', label: 'Manajemen Kru & Personalia', desc: 'Data nakhoda, ABK, KKM, mutasi kru, dan absensi harian' },
-  { id: 'documents', label: 'Radar Sertifikat & Dokumen', desc: 'Pelacak masa berlaku sertifikat kapal (BKI, Hubla) & kru (STCW)' },
-  { id: 'audit', label: 'Audit ISM & Safety Internal', desc: 'Checklist kepatuhan ISM Code, temuan inspeksi kapal, verifikasi' },
   { id: 'notifications', label: 'Reminder & Notifikasi WA', desc: 'Pengingat otomatis sertifikat expired dan servis mesin lewat WA' },
   { id: 'reports', label: 'Laporan & Ekspor Data', desc: 'Ekspor laporan operasional bulanan format PDF & Excel' },
   { id: 'master', label: 'Data Master (Admin)', desc: 'Pengaturan master kapal, jenis peralatan, dan template dokumen' }

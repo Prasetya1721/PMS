@@ -53,6 +53,13 @@ export const Sidebar = () => {
       badge: openNCCount > 0 ? `${openNCCount} NC` : null,
       badgeType: 'warning'
     },
+    {
+      id: 'documents',
+      label: 'Sertifikat & Dokumen',
+      icon: FileCheck,
+      badge: expiredDocsCount > 0 ? expiredDocsCount : null,
+      badgeType: 'danger-pulse'
+    },
     { id: 'equipment', label: 'Equipment & Running Hours', icon: Wrench },
     {
       id: 'maintenance',
@@ -70,13 +77,6 @@ export const Sidebar = () => {
     },
     { id: 'costs', label: 'Biaya & Anggaran Kapal', icon: DollarSign },
     { id: 'crew', label: 'Crew & Kehadiran', icon: Users },
-    {
-      id: 'documents',
-      label: 'Sertifikat & Dokumen',
-      icon: FileCheck,
-      badge: expiredDocsCount > 0 ? expiredDocsCount : null,
-      badgeType: 'danger-pulse'
-    },
     { id: 'notifications', label: 'Reminder & WA Bot', icon: BellRing },
     { id: 'reports', label: 'Laporan & Ekspor', icon: FileSpreadsheet },
     {
