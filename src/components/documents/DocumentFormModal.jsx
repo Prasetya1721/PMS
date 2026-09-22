@@ -611,15 +611,39 @@ const calculateReminderDate = (expDateStr, unit, value) => {
   }
 };
 
+const normalizeDateForInput = (dateVal) => {
+  if (!dateVal) return '';
+  if (typeof dateVal === 'string') {
+    const trimmed = dateVal.trim();
+    if (trimmed.includes('T')) return trimmed.split('T')[0];
+    if (trimmed.includes(' ')) return trimmed.split(' ')[0];
+    const m = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (m) {
+      const day = m[1].padStart(2, '0');
+      const month = m[2].padStart(2, '0');
+      const year = m[3];
+      return `${year}-${month}-${day}`;
+    }
+    return trimmed;
+  }
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+  } catch {}
+  return '';
+};
+
 const formatIndonesianDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
-    const parts = dateStr.split('-');
+    const cleanStr = typeof dateStr === 'string' && dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+    const parts = cleanStr.split('-');
     if (parts.length !== 3) return dateStr;
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const d = parseInt(parts[2], 10);
     const m = months[parseInt(parts[1], 10) - 1];
     const y = parts[0];
+    if (!m) return dateStr;
     return `${d} ${m} ${y}`;
   } catch (e) {
     return dateStr;
@@ -722,8 +746,8 @@ export const DocumentFormModal = ({
       issuer: initIssuer,
       placeOfIssue: initialData?.placeOfIssue || (port || 'Pontianak'),
       certificateTerm: initialData?.certificateTerm || 'Full Term (Definitif)',
-      issueDate: initialData?.issueDate || new Date().toISOString().split('T')[0],
-      expiryDate: initialData?.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      issueDate: normalizeDateForInput(initialData?.issueDate) || new Date().toISOString().split('T')[0],
+      expiryDate: normalizeDateForInput(initialData?.expiryDate) || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       mandatoryAuditor: initialData?.mandatoryAuditor || '',
       status: initialData?.status || 'Active',
       notificationReminders: DEFAULT_REMINDERS,
@@ -756,8 +780,8 @@ export const DocumentFormModal = ({
         issuer,
         placeOfIssue: initialData.placeOfIssue || (port || 'Pontianak'),
         certificateTerm: initialData.certificateTerm || 'Full Term (Definitif)',
-        issueDate: initialData.issueDate || new Date().toISOString().split('T')[0],
-        expiryDate: initialData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        issueDate: normalizeDateForInput(initialData.issueDate) || new Date().toISOString().split('T')[0],
+        expiryDate: normalizeDateForInput(initialData.expiryDate) || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         mandatoryAuditor: initialData.mandatoryAuditor || '',
         status: initialData.status || 'Active',
         notificationReminders: existingReminders,
@@ -2012,20 +2036,46 @@ export const DocumentFormModal = ({
               gap: '1rem'
             }}>
               <div>
-                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8' }}>
-                  <Calendar size={14} />
-                  <span>Tanggal Penerbitan (Issue Date) *</span>
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#38bdf8', marginBottom: 0 }}>
+                    <Calendar size={14} />
+                    <span>Tanggal Penerbitan (Issue Date) *</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      setFormData(prev => ({ ...prev, issueDate: today }));
+                    }}
+                    className="btn btn-secondary"
+                    style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem', height: 'auto', background: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)' }}
+                    title="Set tanggal penerbitan ke hari ini"
+                  >
+                    Hari Ini
+                  </button>
+                </div>
                 <input
                   type="date"
                   required
-                  value={formData.issueDate}
+                  value={formData.issueDate || ''}
+                  onClick={(e) => {
+                    try { e.target.showPicker(); } catch (_) {}
+                  }}
                   onChange={(e) => setFormData(prev => ({ ...prev, issueDate: e.target.value }))}
                   className="input-control mono"
+                  style={{ cursor: 'pointer', fontWeight: 600 }}
+                  title="Klik untuk memilih tanggal dari kalender"
                 />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                  Tanggal resmi dokumen diterbitkan oleh instansi
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.3rem', fontSize: '0.72rem', flexWrap: 'wrap', gap: '0.2rem' }}>
+                  <span style={{ color: 'var(--text-subtle)' }}>
+                    Tanggal resmi instansi
+                  </span>
+                  {formData.issueDate && (
+                    <span style={{ color: '#38bdf8', fontWeight: 600, background: 'rgba(56, 189, 248, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                      📅 {formatIndonesianDate(formData.issueDate)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2046,20 +2096,81 @@ export const DocumentFormModal = ({
               </div>
 
               <div>
-                <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b' }}>
-                  <Calendar size={14} />
-                  <span>Tanggal Expired (Jatuh Tempo) *</span>
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label className="field-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b', marginBottom: 0 }}>
+                    <Calendar size={14} />
+                    <span>Tanggal Expired (Jatuh Tempo) *</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const base = new Date((formData.issueDate || new Date().toISOString().split('T')[0]) + 'T00:00:00');
+                          base.setFullYear(base.getFullYear() + 1);
+                          setFormData(prev => ({ ...prev, expiryDate: base.toISOString().split('T')[0] }));
+                        } catch (_) {}
+                      }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem', height: 'auto', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                      title="+1 Tahun (Annual Survey / Pas Tahunan)"
+                    >
+                      +1 Thn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const base = new Date((formData.issueDate || new Date().toISOString().split('T')[0]) + 'T00:00:00');
+                          base.setMonth(base.getMonth() + 30);
+                          setFormData(prev => ({ ...prev, expiryDate: base.toISOString().split('T')[0] }));
+                        } catch (_) {}
+                      }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem', height: 'auto', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                      title="+2.5 Tahun (Intermediate Survey / Dok)"
+                    >
+                      +2.5 Thn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const base = new Date((formData.issueDate || new Date().toISOString().split('T')[0]) + 'T00:00:00');
+                          base.setFullYear(base.getFullYear() + 5);
+                          setFormData(prev => ({ ...prev, expiryDate: base.toISOString().split('T')[0] }));
+                        } catch (_) {}
+                      }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.65rem', padding: '0.15rem 0.35rem', height: 'auto', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                      title="+5 Tahun (Renewal / Special Survey / Full Term)"
+                    >
+                      +5 Thn
+                    </button>
+                  </div>
+                </div>
                 <input
                   type="date"
                   required
-                  value={formData.expiryDate}
+                  value={formData.expiryDate || ''}
+                  onClick={(e) => {
+                    try { e.target.showPicker(); } catch (_) {}
+                  }}
                   onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
                   className="input-control mono"
+                  style={{ cursor: 'pointer', fontWeight: 600 }}
+                  title="Klik untuk memilih tanggal dari kalender"
                 />
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-subtle)', marginTop: '0.2rem', display: 'block' }}>
-                  Batas akhir masa berlaku / survei berkala
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.3rem', fontSize: '0.72rem', flexWrap: 'wrap', gap: '0.2rem' }}>
+                  <span style={{ color: 'var(--text-subtle)' }}>
+                    Batas akhir masa berlaku
+                  </span>
+                  {formData.expiryDate && (
+                    <span style={{ color: '#f59e0b', fontWeight: 600, background: 'rgba(245, 158, 11, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                      📅 {formatIndonesianDate(formData.expiryDate)}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2415,9 +2526,13 @@ export const DocumentFormModal = ({
                       <input
                         type="date"
                         value={manualCustomDate || calculateReminderDate(formData.expiryDate, 'month', 1) || ''}
+                        onClick={(e) => {
+                          try { e.target.showPicker(); } catch (_) {}
+                        }}
                         onChange={(e) => setManualCustomDate(e.target.value)}
                         className="input-control mono"
-                        style={{ fontWeight: 700 }}
+                        style={{ fontWeight: 700, cursor: 'pointer' }}
+                        title="Klik untuk memilih tanggal dari kalender"
                       />
                     </div>
                   )}
