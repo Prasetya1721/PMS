@@ -22,6 +22,8 @@ import {
   isBKIOrganization,
   EXTERNAL_AUDIT_ORGANIZATIONS
 } from '../../data/auditMasterData';
+import { AuditInstitutionHeader, getInstitutionBranding } from './AuditInstitutionHeader';
+import { BkiShipboardChecklistReport } from './BkiShipboardChecklistReport';
 
 export const AuditReportModal = ({
   session,
@@ -187,35 +189,12 @@ export const AuditReportModal = ({
   // Determine official audit close date
   const officialCloseDate = activeFinding?.evidence?.closedDate || activeSession.targetCloseDate || '2026-03-10';
 
-  // Dynamic Institution Branding: Internal PBK vs Appointed External Organization
-  const rawAppointedOrg = activeSession.externalOrganization || activeFinding?.externalOrganization;
-  const appointedOrg = typeof rawAppointedOrg === 'object' && rawAppointedOrg !== null
-    ? (rawAppointedOrg.name || rawAppointedOrg.shortName || 'Badan Klasifikasi Terakreditasi')
-    : (rawAppointedOrg || 'Badan Klasifikasi Terakreditasi');
+  // Dynamic Institution Branding: Multi-Institution (BKI, KSOP, Ditjen Hubla, PBK, Custom)
+  const institutionBranding = getInstitutionBranding(activeSession, activeFinding);
+  const isBKI = institutionBranding.isBKI;
   const isExternal = activeSession.auditType === 'External' || activeFinding?.auditType === 'External';
-
-  // Institution details for Kop Surat
-  const institutionDetails = isExternal
-    ? {
-        name: appointedOrg.toUpperCase(),
-        tagline: 'AUTHORIZED RECOGNIZED ORGANIZATION (RO) / MARITIME STATUTORY AUDIT',
-        address: 'Kantor Operasional / Wilayah Pelabuhan Pontianak & Wilayah Barat Indonesia',
-        contact: 'Pemeriksaan Statutori Sertifikasi SMC / DOC ISM Code (IMO Res. A.741(18))',
-        logoText: appointedOrg.length <= 6 ? appointedOrg : 'RO-AUDIT',
-        formDoc: activeSession.reportId || activeFinding?.reportId || '0859-PK/ISM-SMC/2026',
-        revNo: 'Rev 05 / 2026',
-        authorityTag: appointedOrg
-      }
-    : {
-        name: 'PT. PELAYARAN BAHARIMAS KALIMANTAN',
-        tagline: 'SAFETY MANAGEMENT SYSTEM (SMS) • DPA & QHSE DEPARTMENT',
-        address: 'Komp. Pontianak Mall Blok D No. 8-9, Jl. Tanjungpura, Kota Pontianak 78122, Kalimantan Barat',
-        contact: 'Telp: (0561) 734567 • Email: dpa.baharimas@gmail.com / ism.safety@baharimas.co.id',
-        logoText: 'PBK',
-        formDoc: reportMode === 'checklist' ? '00954PK26_F23_14_06-2024 Rev05' : reportMode === 'session' ? 'PBK-SMM/FORM-AUD/08' : 'PBK-SMM/FORM-NCR/02',
-        revNo: 'Rev 05 / 2026',
-        authorityTag: 'Internal Pelayaran Baharimas Kalimantan'
-      };
+  const appointedOrg = institutionBranding.shortName || 'Badan Klasifikasi Terakreditasi';
+  const institutionDetails = institutionBranding;
 
   const modalContent = (
     <div className="audit-report-portal modal-overlay" style={{ zIndex: 12000, padding: '1rem', overflowY: 'auto' }}>
@@ -303,7 +282,7 @@ export const AuditReportModal = ({
                   fontWeight: reportMode === 'session' ? 700 : 500
                 }}
               >
-                1. Sesi Audit
+                1. Sesi Audit ({institutionBranding.shortName})
               </button>
               <button
                 type="button"
@@ -317,7 +296,7 @@ export const AuditReportModal = ({
                   fontWeight: reportMode === 'ncr' ? 700 : 500
                 }}
               >
-                2. Lembar NC / Observasi (Scanned Form)
+                2. Lembar NC / Observasi
               </button>
               <button
                 type="button"
@@ -328,10 +307,11 @@ export const AuditReportModal = ({
                   fontSize: '0.74rem',
                   borderRadius: '6px',
                   border: 'none',
-                  fontWeight: reportMode === 'checklist' ? 700 : 500
+                  fontWeight: reportMode === 'checklist' ? 700 : 500,
+                  color: isBKI ? '#0284c7' : undefined
                 }}
               >
-                3. SMS Shipboard Checklist (PDF)
+                {isBKI ? '3. Checklist Resmi BKI (Persis PDF Rev 05)' : `3. Checklist Audit ${institutionBranding.shortName}`}
               </button>
             </div>
 
@@ -422,15 +402,15 @@ export const AuditReportModal = ({
           {/* A4 PAPER CANVAS                                                         */}
           {/* ======================================================================= */}
           <div
-            className="audit-report-sheet maritime-print-sheet"
+            className={`audit-report-sheet maritime-print-sheet ${reportMode === 'checklist' && isBKI ? 'bki-sheet-mode' : ''}`}
             style={{
               width: '100%',
-              maxWidth: '860px',
+              maxWidth: reportMode === 'checklist' && isBKI ? '900px' : '860px',
               margin: '0 auto',
               background: '#ffffff',
               color: '#0f172a',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
-              padding: '2cm 1.8cm',
+              padding: reportMode === 'checklist' && isBKI ? '0.6cm 0.8cm' : '1.8cm 1.6cm',
               boxSizing: 'border-box',
               fontFamily: "'Arial', 'Segoe UI', sans-serif",
               fontSize: '10pt',
@@ -438,143 +418,85 @@ export const AuditReportModal = ({
               position: 'relative'
             }}
           >
-            {/* Watermark Stamp: VERIFIED CLOSED */}
-            <div
-              className="audit-watermark"
-              style={{
-                position: 'absolute',
-                top: '45%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) rotate(-25deg)',
-                border: '4px solid rgba(16, 185, 129, 0.15)',
-                color: 'rgba(16, 185, 129, 0.15)',
-                fontSize: '32pt',
-                fontWeight: 900,
-                textTransform: 'uppercase',
-                letterSpacing: '4px',
-                padding: '10px 30px',
-                borderRadius: '14px',
-                pointerEvents: 'none',
-                userSelect: 'none',
-                whiteSpace: 'nowrap',
-                textAlign: 'center',
-                zIndex: 0
-              }}
-            >
-              ISM CODE VERIFIED<br />
-              <span style={{ fontSize: '18pt', letterSpacing: '2px' }}>STATUS: NC CLOSED</span>
-            </div>
+            {/* Watermark Stamp: VERIFIED CLOSED (Hanya untuk Sesi Audit / NC Closeout) */}
+            {!(reportMode === 'checklist' && isBKI) && activeSession.status === 'Completed' && (
+              <div
+                className="audit-watermark"
+                style={{
+                  position: 'absolute',
+                  top: '45%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) rotate(-25deg)',
+                  border: '4px solid rgba(16, 185, 129, 0.15)',
+                  color: 'rgba(16, 185, 129, 0.15)',
+                  fontSize: '32pt',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '4px',
+                  padding: '10px 30px',
+                  borderRadius: '14px',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  zIndex: 0
+                }}
+              >
+                ISM CODE VERIFIED<br />
+                <span style={{ fontSize: '18pt', letterSpacing: '2px' }}>STATUS: NC CLOSED</span>
+              </div>
+            )}
 
             {/* ===================================================================== */}
-            {/* 1. OFFICIAL KOP SURAT (SESUAI INTERNAL BAHARIMAS ATAU EKSTERNAL)      */}
+            {/* 1. OFFICIAL KOP SURAT (SESUAI STANDAR MASING-MASING LEMBAGA: BKI, KSOP DLL) */}
             {/* ===================================================================== */}
-            <div
-              className="audit-report-kop"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingBottom: '10px',
-                borderBottom: '2.5px solid #000000',
-                marginBottom: '14px',
-                position: 'relative',
-                zIndex: 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {/* Logo Seal */}
-                <div
-                  style={{
-                    width: '58px',
-                    height: '58px',
-                    borderRadius: isExternal ? '6px' : '50%',
-                    background: isExternal ? '#047857' : '#0369a1',
-                    color: '#ffffff',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '2px solid #000000',
-                    flexShrink: 0
-                  }}
-                >
-                  {isExternal ? <ShieldCheck size={28} /> : <Ship size={28} />}
-                  <span style={{ fontSize: '5.5pt', fontWeight: 900, letterSpacing: '0.5px', marginTop: '1px' }}>
-                    {institutionDetails.logoText}
-                  </span>
-                </div>
-
-                <div>
-                  <h1
-                    style={{
-                      fontSize: '13pt',
-                      fontWeight: 900,
-                      margin: 0,
-                      color: '#000000',
-                      letterSpacing: '0.3px',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {institutionDetails.name}
-                  </h1>
-                  <p style={{ fontSize: '8pt', fontWeight: 700, margin: '2px 0', color: isExternal ? '#047857' : '#0369a1' }}>
-                    {institutionDetails.tagline}
-                  </p>
-                  <p style={{ fontSize: '7pt', margin: 0, color: '#334155', lineHeight: '1.25' }}>
-                    {institutionDetails.address}<br />
-                    {institutionDetails.contact}
-                  </p>
-                </div>
-              </div>
-
-              {/* Document Code & Reference */}
-              <div style={{ textAlign: 'right', fontSize: '7.5pt', color: '#1e293b', borderLeft: '1px solid #cbd5e1', paddingLeft: '10px' }}>
-                <div style={{ fontWeight: 800, color: '#000000', fontSize: '8pt' }}>FORMULIR RESMI AUDIT</div>
-                <div>Doc No: {institutionDetails.formDoc}</div>
-                <div>Revisi: {institutionDetails.revNo}</div>
-                <div>Lembaga: <strong>{institutionDetails.authorityTag}</strong></div>
-              </div>
-            </div>
+            {!(reportMode === 'checklist' && isBKI) && (
+              <AuditInstitutionHeader
+                branding={institutionBranding}
+                session={activeSession}
+                vessel={currentVessel}
+              />
+            )}
 
             {/* ===================================================================== */}
             {/* 2. DOCUMENT TITLE HEADER                                              */}
             {/* ===================================================================== */}
-            <div className="audit-report-title" style={{ textAlign: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-              <h2
-                style={{
-                  fontSize: '12pt',
-                  fontWeight: 900,
-                  margin: 0,
-                  textTransform: 'uppercase',
-                  color: '#000000',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                {reportMode === 'session'
-                  ? `LAPORAN HASIL AUDIT SISTEM MANAJEMEN KESELAMATAN (${activeSession.standard})`
-                  : reportMode === 'checklist'
-                  ? 'SMS SHIPBOARD CHECKLIST'
-                  : 'LAPORAN KETIDAKSESUAIAN / OBSERVASI'}
-              </h2>
-              <div
-                style={{
-                  fontSize: '8.5pt',
-                  fontWeight: 700,
-                  margin: '2px 0 0',
-                  color: isExternal ? '#047857' : '#0369a1',
-                  fontStyle: reportMode === 'ncr' ? 'italic' : 'normal'
-                }}
-              >
-                {reportMode === 'session'
-                  ? 'STANDAR ISM CODE — IMO RESOLUTION A.741(18) SEBAGAIMANA TELAH DIUBAH'
-                  : reportMode === 'checklist'
-                  ? (isBKISession
-                      ? '00954PK26_F23_14_06-2024 Rev05 • KEPATUHAN KAPAL DI LAUT (TERMASUK KLAUSUL A - E)'
-                      : `DAFTAR BUTIR PEMERIKSAAN AUDIT • ${checklistConfig.organizationName.toUpperCase()}`)
-                  : '(NON-CONFORMITY / OBSERVATION REPORT)'}
+            {!(reportMode === 'checklist' && isBKI) && (
+              <div className="audit-report-title" style={{ textAlign: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                <h2
+                  style={{
+                    fontSize: '12pt',
+                    fontWeight: 900,
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    color: '#000000',
+                    letterSpacing: '0.5px'
+                  }}
+                >
+                  {reportMode === 'session'
+                    ? (institutionBranding.docTitleId || `LAPORAN HASIL AUDIT SISTEM MANAJEMEN KESELAMATAN (${activeSession.standard})`)
+                    : reportMode === 'checklist'
+                    ? `DAFTAR BUTIR PEMERIKSAAN KELAIKLAUTAN (${institutionBranding.shortName})`
+                    : 'LAPORAN KETIDAKSESUAIAN / OBSERVASI'}
+                </h2>
+                <div
+                  style={{
+                    fontSize: '8.5pt',
+                    fontWeight: 700,
+                    margin: '2px 0 0',
+                    color: institutionBranding.primaryColor,
+                    fontStyle: reportMode === 'ncr' ? 'italic' : 'normal'
+                  }}
+                >
+                  {reportMode === 'session'
+                    ? (institutionBranding.docTitleEn || 'STATUTORY SAFETY MANAGEMENT AUDIT REPORT')
+                    : reportMode === 'checklist'
+                    ? (institutionBranding.docTitleEn || 'SAFETY INSPECTION CHECKLIST')
+                    : '(NON-CONFORMITY / OBSERVATION REPORT)'}
+                </div>
+                <div style={{ display: 'inline-block', borderBottom: '2px solid #000000', width: '90px', margin: '3px auto 0' }} />
               </div>
-              <div style={{ display: 'inline-block', borderBottom: '2px solid #000000', width: '90px', margin: '3px auto 0' }} />
-            </div>
+            )}
 
             {/* ===================================================================== */}
             {/* MODE 1: LAPORAN SESI AUDIT LENGKAP                                     */}
@@ -1080,311 +1002,161 @@ export const AuditReportModal = ({
             )}
 
             {/* ===================================================================== */}
-            {/* MODE 3: SMS SHIPBOARD CHECKLIST (PERSIS FORMAT PDF 10 HALAMAN)        */}
+            {/* MODE 3: SMS SHIPBOARD CHECKLIST                                       */}
             {/* ===================================================================== */}
             {reportMode === 'checklist' && (
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                {/* DATA PARTICULARS KAPAL (PERSIS HALAMAN 1 PDF) */}
-                <div style={{ marginBottom: '10px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7.5pt', border: '1.5px solid #000000' }}>
+              isBKI ? (
+                <BkiShipboardChecklistReport
+                  session={activeSession}
+                  vessel={currentVessel}
+                  liveChecklist={liveChecklist}
+                  findings={sessionFindings}
+                />
+              ) : (
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  {/* Notice Lembaga Non-BKI */}
+                  <div style={{
+                    padding: '6px 10px',
+                    background: '#f0fdf4',
+                    border: '1px solid #16a34a',
+                    borderRadius: '4px',
+                    marginBottom: '10px',
+                    fontSize: '7.5pt',
+                    color: '#166534',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <ShieldCheck size={16} color="#16a34a" />
+                    <span>
+                      <strong>Format Checklist {institutionBranding.shortName}:</strong> Pemeriksaan kelaiklautan dan keselamatan disesuaikan dengan standar regulasi {institutionBranding.authorityTag}.
+                    </span>
+                  </div>
+
+                  {/* Tabel checklist Non-BKI */}
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7.5pt', border: '1.5px solid #000000', marginBottom: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9' }}>
+                        <th style={{ padding: '5px 4px', border: '1px solid #000000', width: '7%', textAlign: 'center', fontWeight: 800 }}>No.</th>
+                        <th style={{ padding: '5px 8px', border: '1px solid #000000', width: '45%', textAlign: 'center', fontWeight: 800 }}>Butir Pemeriksaan / Clauses</th>
+                        <th style={{ padding: '5px 4px', border: '1px solid #000000', width: '6%', textAlign: 'center', fontWeight: 800 }}>Yes</th>
+                        <th style={{ padding: '5px 4px', border: '1px solid #000000', width: '6%', textAlign: 'center', fontWeight: 800 }}>No</th>
+                        <th style={{ padding: '5px 4px', border: '1px solid #000000', width: '6%', textAlign: 'center', fontWeight: 800 }}>N/A</th>
+                        <th style={{ padding: '5px 6px', border: '1px solid #000000', width: '22%', textAlign: 'center', fontWeight: 800 }}>Catatan / Remark</th>
+                        <th style={{ padding: '5px 4px', border: '1px solid #000000', width: '8%', textAlign: 'center', fontWeight: 800 }}>Ref. ISM</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      <tr style={{ background: '#f8fafc' }}>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700, width: '22%' }}>Nama Kapal / <em>Vessel's Name</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', width: '28%', fontWeight: 900, color: '#0369a1' }}>
-                          {activeSession.targetName || currentVessel?.name || 'TB. RP 2004'}
-                        </td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700, width: '22%' }}>Tanda Panggilan / <em>Call Sign</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', width: '28%', fontWeight: 800 }}>
-                          {currentVessel?.callSign || 'YD 4180'}
-                        </td>
-                      </tr>
+                      {reportChecklistItems.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} style={{ padding: '25px 15px', border: '1px solid #000000', textAlign: 'center', color: '#64748b' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '6px' }}>📋</div>
+                            <div style={{ fontWeight: 800, fontSize: '8.5pt', marginBottom: '4px' }}>
+                              Belum Ada Butir Checklist Tersusun
+                            </div>
+                            <div style={{ fontSize: '7.5pt' }}>
+                              Lembaga <strong>{institutionBranding.name}</strong> tidak menggunakan template statis BKI. Butir pemeriksaan disusun melalui menu &quot;+ Tambah Item Manual&quot; pada form sesi audit.
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        reportChecklistItems.map((chk, idx) => {
+                          const isStriked = Boolean(chk.isStrikethrough);
+                          const resultVal = chk.result || chk.defaultResult || '';
+                          const isYes = !isStriked && (resultVal === 'Yes' || resultVal === 'Complied');
+                          const isNo = !isStriked && ['No', 'Major NC', 'Minor NC', 'Observation'].includes(resultVal);
+                          const isNA = isStriked || resultVal === 'N/A';
+
+                          return (
+                            <tr key={chk.id || idx} style={{ background: isStriked ? '#fffbeb' : idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                              <td style={{ padding: '4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 700 }}>
+                                {chk.code || chk.no || idx + 1}
+                              </td>
+                              <td style={{ padding: '4px 6px', border: '1px solid #000000', verticalAlign: 'top', lineHeight: 1.4 }}>
+                                <div style={{ fontWeight: 700 }}>{chk.name || chk.item}</div>
+                                {chk.checkPoint && chk.checkPoint !== chk.name && (
+                                  <div style={{ fontSize: '6.8pt', color: '#475569', marginTop: '2px' }}>{chk.checkPoint}</div>
+                                )}
+                              </td>
+                              <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', fontSize: '11pt', fontWeight: 900 }}>
+                                {isYes ? '☒' : '☐'}
+                              </td>
+                              <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', fontSize: '11pt', fontWeight: 900, color: isNo ? '#dc2626' : undefined }}>
+                                {isNo ? '☒' : '☐'}
+                              </td>
+                              <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', fontSize: '11pt', fontWeight: 900, color: isNA ? '#64748b' : undefined }}>
+                                {isNA ? '☒' : '☐'}
+                              </td>
+                              <td style={{ padding: '4px 6px', border: '1px solid #000000', verticalAlign: 'top', fontSize: '7pt' }}>
+                                {chk.notes || chk.remark || '—'}
+                              </td>
+                              <td style={{ padding: '4px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700 }}>
+                                {chk.ismCode || '—'}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Signatures Non-BKI */}
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '7.5pt', marginTop: '12px', pageBreakInside: 'avoid' }}>
+                    <tbody>
                       <tr>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Nomor IMO / <em>IMO or Reg No.</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 800 }}>
-                          {currentVessel?.imo || currentVessel?.regNo || '1672810'}
+                        <td style={{ width: '50%', padding: '6px', verticalAlign: 'top' }}>
+                          <div style={{ fontWeight: 700, color: '#475569', marginBottom: '2px' }}>AUDITOR PELAKSANA:</div>
+                          <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ borderBottom: '1px solid #000000', padding: '2px 25px', fontStyle: 'italic', fontWeight: 800 }}>
+                              {activeSession.leadAuditorSign || activeSession.leadAuditor}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 800 }}>{activeSession.leadAuditorSign || activeSession.leadAuditor}</div>
+                          <div style={{ fontSize: '6.8pt', color: '#64748b' }}>{institutionBranding.authorityTag}</div>
                         </td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Tonase Kotor / <em>Gross Tonnage (GT)</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 800 }}>
-                          {currentVessel?.gt || '174'}
-                        </td>
-                      </tr>
-                      <tr style={{ background: '#f8fafc' }}>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Jenis Kapal / <em>Type of Ship</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000' }}>
-                          {currentVessel?.type || 'Tug Boat'} (Towing Oil Barge)
-                        </td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Pelabuhan Pendaftaran / <em>Port of Registry</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000' }}>
-                          {currentVessel?.portOfRegistry || 'PONTIANAK'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Nakhoda / <em>Master</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>
-                          {currentVessel?.masterCaptain || activeSession.auditee || 'CAPT. EKHSAN'}
-                        </td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Tanggal Audit / <em>Audit Date</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000' }}>
-                          {formatIndoDate(activeSession.auditDate)}
-                        </td>
-                      </tr>
-                      <tr style={{ background: '#f8fafc' }}>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Tempat Audit / <em>Place of Audit</em></td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000' }}>
-                          {activeSession.auditLocation || 'Dermaga Pontianak, Kalimantan Barat'}
-                        </td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700 }}>Lembaga Auditor</td>
-                        <td style={{ padding: '4px 6px', border: '1px solid #000000', fontWeight: 700, color: isExternal ? '#047857' : '#0369a1' }}>
-                          {isExternal ? appointedOrg : 'PT. Pelayaran Baharimas Kalimantan (Internal)'}
+                        <td style={{ width: '50%', padding: '6px', verticalAlign: 'top' }}>
+                          <div style={{ fontWeight: 700, color: '#475569', marginBottom: '2px' }}>NAKHODA / AUDITEE:</div>
+                          <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ borderBottom: '1px solid #000000', padding: '2px 25px', fontStyle: 'italic', fontWeight: 800 }}>
+                              {activeSession.auditeeSign || 'Capt. Ekhsan'}
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 800 }}>{activeSession.auditeeSign || 'CAPT. EKHSAN'}</div>
+                          <div style={{ fontSize: '6.8pt', color: '#64748b' }}>Master {activeSession.targetName || currentVessel?.name}</div>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
-
-                {/* NOTICE TENTANG KLAUSUL YANG DICORET */}
-                {(() => {
-                  const dynamicStruck = reportChecklistItems.filter(c => Boolean(c.isStrikethrough)).length;
-                  const dynamicCore = reportChecklistItems.length - dynamicStruck;
-                  const hasStruck = dynamicStruck > 0;
-                  const isChecked = isBKISession;
-                  return (
-                    <div style={{
-                      padding: '5px 8px',
-                      background: hasStruck ? '#fef3c7' : isChecked ? '#dcfce7' : '#e0f2fe',
-                      border: `1px solid ${hasStruck ? '#f59e0b' : isChecked ? '#16a34a' : '#0284c7'}`,
-                      borderRadius: '4px',
-                      marginBottom: '8px',
-                      fontSize: '7pt',
-                      color: hasStruck ? '#92400e' : isChecked ? '#166534' : '#075985',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <AlertTriangle size={13} color={hasStruck ? '#b45309' : isChecked ? '#15803d' : '#0369a1'} />
-                      <span>
-                        {isChecked ? (
-                          <>
-                            <strong>Catatan Pemenuhan Format PDF:</strong> Seluruh item checklist pada PDF {checklistConfig.docNumber || 'F23.14.06-2024 Rev 05'} diikutsertakan secara lengkap, termasuk bagian tambahan yang dicoret pada halaman 8-10, diberi tanda penanda coret dan status N/A. <em>({dynamicCore} butir aktif + {dynamicStruck} butir dicoret)</em>
-                          </>
-                        ) : (
-                          <>
-                            <strong>Checklist Lembaga {checklistConfig.organizationName}:</strong> {checklistConfig.note || 'Belum ada template checklist untuk lembaga ini karena format tiap lembaga berbeda.'}
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  );
-                })()}
-
-
-                {/* TABEL CHECKLIST FORMAT BKI — PERSIS PDF F23.14.06-2024 Rev 05 */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7pt', border: '1.5px solid #000000', marginBottom: '10px' }}>
-                  <thead>
-                    {/* Header Row 1: Kolom utama */}
-                    <tr style={{ background: '#f0f0f0' }}>
-                      <th rowSpan={2} style={{ padding: '4px 3px', border: '1px solid #000000', width: '6%', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, fontSize: '7pt' }}>No.</th>
-                      <th rowSpan={2} style={{ padding: '4px 6px', border: '1px solid #000000', width: '40%', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, fontSize: '7pt' }}>Items to be checked</th>
-                      <th colSpan={3} style={{ padding: '3px 2px', border: '1px solid #000000', width: '15%', textAlign: 'center', fontWeight: 800, fontSize: '7pt' }}>Result</th>
-                      <th rowSpan={2} style={{ padding: '4px 5px', border: '1px solid #000000', width: '27%', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, fontSize: '7pt' }}>
-                        Remark<br />
-                        <span style={{ fontWeight: 400, fontSize: '6pt', fontStyle: 'italic' }}>(details are to be specified in the field if the result is NO)</span>
-                      </th>
-                      <th rowSpan={2} style={{ padding: '4px 3px', border: '1px solid #000000', width: '12%', textAlign: 'center', verticalAlign: 'middle', fontWeight: 800, fontSize: '7pt' }}>ISM Code</th>
-                    </tr>
-                    {/* Header Row 2: Sub-kolom Yes / No / N/A */}
-                    <tr style={{ background: '#f0f0f0' }}>
-                      <th style={{ padding: '3px 2px', border: '1px solid #000000', width: '5%', textAlign: 'center', fontWeight: 700, fontSize: '6.5pt' }}>Yes</th>
-                      <th style={{ padding: '3px 2px', border: '1px solid #000000', width: '5%', textAlign: 'center', fontWeight: 700, fontSize: '6.5pt' }}>No</th>
-                      <th style={{ padding: '3px 2px', border: '1px solid #000000', width: '5%', textAlign: 'center', fontWeight: 700, fontSize: '6.5pt' }}>N/A</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Notice row — sesuai teks pada PDF BKI */}
-                    <tr>
-                      <td colSpan={7} style={{ padding: '3px 6px', border: '1px solid #000000', fontSize: '6.5pt', color: '#374151', fontStyle: 'italic', background: '#fffbeb' }}>
-                        Notice: The parts of checklist which are not used during audit should be deleted by lines appropriate according to the audit scope.
-                      </td>
-                    </tr>
-
-                    {reportChecklistItems.length === 0 && (
-                      <tr>
-                        <td colSpan={7} style={{ padding: '10px', border: '1px solid #000000', textAlign: 'center', color: '#64748b', fontStyle: 'italic' }}>
-                          Belum ada butir checklist untuk lembaga <strong>{checklistConfig.organizationName}</strong>. Format checklist antar lembaga berbeda, sehingga butir pemeriksaan perlu disusun terlebih dahulu pada modul Audit.
-                        </td>
-                      </tr>
-                    )}
-
-                    {(() => {
-                      let lastSection = null;
-                      let lastSubsection = null;
-                      const rows = [];
-
-                      reportChecklistItems.forEach((chk, idx) => {
-                        const isStriked = Boolean(chk.isStrikethrough);
-                        const section = chk.section || '';
-                        const subsection = chk.subsection || '';
-                        const no = chk.no || String(idx + 1);
-                        const resultVal = chk.result || chk.defaultResult || '';
-                        const isYes = !isStriked && (resultVal === 'Yes' || resultVal === 'Complied');
-                        const isNo = !isStriked && ['No', 'Major NC', 'Minor NC', 'Observation'].includes(resultVal);
-                        const isNA = isStriked || resultVal === 'N/A';
-                        const relatedFinding = sessionFindings.find(f =>
-                          f.clauseCode === chk.code || f.clauseCode === no
-                        );
-                        const isNC = Boolean(relatedFinding);
-
-                        // ── SECTION HEADER (dark navy, mis. "1  SHIPBOARD TOUR & GENERAL REQUIREMENT") ──
-                        if (section && section !== lastSection) {
-                          lastSection = section;
-                          lastSubsection = null;
-                          const secMatch = section.match(/^([\d.]+\.?)\s*(.*)/);
-                          rows.push(
-                            <tr key={`sec-${idx}`} style={{ background: '#1e293b' }}>
-                              <td style={{ padding: '4px 5px', border: '1px solid #374151', fontWeight: 900, color: '#ffffff', textAlign: 'center', fontSize: '7.5pt', verticalAlign: 'middle' }}>
-                                {secMatch ? secMatch[1] : ''}
-                              </td>
-                              <td colSpan={6} style={{ padding: '4px 8px', border: '1px solid #374151', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '7.5pt' }}>
-                                {secMatch ? secMatch[2] : section}
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        // ── SUBSECTION HEADER (light blue, mis. "1.1  Bridge") ──
-                        if (subsection && subsection !== lastSubsection) {
-                          lastSubsection = subsection;
-                          const subMatch = subsection.match(/^([\d.]+)\s*(.*)/);
-                          rows.push(
-                            <tr key={`sub-${idx}`} style={{ background: '#dbeafe' }}>
-                              <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800, color: '#1e3a8a', textAlign: 'center', fontSize: '7pt', verticalAlign: 'middle' }}>
-                                {subMatch ? subMatch[1] : ''}
-                              </td>
-                              <td colSpan={6} style={{ padding: '3px 8px', border: '1px solid #000000', fontWeight: 800, color: '#1e3a8a', fontSize: '7pt' }}>
-                                {subMatch ? subMatch[2] : subsection}
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        // ── ITEM ROW ──
-                        const rowBg = isStriked ? '#fffbeb' : isNC ? '#fff1f2' : idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-                        rows.push(
-                          <tr key={chk.id || `r${idx}`} style={{ background: rowBg }}>
-                            {/* No. */}
-                            <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 600, verticalAlign: 'middle', color: isStriked ? '#94a3b8' : '#374151', fontSize: '7pt', whiteSpace: 'nowrap' }}>
-                              <span style={{ textDecoration: isStriked ? 'line-through' : 'none' }}>{no}</span>
-                            </td>
-
-                            {/* Items to be checked */}
-                            <td style={{ padding: '3px 6px', border: '1px solid #000000', verticalAlign: 'top', lineHeight: '1.45', color: isStriked ? '#94a3b8' : '#111827', fontSize: '7pt' }}>
-                              <span style={{ textDecoration: isStriked ? 'line-through' : 'none' }}>
-                                {chk.item || chk.checkPoint || chk.name || '—'}
-                              </span>
-                              {isNC && (
-                                <div style={{ fontSize: '6pt', color: '#dc2626', fontWeight: 700, marginTop: '2px' }}>
-                                  ★ NC — Ref. Formulir NCR No. {relatedFinding?.findingNo}
-                                </div>
-                              )}
-                            </td>
-
-                            {/* Yes */}
-                            <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>
-                              {isYes && !isNC
-                                ? <span style={{ fontSize: '12pt', color: '#15803d', lineHeight: 1 }}>⊠</span>
-                                : <span style={{ fontSize: '12pt', color: '#94a3b8', lineHeight: 1 }}>□</span>}
-                            </td>
-
-                            {/* No */}
-                            <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>
-                              {(isNo || isNC) && !isStriked
-                                ? <span style={{ fontSize: '12pt', color: '#dc2626', lineHeight: 1 }}>⊠</span>
-                                : <span style={{ fontSize: '12pt', color: '#94a3b8', lineHeight: 1 }}>□</span>}
-                            </td>
-
-                            {/* N/A */}
-                            <td style={{ padding: '2px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', width: '5%' }}>
-                              {isNA
-                                ? <span style={{ fontSize: '12pt', color: '#64748b', lineHeight: 1 }}>⊠</span>
-                                : <span style={{ fontSize: '12pt', color: '#94a3b8', lineHeight: 1 }}>□</span>}
-                            </td>
-
-                            {/* Remark */}
-                            <td style={{ padding: '3px 5px', border: '1px solid #000000', verticalAlign: 'top', fontSize: '6.5pt', color: isNC ? '#b91c1c' : '#374151', fontStyle: isStriked ? 'italic' : 'normal', lineHeight: '1.35' }}>
-                              {isStriked
-                                ? <span style={{ color: '#92400e' }}>Dicoret — tidak berlaku untuk tipe kapal ini</span>
-                                : isNC
-                                  ? <strong>Lihat Formulir NCR No. {relatedFinding?.findingNo}</strong>
-                                  : (chk.notes || chk.remark || '')}
-                            </td>
-
-                            {/* ISM Code */}
-                            <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 700, fontSize: '7pt', verticalAlign: 'middle', color: '#0369a1', whiteSpace: 'nowrap' }}>
-                              {chk.ismCode || ''}
-                            </td>
-                          </tr>
-                        );
-                      });
-                      return rows;
-                    })()}
-                  </tbody>
-                </table>
-
-
-                {/* SIGNATURES SECTION AT THE END OF CHECKLIST */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '7.5pt', marginTop: '10px', pageBreakInside: 'avoid' }}>
-                  <tbody>
-                    <tr>
-                      <td style={{ width: '50%', padding: '6px', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 700, color: '#475569', marginBottom: '2px' }}>AUDITOR KEPALA / <em>LEAD AUDITOR</em>:</div>
-                        <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ borderBottom: '1px solid #000000', padding: '2px 25px', fontStyle: 'italic' }}>
-                            {activeSession.leadAuditorSign || activeSession.leadAuditor}
-                          </span>
-                        </div>
-                        <div style={{ fontWeight: 800 }}>{activeSession.leadAuditorSign || activeSession.leadAuditor}</div>
-                        <div style={{ fontSize: '6.8pt', color: '#64748b' }}>{isExternal ? appointedOrg : 'Auditor ISM PBK'}</div>
-                      </td>
-                      <td style={{ width: '50%', padding: '6px', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 700, color: '#475569', marginBottom: '2px' }}>NAKHODA KAPAL / <em>MASTER</em>:</div>
-                        <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ borderBottom: '1px solid #000000', padding: '2px 25px', fontStyle: 'italic' }}>
-                            {activeSession.auditeeSign || 'Capt. Ekhsan'}
-                          </span>
-                        </div>
-                        <div style={{ fontWeight: 800 }}>{activeSession.auditeeSign || 'CAPT. EKHSAN'}</div>
-                        <div style={{ fontSize: '6.8pt', color: '#64748b' }}>Master TB. {activeSession.targetName || currentVessel?.name}</div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              )
             )}
 
             {/* ===================================================================== */}
-            {/* DOCUMENT FOOTER NOTES (DISTRIBUSI SESUAI INTERNAL ATAU EKSTERNAL)     */}
+            {/* DOCUMENT FOOTER NOTES                                                 */}
             {/* ===================================================================== */}
-            <div
-              className="audit-footer-note"
-              style={{
-                marginTop: '16px',
-                paddingTop: '6px',
-                borderTop: '1px solid #cbd5e1',
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '6.2pt',
-                color: '#64748b'
-              }}
-            >
-              <div>
-                Dokumen Resmi {institutionDetails.name} • Dicetak melalui Sistem PMS Cloud Maritim Baharimas
+            {!(reportMode === 'checklist' && isBKI) && (
+              <div
+                className="audit-footer-note"
+                style={{
+                  marginTop: '16px',
+                  paddingTop: '6px',
+                  borderTop: '1px solid #cbd5e1',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '6.2pt',
+                  color: '#64748b'
+                }}
+              >
+                <div>
+                  Dokumen Resmi {institutionBranding.name} • Dicetak melalui Sistem PMS Cloud Maritim Baharimas
+                </div>
+                <div>
+                  Distribusi: {isExternal
+                    ? `1. Asli: ${institutionBranding.shortName} | 2. Copy 1: DPA PT. PBK | 3. Copy 2: Onboard ${activeSession.targetName || currentVessel?.name}`
+                    : `1. Asli: Arsip DPA Darat | 2. Copy 1: Onboard ${activeSession.targetName || currentVessel?.name} | 3. Copy 2: Arsip QHSE PBK`}
+                </div>
               </div>
-              <div>
-                Distribusi: {isExternal
-                  ? `1. Asli: ${appointedOrg} | 2. Copy 1: DPA PT. PBK | 3. Copy 2: Onboard ${activeSession.targetName || currentVessel?.name}`
-                  : `1. Asli: Arsip DPA Darat | 2. Copy 1: Onboard ${activeSession.targetName || currentVessel?.name} | 3. Copy 2: Arsip QHSE PBK`}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
