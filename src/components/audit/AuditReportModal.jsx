@@ -17,7 +17,11 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { formatIndoDate } from '../../utils/auditTimeUtils';
-import { getChecklistConfigForSession, EXTERNAL_AUDIT_ORGANIZATIONS } from '../../data/auditMasterData';
+import {
+  getChecklistConfigForSession,
+  isBKIOrganization,
+  EXTERNAL_AUDIT_ORGANIZATIONS
+} from '../../data/auditMasterData';
 
 export const AuditReportModal = ({
   session,
@@ -72,7 +76,7 @@ export const AuditReportModal = ({
   // Resolusi checklist sesuai lembaga audit
   // HANYA BKI yang memiliki template resmi — lembaga lain menghasilkan items=[]
   const checklistConfig = getChecklistConfigForSession(activeSession.externalOrganization || activeSession.standard);
-  const isBKISession = checklistConfig.organizationId === 'bki';
+  const isBKISession = isBKIOrganization(activeSession.externalOrganization || checklistConfig.organizationId);
 
   // Prioritas data checklist:
   // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI dan SMC, buang template BKI)

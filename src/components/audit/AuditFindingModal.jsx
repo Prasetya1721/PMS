@@ -17,7 +17,11 @@ import {
   FileText,
   Trash2
 } from 'lucide-react';
-import { EXTERNAL_AUDIT_ORGANIZATIONS } from '../../data/auditMasterData';
+import {
+  BKI_AUDIT_MASTER,
+  NON_BKI_AUDIT_ORGANIZATIONS,
+  EXTERNAL_AUDIT_ORGANIZATIONS
+} from '../../data/auditMasterData';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, onClose }) => {
   const {
@@ -394,11 +398,18 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
                       className="select-control"
                       style={{ fontSize: '0.8rem', fontWeight: 700, borderColor: '#7c3aed' }}
                     >
-                      {EXTERNAL_AUDIT_ORGANIZATIONS.map(org => (
-                        <option key={org.id} value={org.name}>
-                          {org.name}
+                      <optgroup label="Standar BKI (Template Resmi F23.14.06-2024 Rev 05)">
+                        <option value={BKI_AUDIT_MASTER.name}>
+                          {BKI_AUDIT_MASTER.name}
                         </option>
-                      ))}
+                      </optgroup>
+                      <optgroup label="Lembaga Lain (Format Mandiri / Manual — Non-BKI)">
+                        {NON_BKI_AUDIT_ORGANIZATIONS.map(org => (
+                          <option key={org.id} value={org.name}>
+                            {org.name}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
 

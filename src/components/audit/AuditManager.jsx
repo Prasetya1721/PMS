@@ -34,7 +34,12 @@ import { SubmitEvidenceModal } from './SubmitEvidenceModal';
 import { AuditNotificationModal } from './AuditNotificationModal';
 import { AuditReportModal } from './AuditReportModal';
 import { calculateNCRange, calculateFleetTargetTimeStats, formatIndoDate } from '../../utils/auditTimeUtils';
-import { getChecklistConfigForSession, normalizeChecklistItem } from '../../data/auditMasterData';
+import {
+  getChecklistConfigForSession,
+  normalizeChecklistItem,
+  isBKIOrganization,
+  BKI_AUDIT_MASTER
+} from '../../data/auditMasterData';
 
 export const AuditManager = () => {
   const {
@@ -1864,11 +1869,22 @@ export const AuditManager = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <span>Checklist Resmi SMS Shipboard Checklist (Rev 05)</span>
-                    <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>10 Halaman Lengkap</span>
+                    {isBKIOrganization(activeChecklistConfig.organizationId) ? (
+                      <>
+                        <span>Checklist Resmi BKI (SMS Shipboard Checklist Rev 05)</span>
+                        <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>Template BKI 74 Butir</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Checklist Audit {activeChecklistConfig.organizationName}</span>
+                        <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Format Mandiri (Non-BKI)</span>
+                      </>
+                    )}
                   </h4>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Pemeriksaan komprehensif seluruh area operasional kapal {currentTarget.name}. Klausul khusus tipe kapal (A s/d E yang dicoret di PDF) diikutsertakan dan setiap butir dapat dilampirkan bukti audit.
+                    {isBKIOrganization(activeChecklistConfig.organizationId)
+                      ? `Pemeriksaan komprehensif seluruh area operasional kapal ${currentTarget.name} standar BKI F23.14.06-2024 Rev 05 (termasuk klausul khusus tipe kapal A s/d E).`
+                      : `Format checklist pemeriksaan untuk ${activeChecklistConfig.organizationName} disesuaikan secara mandiri. Template resmi BKI dipisahkan agar tidak terpakai oleh lembaga ini.`}
                   </p>
                 </div>
 
@@ -1891,7 +1907,9 @@ export const AuditManager = () => {
                     }}
                     className="btn btn-secondary btn-sm"
                     style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0284c7' }}
-                    title="Cetak Formulir Resmi SMS Shipboard Checklist Rev 05 format A4 / PDF"
+                    title={isBKIOrganization(activeChecklistConfig.organizationId)
+                      ? "Cetak Formulir Resmi BKI SMS Shipboard Checklist Rev 05 format A4 / PDF"
+                      : `Cetak Formulir Checklist Audit ${activeChecklistConfig.organizationName}`}
                   >
                     <Printer size={14} />
                     <span>Cetak Checklist (PDF / Cetak)</span>

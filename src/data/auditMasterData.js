@@ -129,28 +129,8 @@ export const ISM_DOC_ELEMENTS = [
   }
 ];
 
-// Daftar Organisasi / Lembaga Audit Eksternal yang Ditunjuk Perusahaan
-export const EXTERNAL_AUDIT_ORGANIZATIONS = [
-  {
-    id: 'bki',
-    name: 'Biro Klasifikasi Indonesia (BKI)',
-    shortName: 'BKI',
-    code: 'BKI',
-    badgeColor: '#0284c7',
-    checklistDoc: '00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf',
-    docNumber: 'F23.14.06-2024 Rev 05',
-    docTitle: 'Checklist untuk Sistem Manajemen Keselamatan Kapal (SMS Shipboard Checklist)',
-    standard: 'SMC',
-    hasOfficialTemplate: true
-  },
-  { id: 'hubla', name: 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)', shortName: 'Hubla / Kemenhub', code: 'HUBLA', badgeColor: '#059669' },
-  { id: 'ksop', name: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)', shortName: 'KSOP Pontianak', code: 'KSOP', badgeColor: '#2563eb' },
-  { id: 'lr', name: "Lloyd's Register (LR)", shortName: 'Lloyds', code: 'LR', badgeColor: '#dc2626' },
-  { id: 'bv', name: 'Bureau Veritas (BV)', shortName: 'BV', code: 'BV', badgeColor: '#d97706' },
-  { id: 'classnk', name: 'Nippon Kaiji Kyokai (ClassNK)', shortName: 'ClassNK', code: 'NK', badgeColor: '#4f46e5' },
-  { id: 'rina', name: 'RINA Services Marine', shortName: 'RINA', code: 'RINA', badgeColor: '#7c3aed' },
-  { id: 'custom', name: 'Lembaga Audit Eksternal Lainnya (Input Manual)', shortName: 'Lembaga Lain', code: 'EXT', badgeColor: '#64748b' }
-];
+// (Catatan: Data Master BKI_AUDIT_MASTER, NON_BKI_AUDIT_ORGANIZATIONS, INTERNAL_AUDIT_MASTER,
+// dan EXTERNAL_AUDIT_ORGANIZATIONS didefinisikan secara modular di bawah setelah template BKI_SMC_CHECKLIST_TEMPLATE)
 
 /**
  * Checklist Lengkap Sistem Manajemen Keselamatan Kapal (SMS Shipboard Checklist)
@@ -294,138 +274,330 @@ export const SMS_SHIPBOARD_CHECKLIST_TEMPLATE = BKI_SMC_CHECKLIST_TEMPLATE;
 export const ISM_SMC_ELEMENTS = BKI_SMC_CHECKLIST_TEMPLATE;
 
 // =============================================================================
-// REGISTRY CHECKLIST PER LEMBAGA AUDIT EKSTERNAL
+// 1. DATA MASTER AUDIT BKI (BIRO KLASIFIKASI INDONESIA) — TEMPLATE RESMI REV 05
 // =============================================================================
-// Checklist bersifat SPESIFIK PER LEMBAGA karena format, penomoran klausul, dan
-// cakupan pemeriksaan setiap lembaga berbeda-beda.
-//
-// - BKI            : TERISI lengkap dari dokumen F23.14.06-2024 Rev 05
-//                    (00954PK26 Rev05 SMS SHIPBOARD CHECKLIST), termasuk
-//                    item yang dicoret (isStrikethrough: false).
-// - Hubla / KSOP / LR / BV / ClassNK / RINA / Lainnya : DIKOSONGKAN (array kosong)
-//                    Silakan isi checklist tersendiri melalui menu
-//                    "Tambah Item Manual" pada modul Audit sesuai lembaga.
-//
-// Skema tiap butir checklist:
-//   { id, no, section, subsection, item, ismCode, defaultResult,
-//     remark, isStrikethrough }
-//
-// Catatan: metadata dokumen ini hanya dipakai internal modul (lihat
-// getOrganizationChecklistInfo), sehingga tidak diekspor ke luar.
+/**
+ * Master Data Resmi Audit Badan Klasifikasi Indonesia (BKI).
+ * Mengacu pada dokumen resmi:
+ *   - File: 00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf
+ *   - Formulir: F23.14.06-2024 Rev 05
+ *   - Standar: Safety Management Certificate (SMC) SOLAS IX / ISM Code
+ *
+ * PERHATIAN:
+ * Template resmi 74 klausul ini HANYA DAN EKSKLUSIF BERLAKU UNTUK AUDIT BKI.
+ * TIDAK BOLEH dimuat atau dipakai oleh lembaga audit lain (KSOP, Hubla, LR, BV, dll).
+ */
+export const BKI_AUDIT_MASTER = {
+  id: 'bki',
+  organizationId: 'bki',
+  code: 'BKI',
+  name: 'Biro Klasifikasi Indonesia (BKI)',
+  shortName: 'BKI',
+  category: 'BKI',
+  badgeColor: '#0284c7',
+  standard: 'SMC',
+  docNumber: 'F23.14.06-2024 Rev 05',
+  docTitle: 'Checklist untuk Sistem Manajemen Keselamatan Kapal (SMS Shipboard Checklist)',
+  checklistDoc: '00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf',
+  revision: 'Rev 05 / Document Revision 00',
+  reference: '00954PK26 — SOLAS 1974 Chapter IX dan ISM Code',
+  issuedBy: 'Biro Klasifikasi Indonesia (BKI)',
+  hasOfficialTemplate: true,
+  description: 'Badan klasifikasi nasional yang ditunjuk pemerintah RI sebagai Recognized Organization (RO) untuk sertifikasi SMC kapal.',
+  items: BKI_SMC_CHECKLIST_TEMPLATE // 74 butir klausul resmi
+};
+
+// =============================================================================
+// 2. DATA MASTER AUDIT LEMBAGA LAIN (NON-BKI / STATUTORY / CLASS ASING)
+// =============================================================================
+/**
+ * Master Data Organisasi / Lembaga Audit Eksternal Selain BKI.
+ *
+ * Lembaga-lembaga di bawah ini memiliki regulasi, ranah pengawasan, dan format checklist
+ * yang mandiri dan berbeda dari BKI.
+ *
+ * KETENTUAN TEGAS:
+ * - Seluruh lembaga di bawah ini memiliki `hasOfficialTemplate: false`
+ * - Memiliki `items: []` (ARRAY KOSONG secara default)
+ * - Template BKI TIDAK TERPAKAI oleh lembaga ini.
+ * - Auditor menyusun butir checklist secara fleksibel melalui input manual per sesi audit.
+ */
+export const NON_BKI_AUDIT_ORGANIZATIONS = [
+  {
+    id: 'ksop',
+    organizationId: 'ksop',
+    code: 'KSOP',
+    name: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)',
+    shortName: 'KSOP Pontianak',
+    category: 'NON_BKI',
+    badgeColor: '#2563eb',
+    standard: 'SMC/Statutory',
+    hasOfficialTemplate: false,
+    description: 'Pemeriksaan kelaiklautan kapal, keselamatan pelayaran, sertifikasi statutori & pencegahan pencemaran di wilayah pelabuhan.',
+    note: 'Format checklist KSOP disusun secara mandiri sesuai ranah kelaiklautan & statutori. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'hubla',
+    organizationId: 'hubla',
+    code: 'HUBLA',
+    name: 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)',
+    shortName: 'Hubla / Kemenhub',
+    category: 'NON_BKI',
+    badgeColor: '#059669',
+    standard: 'DOC/SMC',
+    hasOfficialTemplate: false,
+    description: 'Otoritas Flag State maritim Indonesia penerbit Document of Compliance (DOC) dan pengawas kelaiklautan nasional.',
+    note: 'Pemeriksaan Ditjen Hubla memakai format inspeksi kelaiklautan kementerian. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'lr',
+    organizationId: 'lr',
+    code: 'LR',
+    name: "Lloyd's Register (LR)",
+    shortName: "Lloyd's",
+    category: 'NON_BKI',
+    badgeColor: '#dc2626',
+    standard: 'SMC/Class',
+    hasOfficialTemplate: false,
+    description: 'Badan klasifikasi internasional asal Inggris (IACS Member).',
+    note: 'Memakai sistem audit ISM/ISPS Lloyd\'s Register tersendiri. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'bv',
+    organizationId: 'bv',
+    code: 'BV',
+    name: 'Bureau Veritas (BV)',
+    shortName: 'BV',
+    category: 'NON_BKI',
+    badgeColor: '#d97706',
+    standard: 'SMC/Class',
+    hasOfficialTemplate: false,
+    description: 'Badan klasifikasi internasional asal Prancis (IACS Member).',
+    note: 'Memakai sistem audit ISM Bureau Veritas tersendiri. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'classnk',
+    organizationId: 'classnk',
+    code: 'NK',
+    name: 'Nippon Kaiji Kyokai (ClassNK)',
+    shortName: 'ClassNK',
+    category: 'NON_BKI',
+    badgeColor: '#4f46e5',
+    standard: 'SMC/Class',
+    hasOfficialTemplate: false,
+    description: 'Badan klasifikasi internasional asal Jepang (IACS Member).',
+    note: 'Memakai sistem audit ISM ClassNK tersendiri. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'rina',
+    organizationId: 'rina',
+    code: 'RINA',
+    name: 'RINA Services Marine',
+    shortName: 'RINA',
+    category: 'NON_BKI',
+    badgeColor: '#7c3aed',
+    standard: 'SMC/Class',
+    hasOfficialTemplate: false,
+    description: 'Badan klasifikasi internasional asal Italia (IACS Member).',
+    note: 'Memakai sistem audit ISM RINA tersendiri. Template resmi BKI tidak berlaku.',
+    items: []
+  },
+  {
+    id: 'custom',
+    organizationId: 'custom',
+    code: 'EXT',
+    name: 'Lembaga Audit Eksternal Lainnya (Input Manual)',
+    shortName: 'Lembaga Lain',
+    category: 'NON_BKI',
+    badgeColor: '#64748b',
+    standard: 'Custom',
+    hasOfficialTemplate: false,
+    description: 'Auditor eksternal independen atau otoritas maritim lainnya.',
+    note: 'Format checklist disesuaikan manual oleh auditor per sesi pemeriksaan.',
+    items: []
+  }
+];
+
+// =============================================================================
+// 3. DATA MASTER AUDIT INTERNAL PERUSAHAAN (DPA / QHSE)
+// =============================================================================
+export const INTERNAL_AUDIT_MASTER = {
+  id: 'internal',
+  organizationId: 'internal',
+  code: 'PBK-INT',
+  name: 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)',
+  shortName: 'Internal DPA/QHSE',
+  category: 'INTERNAL',
+  badgeColor: '#0891b2',
+  standard: 'DOC & SMC',
+  hasOfficialTemplate: false,
+  description: 'Tim auditor internal Designated Person Ashore (DPA) dan Departemen QHSE PT. Pelayaran Baharimas Kalimantan.',
+  note: 'Audit internal perusahaan menggunakan 12 elemen ISM Code untuk DOC kantor dan kriteria keselamatan internal armada.',
+  items: []
+};
+
+// Gabungan seluruh organisasi audit eksternal untuk backward compatibility
+export const EXTERNAL_AUDIT_ORGANIZATIONS = [
+  BKI_AUDIT_MASTER,
+  ...NON_BKI_AUDIT_ORGANIZATIONS
+];
+
+// =============================================================================
+// HELPER VALIDASI & IDENTIFIKASI LEMBAGA AUDIT
+// =============================================================================
+
+/**
+ * Cek apakah sebuah lembaga atau sesi audit adalah BKI (Biro Klasifikasi Indonesia).
+ * Digunakan untuk menjamin template 74 klausul BKI HANYA aktif pada BKI.
+ *
+ * @param {string|object} organization
+ * @returns {boolean} true jika BKI, false untuk KSOP / Hubla / lainnya
+ */
+export const isBKIOrganization = (organization) => {
+  if (!organization) return false;
+  if (typeof organization === 'object') {
+    const id = organization.id || organization.organizationId || organization.code || '';
+    if (String(id).toLowerCase() === 'bki') return true;
+    const name = organization.name || organization.shortName || '';
+    return /bki|biro klasifikasi indonesia/i.test(String(name));
+  }
+  const str = String(organization).trim().toLowerCase();
+  return str === 'bki' || /bki|biro klasifikasi indonesia/i.test(str);
+};
+
+/**
+ * Ambil data master lembaga audit berdasarkan id / nama / objek lembaga.
+ *
+ * @param {string|object} organization
+ * @returns {object} metadata master data lembaga
+ */
+export const getAuditMasterByOrganization = (organization) => {
+  if (isBKIOrganization(organization)) {
+    return BKI_AUDIT_MASTER;
+  }
+  const orgId = resolveOrganizationId(organization);
+  if (orgId === 'internal') {
+    return INTERNAL_AUDIT_MASTER;
+  }
+  const found = NON_BKI_AUDIT_ORGANIZATIONS.find(org => org.id === orgId || org.code?.toLowerCase() === orgId);
+  return found || NON_BKI_AUDIT_ORGANIZATIONS[NON_BKI_AUDIT_ORGANIZATIONS.length - 1];
+};
+
+// =============================================================================
+// REGISTRY CHECKLIST PER LEMBAGA AUDIT
+// =============================================================================
 const CHECKLIST_SOURCE_DOCUMENT = {
   bki: {
     docNumber: 'F23.14.06-2024 Rev 05',
     docTitle: 'Checklist for Shipboard Safety Management System',
     revision: 'Rev 05 / Document Revision 00',
-    reference: '00954PK26 â€” SOLAS 1974 Chapter IX dan ISM Code',
+    reference: '00954PK26 — SOLAS 1974 Chapter IX dan ISM Code',
     issuedBy: 'Biro Klasifikasi Indonesia (BKI)'
   }
 };
 
-const ORG_CHECKLIST_NOTE = 'Format checklist lembaga ini berbeda dari BKI. Silakan tambahkan butir pemeriksaan melalui menu "Tambah Item Manual" pada modul Audit.';
+const ORG_CHECKLIST_NOTE = 'Format checklist lembaga ini disesuaikan secara mandiri dan terpisah dari BKI. Silakan tambahkan butir pemeriksaan melalui menu "Tambah Item Manual".';
 
-// Registry checklist per lembaga audit eksternal (internal module scope).
-//
-// BKI memakai template resmi F23.14.06-2024 Rev 05, lembaga lain dikosongkan.
 const AUDIT_CHECKLIST_REGISTRY = {
   bki: {
-    organizationId: 'bki',
-    organizationName: 'Biro Klasifikasi Indonesia (BKI)',
+    ...BKI_AUDIT_MASTER,
+    organizationName: BKI_AUDIT_MASTER.name,
     checked: true,
-    items: [] // diisi dari SMS_SHIPBOARD_CHECKLIST_TEMPLATE di bawah
+    items: BKI_SMC_CHECKLIST_TEMPLATE
   },
   hubla: {
-    organizationId: 'hubla',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'hubla'),
     organizationName: 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)',
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   ksop: {
-    organizationId: 'ksop',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'ksop'),
     organizationName: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)',
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   lr: {
-    organizationId: 'lr',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'lr'),
     organizationName: "Lloyd's Register (LR)",
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   bv: {
-    organizationId: 'bv',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'bv'),
     organizationName: 'Bureau Veritas (BV)',
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   classnk: {
-    organizationId: 'classnk',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'classnk'),
     organizationName: 'Nippon Kaiji Kyokai (ClassNK)',
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   rina: {
-    organizationId: 'rina',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'rina'),
     organizationName: 'RINA Services Marine',
     checked: false,
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
   custom: {
-    organizationId: 'custom',
+    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'custom'),
     organizationName: 'Lembaga Audit Eksternal Lainnya',
     checked: false,
     note: 'Lembaga belum terdaftar pada template. Silakan susun checklist manual sesuai regulasi lembaga terkait.',
     items: []
+  },
+  internal: {
+    ...INTERNAL_AUDIT_MASTER,
+    organizationName: INTERNAL_AUDIT_MASTER.name,
+    checked: false,
+    note: 'Audit internal perusahaan menggunakan kriteria DPA / QHSE.',
+    items: []
   }
 };
 
-// Isi registry BKI dengan template checklist resmi F23.14.06-2024 Rev 05
-AUDIT_CHECKLIST_REGISTRY.bki.items = SMS_SHIPBOARD_CHECKLIST_TEMPLATE;
-
 /**
- * Ambil daftar checklist sesuai lembaga audit eksternal.
+ * Ambil daftar checklist sesuai lembaga audit.
  *
- * Lembaga yang belum disiapkan (checked: false) mengembalikan array KOSONG
- * sehingga pengguna dapat menyusun butir pemeriksaan sendiri karena isi
- * checklist antar lembaga berbeda-beda.
+ * ATURAN MUTLAK:
+ * - HANYA BKI yang mengembalikan butir template (74 klausul).
+ * - Seluruh lembaga lain (KSOP, Hubla, LR, BV, dll) SELALU mengembalikan array KOSONG [].
  *
- * @param {string} organizationId - ID lembaga (mis. 'bki', 'hubla', 'custom')
+ * @param {string|object} organization - ID, nama, atau objek lembaga
  * @returns {Array} daftar butir checklist milik lembaga tersebut
  */
-const getChecklistForOrganization = (organizationId) => {
-  const normalized = String(organizationId || '').toLowerCase();
-  const entry = AUDIT_CHECKLIST_REGISTRY[normalized];
-  return entry && Array.isArray(entry.items) ? entry.items : [];
+export const getChecklistForOrganization = (organization) => {
+  if (!isBKIOrganization(organization)) {
+    return []; // Lembaga selain BKI SELALU kosong!
+  }
+  return BKI_SMC_CHECKLIST_TEMPLATE;
 };
 
 /**
  * Ubah nama / kode lembaga audit eksternal menjadi organizationId registry.
  *
- * Nilai `externalOrganization` pada sesi audit dapat berupa objek (rekaman
- * masterData) maupun string nama/kode, sehingga perlu dinormalisasi agar dapat
- * dipetakan ke AUDIT_CHECKLIST_REGISTRY.
- *
  * @param {string|object} organization - nama, kode, shortName, atau objek lembaga
  * @param {string} [fallback='custom'] - ID cadangan bila lembaga tidak dikenali
- * @returns {string} organizationId registry (mis. 'bki', 'hubla', 'custom')
+ * @returns {string} organizationId registry (mis. 'bki', 'ksop', 'hubla', 'custom')
  */
-const resolveOrganizationId = (organization, fallback = 'custom') => {
+export const resolveOrganizationId = (organization, fallback = 'custom') => {
   if (organization && typeof organization === 'object') {
-    // Rekaman lembaga dapat datang dalam beberapa bentuk: master data
-    // (id/code), konfigurasi checklist (organizationId), atau ringkasan sesi
-    // (organizationName/shortName). Ambil kandidat pertama yang terisi lalu
-    // tetap lewatkan pencocokan alias di bawah agar konsisten.
     const candidate =
       organization.id ||
-      organization.code ||
       organization.organizationId ||
-      organization.organizationCode ||
+      organization.code ||
       organization.shortName ||
       organization.name ||
       organization.organizationName ||
@@ -438,20 +610,21 @@ const resolveOrganizationId = (organization, fallback = 'custom') => {
   if (!raw) return String(fallback).toLowerCase();
   const lowered = raw.toLowerCase();
 
-  // Cocokkan langsung terhadap id / code / shortName master lembaga
-  const matched = EXTERNAL_AUDIT_ORGANIZATIONS.find(org =>
+  // Audit internal perusahaan
+  if (/internal|dpa|qhse|pelayaran baharimas/i.test(raw)) return 'internal';
+
+  // BKI
+  if (lowered === 'bki' || /bki|biro klasifikasi indonesia/i.test(raw)) return 'bki';
+
+  // Cocokkan langsung terhadap id / code master non-BKI
+  const matched = NON_BKI_AUDIT_ORGANIZATIONS.find(org =>
     org.id.toLowerCase() === lowered ||
     org.code.toLowerCase() === lowered
   );
   if (matched) return matched.id;
 
-  // Lembaga internal perusahaan (DPA/QHSE) & audit internal tidak memakai template lembaga eksternal
-  // — kembalikan 'custom' (kosong) agar auditor menyusun checklist secara manual.
-  if (/internal|dpa|qhse|pelayaran baharimas/i.test(raw)) return 'custom';
-
-  // Cocokkan nama resmi di dalam string panjang (mis. "BKI Cabang Pontianak")
+  // Cocokkan nama resmi di dalam string panjang (mis. "KSOP Pontianak")
   const aliasMap = [
-    { id: 'bki', keywords: ['bki', 'biro klasifikasi indonesia'] },
     { id: 'hubla', keywords: ['hubla', 'perhubungan laut', 'kemenhub'] },
     { id: 'ksop', keywords: ['ksop', 'kesyahbandaran', 'otoritas pelabuhan'] },
     { id: 'lr', keywords: ['lloyd', 'lloyds register', 'lr '] },
