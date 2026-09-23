@@ -378,6 +378,221 @@ export const SMS_SHIPBOARD_CHECKLIST_TEMPLATE = BKI_SMC_CHECKLIST_TEMPLATE;
 export const ISM_SMC_ELEMENTS = BKI_SMC_CHECKLIST_TEMPLATE;
 
 // =============================================================================
+// TEMPLATE CHECKLIST RESMI BKI — DOC (DOCUMENT OF COMPLIANCE) — PERUSAHAAN
+// =============================================================================
+/**
+ * Checklist Lengkap Sistem Manajemen Keselamatan Perusahaan (DOC Company Checklist)
+ * Dokumen Acuan Resmi BKI:
+ *   - File: 00143pk26_F23_14_05-2025 Rev06 Company checklist.pdf
+ *   - No. Formulir: F23.14.05-2025 Rev 06 (SOLAS IX / ISM Code)
+ *   - Penerbit: Biro Klasifikasi Indonesia (BKI)
+ *   - Standar: Document of Compliance (DOC) — Audit Kantor Perusahaan
+ *
+ * Mencakup seluruh klausul 12 elemen ISM Code dari Halaman 1 s/d 10.
+ * Diterjemahkan ke Bahasa Indonesia untuk keperluan operasional PT. PBK.
+ */
+export const BKI_DOC_CHECKLIST_TEMPLATE = [
+  // ============================================================
+  // 0. PRA-AUDIT: ITEM YANG DIPERIKSA SEBELUM AUDIT
+  // ============================================================
+  { id: 'doc-0.1', no: '0.1', section: '0. PRA-AUDIT', subsection: '0. Persiapan Pra-Audit', item: 'Apakah terdapat perubahan kapal yang dikelola perusahaan? (Akuisisi baru, dll.)', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-0.2', no: '0.2', section: '0. PRA-AUDIT', subsection: '0. Persiapan Pra-Audit', item: 'Apakah terdapat perubahan nama atau alamat perusahaan?', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-0.3', no: '0.3', section: '0. PRA-AUDIT', subsection: '0. Persiapan Pra-Audit', item: 'Konfirmasi tipe kapal yang tercantum dalam lingkup DOC perusahaan.', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-0.4', no: '0.4', section: '0. PRA-AUDIT', subsection: '0. Persiapan Pra-Audit', item: 'Konfirmasi bendera kapal yang tercantum dalam lingkup DOC perusahaan.', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-0.5', no: '0.5', section: '0. PRA-AUDIT', subsection: '0. Persiapan Pra-Audit', item: 'Konfirmasi laporan kepada otoritas bendera (Flag State) untuk setiap kapal.', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // PRE-AUDIT: JUMLAH & TIPE KAPAL TANGGUNG JAWAB PERUSAHAAN
+  // ============================================================
+  { id: 'doc-pre.1', no: 'PRE-1', section: '0. PRA-AUDIT', subsection: 'Jumlah & Tipe Kapal', item: 'Daftar kapal yang menjadi tanggung jawab perusahaan beserta tipe dan jumlahnya.', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-pre.2', no: 'PRE-2', section: '0. PRA-AUDIT', subsection: 'Jumlah & Tipe Kapal', item: 'Konfirmasi kapal yang dijadikan sampel audit (minimal 1 kapal per tipe).', ismCode: '3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-pre.3', no: 'PRE-3', section: '0. PRA-AUDIT', subsection: 'Kebangsaan & Bahasa Awak', item: 'Konfirmasi kebangsaan aktif awak kapal (Nakhoda, Perwira Dek, Perwira Mesin, Kelasi, Juru Minyak, Koki).', ismCode: '6.6', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-pre.4', no: 'PRE-4', section: '0. PRA-AUDIT', subsection: 'Kebangsaan & Bahasa Awak', item: 'Konfirmasi bahasa kerja resmi yang digunakan di atas kapal dan dalam manual SMS.', ismCode: '6.6', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 3. WAWANCARA DENGAN MANAJEMEN PUNCAK
+  // ============================================================
+  { id: 'doc-3.1', no: '3.1', section: '3. WAWANCARA MANAJEMEN PUNCAK', subsection: '3. Tinjauan Manajemen Puncak', item: 'Apakah terdapat manfaat yang dirasakan sejak perusahaan menerapkan SMS (Sistem Manajemen Keselamatan)?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-3.2', no: '3.2', section: '3. WAWANCARA MANAJEMEN PUNCAK', subsection: '3. Tinjauan Manajemen Puncak', item: 'Bagaimana pendapat manajemen mengenai kegiatan SMS seluruh personil yang terlibat?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-3.3', no: '3.3', section: '3. WAWANCARA MANAJEMEN PUNCAK', subsection: '3. Tinjauan Manajemen Puncak', item: 'Apa saja hal yang baru-baru ini dilaporkan DPA kepada manajemen puncak terkait SMS?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-3.4', no: '3.4', section: '3. WAWANCARA MANAJEMEN PUNCAK', subsection: '3. Tinjauan Manajemen Puncak', item: 'Bagaimana pemikiran manajemen mengenai poin-poin utama tinjauan manajemen (Management Review)?', ismCode: '4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-3.5', no: '3.5', section: '3. WAWANCARA MANAJEMEN PUNCAK', subsection: '3. Tinjauan Manajemen Puncak', item: 'Bagaimana pendapat manajemen mengenai kecelakaan laut yang terjadi dalam beberapa tahun terakhir di industri?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 4. DESIGNATED PERSON ASHORE (DPA)
+  // ============================================================
+  { id: 'doc-4.1', no: '4.1', section: '4. DESIGNATED PERSON ASHORE (DPA)', subsection: '4. Tanggung Jawab & Wewenang DPA', item: 'Apakah DPA memahami tanggung jawab dan wewenangnya sesuai ISM Code Bagian 4?', ismCode: '4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-4.2', no: '4.2', section: '4. DESIGNATED PERSON ASHORE (DPA)', subsection: '4. Identitas & Komunikasi DPA', item: 'Apakah identitas dan kontak DPA diketahui oleh seluruh Nakhoda dan perwira armada?', ismCode: '4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-4.3', no: '4.3', section: '4. DESIGNATED PERSON ASHORE (DPA)', subsection: '4. Akses DPA ke Manajemen', item: 'Apakah DPA memiliki akses langsung kepada manajemen puncak perusahaan?', ismCode: '4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-4.4', no: '4.4', section: '4. DESIGNATED PERSON ASHORE (DPA)', subsection: '4. Pemantauan Keselamatan DPA', item: 'Apakah DPA secara aktif memantau aspek keselamatan dan pencegahan pencemaran di seluruh armada?', ismCode: '4', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 5. TINJAUAN SISTEM KESELAMATAN (MANAGEMENT REVIEW / SYSTEM REVIEW)
+  // ============================================================
+  { id: 'doc-5.1', no: '5.1', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.1 Penilaian Risiko', item: 'Apakah perusahaan memiliki prosedur untuk mengidentifikasi dan menilai potensi situasi berbahaya?', ismCode: '1.2.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.2', no: '5.2', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.1 Penilaian Risiko', item: 'Apakah risiko-risiko yang teridentifikasi terhadap kapal, personil, dan lingkungan dinilai serta ditinjau dalam rapat?', ismCode: '1.2.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.3', no: '5.3', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.1 Penilaian Risiko', item: 'Siapakah pihak yang bertanggung jawab atas pelaksanaan penilaian risiko?', ismCode: '1.2.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.4', no: '5.4', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.1 Penilaian Risiko', item: 'Apakah terdapat safeguard baru yang ditetapkan berdasarkan hasil evaluasi penilaian risiko?', ismCode: '1.2.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.5', no: '5.5', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.2 Prosedur Tinjauan Nakhoda', item: 'Apakah SMS menetapkan prosedur bagi Nakhoda untuk meninjau SMS dan melaporkan kekurangannya ke manajemen darat?', ismCode: '5.1.5', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.6', no: '5.6', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.2 Prosedur Tinjauan Nakhoda', item: 'Apakah SMS menetapkan prosedur pelaporan kecelakaan dan ketidaksesuaian (NC)?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.7', no: '5.7', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah rapat tinjauan sistem diadakan oleh perusahaan minimal sekali dalam setahun?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.8', no: '5.8', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah kebutuhan revisi SMS dibahas dalam rapat tinjauan sistem?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.9', no: '5.9', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah hasil tinjauan sistem disampaikan kepada seluruh departemen dan kapal?', ismCode: '12.6', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.10', no: '5.10', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah kinerja dan penilaian agen kepegawaian serta kebutuhan pelatihan awak kapal dibahas dalam rapat?', ismCode: '12.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.11', no: '5.11', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah penahanan/kekurangan PSC dan NC/OBS pada audit internal/eksternal dibahas dalam rapat?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.12', no: '5.12', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah hasil tinjauan SMS oleh Nakhoda dan laporan kekurangan/kerusakan dibahas dalam rapat?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.13', no: '5.13', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.3 Rapat Tinjauan Sistem', item: 'Apakah tindakan penanggulangan dan revisi SMS terhadap kecelakaan serta sakit/meninggalnya awak kapal dibahas dalam rapat?', ismCode: '12.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.14', no: '5.14', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.4 Ketidaksesuaian (NC) Lalu', item: 'Verifikasi investigasi & analisis atas NC yang teridentifikasi pada audit sebelumnya.', ismCode: '12', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-5.15', no: '5.15', section: '5. TINJAUAN SISTEM KESELAMATAN', subsection: '5.4 Ketidaksesuaian (NC) Lalu', item: 'Verifikasi investigasi & analisis atas penahanan PSC dan kecelakaan laut sebelumnya.', ismCode: '12', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 6. AUDIT INTERNAL (INTERNAL AUDIT)
+  // ============================================================
+  { id: 'doc-6.1', no: '6.1', section: '6. AUDIT INTERNAL', subsection: '6.1 Pelaksanaan Audit Internal', item: 'Apakah perusahaan melaksanakan audit keselamatan internal untuk memverifikasi kepatuhan kegiatan keselamatan dan pencegahan pencemaran terhadap SMS?', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.2', no: '6.2', section: '6. AUDIT INTERNAL', subsection: '6.1 Pelaksanaan Audit Internal', item: 'Apakah audit internal untuk seluruh departemen dan kapal direncanakan dalam interval tidak lebih dari 12 bulan?', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.3', no: '6.3', section: '6. AUDIT INTERNAL', subsection: '6.1 Pelaksanaan Audit Internal', item: 'Apakah tersedia prosedur dan kriteria perpanjangan audit internal dalam 3 bulan pada keadaan luar biasa?', ismCode: '12.4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.4', no: '6.4', section: '6. AUDIT INTERNAL', subsection: '6.1 Pelaksanaan Audit Internal', item: 'Apakah seluruh audit internal telah dilaksanakan dalam 12 bulan sejak tanggal audit sebelumnya?', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.5', no: '6.5', section: '6. AUDIT INTERNAL', subsection: '6.1 Pelaksanaan Audit Internal', item: 'Apakah perpanjangan audit internal dilaksanakan sesuai manual/prosedur SMS?', ismCode: '12.4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.6', no: '6.6', section: '6. AUDIT INTERNAL', subsection: '6.2 Tindak Lanjut Audit Internal', item: 'Apakah audit internal dilaksanakan sesuai manual/prosedur SMS?', ismCode: '12.4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.7', no: '6.7', section: '6. AUDIT INTERNAL', subsection: '6.2 Tindak Lanjut Audit Internal', item: 'Apakah permintaan tindakan korektif dan koreksi untuk NC, serta verifikasi efektivitasnya dilaksanakan secara berurutan?', ismCode: '12.6', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.8', no: '6.8', section: '6. AUDIT INTERNAL', subsection: '6.2 Tindak Lanjut Audit Internal', item: 'Apakah hasil audit internal dilaporkan kepada manajemen puncak sesuai prosedur?', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.9', no: '6.9', section: '6. AUDIT INTERNAL', subsection: '6.2 Tindak Lanjut Audit Internal', item: 'Apakah hasil audit internal disampaikan kepada seluruh departemen dan kapal?', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.10', no: '6.10', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Status rekaman yang disiapkan oleh kantor dan rekaman dari kapal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.11', no: '6.11', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Status pengelolaan dokumen terkontrol dan publikasi (termasuk penghapusan dokumen lama).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.12', no: '6.12', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Tanggapan terhadap permintaan dari Nakhoda kapal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.13', no: '6.13', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Tanggapan terhadap laporan kerusakan/kerusakan dari Nakhoda kapal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.14', no: '6.14', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Kinerja agen kepegawaian dan pengendalian sertifikat awak kapal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.15', no: '6.15', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Pelatihan pra-naik kapal (pre-joining training), instruksi penting, dan kebutuhan pelatihan.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.16', no: '6.16', section: '6. AUDIT INTERNAL', subsection: '6.3 Isi Checklist Audit Internal Kantor', item: 'Latihan gabungan keadaan darurat dan evaluasinya.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.17', no: '6.17', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Pengisian Buku Harian Resmi Deck (Official/Deck Log Book).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.18', no: '6.18', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Latihan darurat (kebakaran, sekoci, dll.) sesuai SOLAS Bab III Reg. 19.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.19', no: '6.19', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Motivasi awak kapal terhadap SMS Perusahaan oleh Nakhoda.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.20', no: '6.20', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Plakat yang terpasang (Standing Order Nakhoda, jadwal jaga, Muster List, pengendalian sampah, larangan merokok).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.21', no: '6.21', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Verifikasi Nakhoda atas rencana pelayaran (voyage & passage plan) dan koreksi peta laut.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.22', no: '6.22', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Konfirmasi prosedur penanganan ECDIS dalam SMS mengenai cara memperbarui ENC.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.23', no: '6.23', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Tinjauan Nakhoda terhadap SMS dan pelaporan kekurangannya kepada manajemen darat.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.24', no: '6.24', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Pelatihan familiarisasi dan instruksi penting untuk awak kapal yang baru bergabung.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.25', no: '6.25', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Kebutuhan pelatihan pengoperasian dan perawatan lambung, permesinan, dan peralatan.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.26', no: '6.26', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Kesadaran awak kapal terhadap SMS (bahasa, pendidikan, dan komunikasi).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.27', no: '6.27', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Kinerja awak kapal: komunikasi, perilaku, dan aktivitas di atas kapal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.28', no: '6.28', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Buku Harian Deck & Mesin sesuai manual/prosedur SMS.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.29', no: '6.29', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Buku Catatan Sampah (Garbage Record Book).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.30', no: '6.30', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Latihan, pelatihan, dan instruksi di atas kapal sesuai jadwal tahunan.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.31', no: '6.31', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Peluncuran sekoci/rescue boat; penahanan/kekurangan PSC dan NC/OBS pada audit eksternal.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.32', no: '6.32', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Pemantauan kemajuan dan pelaporan pemeliharaan terencana (PMS).', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.33', no: '6.33', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Koreksi dan tindakan pencegahan terhadap laporan kerusakan.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.34', no: '6.34', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Pengelolaan dokumen terkontrol dan buku/publikasi hukum.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.35', no: '6.35', section: '6. AUDIT INTERNAL', subsection: '6.4 Isi Checklist Audit Internal Kapal', item: 'Pengelolaan surat masuk/keluar dan rekaman terkontrol.', ismCode: '12.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.36', no: '6.36', section: '6. AUDIT INTERNAL', subsection: '6.5 Verifikasi Periodik', item: 'Apakah terdapat prosedur untuk memverifikasi secara berkala apakah semua pihak yang mengemban tugas ISM bertindak sesuai tanggung jawab Perusahaan?', ismCode: '12.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.37', no: '6.37', section: '6. AUDIT INTERNAL', subsection: '6.5 Verifikasi Periodik', item: 'Apakah verifikasi periodik direncanakan minimal sekali dalam setahun?', ismCode: '12.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-6.38', no: '6.38', section: '6. AUDIT INTERNAL', subsection: '6.5 Verifikasi Periodik', item: 'Apakah verifikasi periodik dilaksanakan sesuai manual/prosedur SMS?', ismCode: '12.2', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 7. OPERASIONAL KAPAL & ITEM KHUSUS TIPE KAPAL
+  // ============================================================
+  { id: 'doc-7.1', no: '7.1', section: '7. OPERASIONAL KAPAL', subsection: '7.1 Rencana & Instruksi Operasional', item: 'Apakah rencana dan instruksi (termasuk checklist yang sesuai) untuk operasi kunci keselamatan kapal dan pencegahan pencemaran telah ditetapkan dan dipelihara?', ismCode: '7', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.2', no: '7.2', section: '7. OPERASIONAL KAPAL', subsection: '7.1 Rencana & Instruksi Operasional', item: 'Apakah prosedur dan checklist untuk operasi kunci kapal dipelihara dengan baik?', ismCode: '7', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.3', no: '7.3', section: '7. OPERASIONAL KAPAL', subsection: '7.1 Rencana & Instruksi Operasional', item: 'Apakah tersedia prosedur penanganan muatan di luar yang tercantum dalam prosedur yang ada?', ismCode: '7', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.4', no: '7.4', section: '7. OPERASIONAL KAPAL', subsection: '7.2 Dukungan Operasional Kapal', item: 'Konfirmasi cara penyediaan Notice to Mariners (NtM) dan peta laut kepada kapal.', ismCode: '6.1.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.5', no: '7.5', section: '7. OPERASIONAL KAPAL', subsection: '7.2 Dukungan Operasional Kapal', item: 'Surat-surat resmi apa yang telah diterbitkan perusahaan untuk memberikan informasi yang diperlukan kepada kapal?', ismCode: '6.1.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.6', no: '7.6', section: '7. OPERASIONAL KAPAL', subsection: '7.2 Dukungan Operasional Kapal', item: 'Apakah Nakhoda pernah menggunakan wewenang mutlaknya (overriding authority) secara nyata?', ismCode: '5.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.7', no: '7.7', section: '7. OPERASIONAL KAPAL', subsection: '7.3 Item Khusus Tipe Kapal', item: 'Konfirmasi item khusus untuk setiap tipe kapal yang dikelola (Tanker Minyak, Kapal Barang, dll.).', ismCode: '7', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.8', no: '7.8', section: '7. OPERASIONAL KAPAL', subsection: '7.4 Item Khusus Bendera Kapal', item: 'Apakah peraturan dan sirkuler untuk setiap bendera kapal tersedia di kantor dan di setiap kapal?', ismCode: '1.2.3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.9', no: '7.9', section: '7. OPERASIONAL KAPAL', subsection: '7.4 Item Khusus Bendera Kapal', item: 'Konfirmasi kepatuhan terhadap persyaratan bendera khusus (Indonesia): prosedur keamanan siber (SE 35 Tahun 2020).', ismCode: '1.2.3.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-7.10', no: '7.10', section: '7. OPERASIONAL KAPAL', subsection: '7.4 Item Khusus Bendera Kapal', item: 'Konfirmasi kepatuhan prosedur bendera Indonesia: protokol Covid-19 atau kesehatan awak (SE 14 Tahun 2020).', ismCode: '1.2.3.1', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 8. KESIAPSIAGAAN KEADAAN DARURAT
+  // ============================================================
+  { id: 'doc-8.1', no: '8.1', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.1 Identifikasi Keadaan Darurat', item: 'Apakah perusahaan telah mengidentifikasi dan mendeskripsikan potensi situasi darurat di kapal serta menetapkan prosedur untuk merespons?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.2', no: '8.2', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.1 Identifikasi Keadaan Darurat', item: 'Apakah program latihan dan simulasi untuk mempersiapkan tindakan darurat telah ditetapkan?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.3', no: '8.3', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.1 Identifikasi Keadaan Darurat', item: 'Apakah organisasi perusahaan (darat) dapat merespons situasi darurat kapal sewaktu-waktu?', ismCode: '8.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.4', no: '8.4', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Tabrakan (Collision)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.5', no: '8.5', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Kebanjiran (Flooding)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.6', no: '8.6', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Kandas (Grounding)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.7', no: '8.7', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Kebakaran (Fire)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.8', no: '8.8', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Pencemaran Minyak (SOPEP)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.9', no: '8.9', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Pemadaman Total (Blackout)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.10', no: '8.10', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Penundaan Darurat (Emergency Towing)?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.11', no: '8.11', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.2 Prosedur Tanggap Darurat', item: 'Apakah prosedur tanggap darurat untuk situasi berikut tersedia: Penyelamatan Orang Jatuh ke Laut?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.12', no: '8.12', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.3 Latihan Darurat', item: 'Apakah latihan darurat wajib SOLAS (kebakaran, sekoci/meninggalkan kapal) dijadwalkan sesuai ketentuan?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.13', no: '8.13', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.3 Latihan Darurat', item: 'Apakah latihan kemudi darurat (steering gear) dijadwalkan sesuai SOLAS Bab V Reg. 26?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-8.14', no: '8.14', section: '8. KESIAPSIAGAAN KEADAAN DARURAT', subsection: '8.3 Latihan Darurat', item: 'Apakah hasil evaluasi latihan darurat dikomunikasikan kepada manajemen puncak?', ismCode: '8.2', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 9. PELAPORAN & ANALISIS KETIDAKSESUAIAN (NC), KECELAKAAN & KEJADIAN BERBAHAYA
+  // ============================================================
+  { id: 'doc-9.1', no: '9.1', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah definisi ketidaksesuaian (NC/Deficiency) ditetapkan secara jelas dalam SMS?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.2', no: '9.2', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah kekurangan yang teridentifikasi pada pemeriksaan PSC dilaporkan kepada perusahaan?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.3', no: '9.3', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah NC dan OBS yang teridentifikasi pada audit eksternal dilaporkan kepada perusahaan?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.4', no: '9.4', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah awak kapal yang tidak kompeten dan klaim dari pihak luar dilaporkan kepada perusahaan?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.5', no: '9.5', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah tidak ada kekurangan rekaman PSC di perusahaan dibandingkan riwayat PSC yang diperoleh dari auditor?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.6', no: '9.6', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah laporan kepada perusahaan memuat usulan tindakan korektif?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.7', no: '9.7', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah laporan-laporan tersebut diinvestigasi dan dianalisis oleh perusahaan?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.8', no: '9.8', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.1 Pelaporan NC & Tindakan Perbaikan', item: 'Apakah hal-hal tersebut beserta tindakan pencegahannya telah disampaikan kepada kapal lain yang terkait?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.9', no: '9.9', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.2 Pelaporan Kecelakaan & Insiden', item: 'Apakah terdapat kecelakaan atau insiden? Apakah hal tersebut dilaporkan kepada perusahaan?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.10', no: '9.10', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.2 Pelaporan Kecelakaan & Insiden', item: 'Apakah laporan-laporan tersebut diinvestigasi dan dianalisis oleh perusahaan?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.11', no: '9.11', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.2 Pelaporan Kecelakaan & Insiden', item: 'Apakah hal-hal tersebut telah disampaikan kepada kapal lain yang terkait?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.12', no: '9.12', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.3 Pelaporan Kejadian Nyaris Celaka (Near Miss)', item: 'Apakah kejadian nyaris celaka (near miss) dilaporkan kepada perusahaan?', ismCode: '9.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.13', no: '9.13', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.3 Pelaporan Kejadian Nyaris Celaka (Near Miss)', item: 'Apakah laporan near miss diinvestigasi dan dianalisis oleh perusahaan?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-9.14', no: '9.14', section: '9. PELAPORAN & ANALISIS NC / KECELAKAAN', subsection: '9.3 Pelaporan Kejadian Nyaris Celaka (Near Miss)', item: 'Apakah hal-hal tersebut beserta tindakan pencegahannya telah disampaikan kepada kapal lain yang terkait?', ismCode: '9.2', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 10. PEMELIHARAAN KAPAL & PERALATAN (MAINTENANCE)
+  // ============================================================
+  { id: 'doc-10.1', no: '10.1', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.1 Sertifikat & Rekaman Survey', item: 'Apakah masa berlaku sertifikat dan pengaturan survei dikelola dengan baik?', ismCode: '10.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.2', no: '10.2', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.2 Perawatan Terencana (PMS)', item: 'Apakah item dan interval perawatan terencana (PMS) telah disusun dengan benar?', ismCode: '10.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.3', no: '10.3', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.2 Perawatan Terencana (PMS)', item: 'Apakah revisi standar perawatan dan rencana pemeliharaan dilakukan secara teratur?', ismCode: '10.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.4', no: '10.4', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.2 Perawatan Terencana (PMS)', item: 'Apakah pemantauan kemajuan perawatan terencana dilaksanakan dengan baik?', ismCode: '10.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.5', no: '10.5', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.3 Dukungan dari Darat', item: 'Apakah penanggung jawab merespons laporan kerusakan dari kapal secara cepat?', ismCode: '10.2.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.6', no: '10.6', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.3 Dukungan dari Darat', item: 'Apakah kemungkinan penyebab dicantumkan dalam laporan kerusakan?', ismCode: '10.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.7', no: '10.7', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.3 Dukungan dari Darat', item: 'Apakah tindakan korektif yang tepat terhadap laporan kerusakan telah diambil?', ismCode: '10.2.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.8', no: '10.8', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.3 Dukungan dari Darat', item: 'Apakah informasi yang diperlukan seperti revisi konvensi dan pemberitahuan teknis dari pabrikan diberikan kepada kapal?', ismCode: '6.1.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.9', no: '10.9', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.4 Peralatan & Sistem Kritis', item: 'Apakah langkah-langkah khusus untuk meningkatkan keandalan peralatan dan sistem kritis tersedia?', ismCode: '10.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-10.10', no: '10.10', section: '10. PEMELIHARAAN KAPAL & PERALATAN', subsection: '10.4 Peralatan & Sistem Kritis', item: 'Apakah pengujian berkala terhadap pengaturan siaga (standby) dan peralatan/sistem teknis yang tidak beroperasi terus-menerus tercakup dalam PMS?', ismCode: '10.3', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 11. DOKUMENTASI SISTEM MANAJEMEN KESELAMATAN
+  // ============================================================
+  { id: 'doc-11.1', no: '11.1', section: '11. DOKUMENTASI SMS', subsection: '11.1 Pengelolaan Dokumen Terkontrol', item: 'Apakah revisi manual dan prosedur dilaksanakan sesuai prosedur yang berlaku?', ismCode: '11.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.2', no: '11.2', section: '11. DOKUMENTASI SMS', subsection: '11.1 Pengelolaan Dokumen Terkontrol', item: 'Apakah distribusi dokumen yang direvisi dilaksanakan sesuai prosedur?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.3', no: '11.3', section: '11. DOKUMENTASI SMS', subsection: '11.1 Pengelolaan Dokumen Terkontrol', item: 'Apakah dokumen yang sudah tidak berlaku dihapus/ditarik sesuai prosedur?', ismCode: '11.2.3', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.4', no: '11.4', section: '11. DOKUMENTASI SMS', subsection: '11.2 Buku & Publikasi Hukum/Statutori', item: 'Apakah daftar buku dan publikasi yang harus ada di kantor dan di atas kapal tersedia?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.5', no: '11.5', section: '11. DOKUMENTASI SMS', subsection: '11.2 Buku & Publikasi Hukum/Statutori', item: 'Apakah konfirmasi terhadap edisi terbaru buku hukum dilaksanakan sesuai prosedur?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.6', no: '11.6', section: '11. DOKUMENTASI SMS', subsection: '11.3 Surat & Korespondensi Resmi', item: 'Apakah surat-surat resmi dan korespondensi perusahaan dikendalikan dengan baik sesuai prosedur?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.7', no: '11.7', section: '11. DOKUMENTASI SMS', subsection: '11.3 Surat & Korespondensi Resmi', item: 'Apakah surat dan dokumen yang masuk dari pihak luar dikendalikan dengan baik sesuai prosedur?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-11.8', no: '11.8', section: '11. DOKUMENTASI SMS', subsection: '11.4 Gambar Konstruksi Kapal', item: 'Apakah gambar konstruksi terbaru (as-built drawings) setiap kapal tersedia di kantor?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 12. PENGAWAKAN (MANNING)
+  // ============================================================
+  { id: 'doc-12.1', no: '12.1', section: '12. PENGAWAKAN (MANNING)', subsection: '12.1 Sertifikat & Kesehatan Awak', item: 'Apakah salinan Sertifikat Pengawakan Aman (Safe Manning Certificate) setiap kapal tersedia?', ismCode: '6.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.2', no: '12.2', section: '12. PENGAWAKAN (MANNING)', subsection: '12.1 Sertifikat & Kesehatan Awak', item: 'Apakah salinan Sertifikat Keahlian (COC) Nakhoda dan perwira tersedia?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.3', no: '12.3', section: '12. PENGAWAKAN (MANNING)', subsection: '12.1 Sertifikat & Kesehatan Awak', item: 'Apakah salinan Sertifikat Kecakapan (COP) yang dipersyaratkan STCW untuk kelasi/juru tersedia?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.4', no: '12.4', section: '12. PENGAWAKAN (MANNING)', subsection: '12.1 Sertifikat & Kesehatan Awak', item: 'Bagaimana cara penanggung jawab memeriksa keaslian sertifikat awak kapal?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.5', no: '12.5', section: '12. PENGAWAKAN (MANNING)', subsection: '12.1 Sertifikat & Kesehatan Awak', item: 'Apakah data personil termasuk salinan sertifikat medis (medical certificate) yang masih berlaku untuk seluruh awak yang bertugas tersedia?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.6', no: '12.6', section: '12. PENGAWAKAN (MANNING)', subsection: '12.2 Penugasan & Evaluasi Nakhoda', item: 'Siapa yang bertanggung jawab atas penugasan Nakhoda dan bagaimana prosedurnya?', ismCode: '6.1.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.7', no: '12.7', section: '12. PENGAWAKAN (MANNING)', subsection: '12.2 Penugasan & Evaluasi Nakhoda', item: 'Siapa yang bertanggung jawab menilai familiarisasi Nakhoda terhadap SMS dan bagaimana prosedurnya?', ismCode: '6.1.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.8', no: '12.8', section: '12. PENGAWAKAN (MANNING)', subsection: '12.2 Penugasan & Evaluasi Nakhoda', item: 'Siapa yang bertanggung jawab menilai kemampuan dan kinerja Nakhoda serta bagaimana prosedurnya?', ismCode: '6.1.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.9', no: '12.9', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Apakah pelatihan familiarisasi untuk awak kapal yang baru bergabung/pindah dilaksanakan dengan baik?', ismCode: '6.4', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.10', no: '12.10', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Apakah pelatihan penyegaran (refresh training) untuk awak kapal termasuk awak cadangan dilaksanakan dengan baik?', ismCode: '6.5', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.11', no: '12.11', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Bagaimana penanganannya jika ada awak yang tidak dapat membaca manual/prosedur?', ismCode: '6.6', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.12', no: '12.12', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Bagaimana penanganannya jika terdapat awak kapal multinasional di atas kapal?', ismCode: '6.7', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.13', no: '12.13', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Apakah prosedur untuk mencegah penggunaan kembali awak yang tidak kompeten telah ditetapkan?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.14', no: '12.14', section: '12. PENGAWAKAN (MANNING)', subsection: '12.3 Penilaian & Pelatihan Awak Kapal', item: 'Apakah terdapat prosedur untuk mengawaki kapal secara memadai guna mencakup seluruh aspek keselamatan operasional?', ismCode: '6.2.2', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.15', no: '12.15', section: '12. PENGAWAKAN (MANNING)', subsection: '12.4 Evaluasi Agen Kepegawaian', item: 'Materi pelatihan apa yang diberikan kepada agen kepegawaian untuk awak kapal?', ismCode: '6.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-12.16', no: '12.16', section: '12. PENGAWAKAN (MANNING)', subsection: '12.4 Evaluasi Agen Kepegawaian', item: 'Apakah evaluasi kinerja agen kepegawaian dilakukan secara berkala dan tepat?', ismCode: '12.2', defaultResult: '', remark: '', isStrikethrough: false },
+
+  // ============================================================
+  // 13. KUNJUNGAN KELILING KANTOR (OFFICE TOUR)
+  // ============================================================
+  { id: 'doc-13.1', no: '13.1', section: '13. KUNJUNGAN KELILING KANTOR', subsection: '13. Tinjauan Fisik Kantor', item: 'Apakah dokumen yang berlaku tersedia di semua lokasi yang relevan di kantor?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-13.2', no: '13.2', section: '13. KUNJUNGAN KELILING KANTOR', subsection: '13. Tinjauan Fisik Kantor', item: 'Apakah salinan seluruh sertifikat operasional kapal yang berlaku dipelihara dengan baik di kantor?', ismCode: '10.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-13.3', no: '13.3', section: '13. KUNJUNGAN KELILING KANTOR', subsection: '13. Tinjauan Fisik Kantor', item: 'Apakah buku/publikasi hukum & statutori, sirkuler, dan gambar rencana yang dipersyaratkan dipelihara dengan baik?', ismCode: '11.2.1', defaultResult: '', remark: '', isStrikethrough: false },
+  { id: 'doc-13.4', no: '13.4', section: '13. KUNJUNGAN KELILING KANTOR', subsection: '13. Tinjauan Fisik Kantor', item: 'Apakah rekaman pemeliharaan kapal (termasuk rekaman perbaikan dok) disimpan dengan baik di kantor?', ismCode: '10.2.4', defaultResult: '', remark: '', isStrikethrough: false },
+];
+
+// =============================================================================
 // 1. DATA MASTER AUDIT BKI (BIRO KLASIFIKASI INDONESIA) — TEMPLATE RESMI REV 05
 // =============================================================================
 /**
@@ -542,9 +757,16 @@ export const getAuditMasterByOrganization = (organization) => {
 const CHECKLIST_SOURCE_DOCUMENT = {
   bki: {
     docNumber: 'F23.14.06-2024 Rev 05',
-    docTitle: 'Checklist for Shipboard Safety Management System',
+    docTitle: 'Checklist for Shipboard Safety Management System (SMC)',
     revision: 'Rev 05 / Document Revision 00',
     reference: '00954PK26 — SOLAS 1974 Chapter IX dan ISM Code',
+    issuedBy: 'Biro Klasifikasi Indonesia (BKI)'
+  },
+  'bki-doc': {
+    docNumber: 'F23.14.05-2025 Rev 06',
+    docTitle: 'Checklist untuk Sistem Manajemen Keselamatan Perusahaan (DOC)',
+    revision: 'Rev 06 / Document Revision 00',
+    reference: '00143pk26 — SOLAS 1974 Chapter IX dan ISM Code',
     issuedBy: 'Biro Klasifikasi Indonesia (BKI)'
   }
 };
@@ -557,6 +779,16 @@ const AUDIT_CHECKLIST_REGISTRY = {
     organizationName: BKI_AUDIT_MASTER.name,
     checked: true,
     items: BKI_SMC_CHECKLIST_TEMPLATE
+  },
+  // BKI DOC (Document of Compliance) — Audit Kantor Perusahaan
+  'bki-doc': {
+    ...BKI_AUDIT_MASTER,
+    standard: 'DOC',
+    docNumber: 'F23.14.05-2025 Rev 06',
+    docTitle: 'Checklist untuk Sistem Manajemen Keselamatan Perusahaan (DOC)',
+    organizationName: 'Biro Klasifikasi Indonesia (BKI) — DOC',
+    checked: true,
+    items: BKI_DOC_CHECKLIST_TEMPLATE
   },
   hubla: {
     ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'hubla'),
@@ -591,16 +823,22 @@ const AUDIT_CHECKLIST_REGISTRY = {
 /**
  * Ambil daftar checklist sesuai lembaga audit.
  *
- * ATURAN MUTLAK:
- * - HANYA BKI yang mengembalikan butir template (74 klausul).
+ * ATURAN:
+ * - HANYA BKI yang mengembalikan butir template resmi.
+ * - BKI + standard='DOC'  → BKI_DOC_CHECKLIST_TEMPLATE (audit kantor perusahaan)
+ * - BKI + standard='SMC'  → BKI_SMC_CHECKLIST_TEMPLATE (audit kapal)
  * - Seluruh lembaga lain (KSOP, Hubla, Custom, dll) SELALU mengembalikan array KOSONG [].
  *
  * @param {string|object} organization - ID, nama, atau objek lembaga
+ * @param {string} [standard='SMC'] - standar audit: 'DOC' atau 'SMC'
  * @returns {Array} daftar butir checklist milik lembaga tersebut
  */
-export const getChecklistForOrganization = (organization) => {
+export const getChecklistForOrganization = (organization, standard = 'SMC') => {
   if (!isBKIOrganization(organization)) {
     return []; // Lembaga selain BKI SELALU kosong!
+  }
+  if (String(standard).toUpperCase() === 'DOC') {
+    return BKI_DOC_CHECKLIST_TEMPLATE;
   }
   return BKI_SMC_CHECKLIST_TEMPLATE;
 };
@@ -659,17 +897,23 @@ export const resolveOrganizationId = (organization, fallback = 'custom') => {
  *
  * Menggabungkan resolusi lembaga + pengambilan butir checklist sehingga seluruh
  * komponen audit memakai sumber tunggal yang konsisten.
+/**
+ * Ambil konfigurasi checklist siap pakai untuk sebuah sesi audit.
+ *
+ * Menggabungkan resolusi lembaga + pengambilan butir checklist sehingga seluruh
+ * komponen audit memakai sumber tunggal yang konsisten.
  *
  * @param {string|object} organization - lembaga audit eksternal pada sesi
+ * @param {string} [standard='SMC'] - standar audit: 'DOC' (kantor) atau 'SMC' (kapal)
  * @returns {{organizationId: string, organizationName: string, checked: boolean,
  *   total: number, core: number, strikethrough: number, items: Array,
  *   note: string, docNumber: string, docTitle: string}}
  */
-export const getChecklistConfigForSession = (organization) => {
+export const getChecklistConfigForSession = (organization, standard = 'SMC') => {
   const organizationId = resolveOrganizationId(organization);
   return {
     ...getOrganizationChecklistInfo(organizationId),
-    items: getChecklistForOrganization(organizationId)
+    items: getChecklistForOrganization(organizationId, standard)
   };
 };
 

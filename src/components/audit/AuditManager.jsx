@@ -296,7 +296,12 @@ export const AuditManager = () => {
   // Untuk standar DOC (audit kantor) tetap memakai elemen ISM_DOC_ELEMENTS.
   const activeChecklistConfig = useMemo(() => {
     if (!currentTarget) return getChecklistConfigForSession(null);
+    const session = currentTarget.lastAudit || currentTarget.audits?.[0] || null;
+    const org = session?.externalOrganization ?? null;
     if (currentTarget.standard === 'DOC') {
+      if (org && isBKIOrganization(org)) {
+        return getChecklistConfigForSession(org, 'DOC');
+      }
       return {
         organizationId: 'dpa',
         organizationName: 'Audit Internal Kantor (DOC Standar ISM)',
@@ -305,8 +310,7 @@ export const AuditManager = () => {
         note: ''
       };
     }
-    const session = currentTarget.lastAudit || currentTarget.audits?.[0] || null;
-    return getChecklistConfigForSession(session?.externalOrganization ?? null);
+    return getChecklistConfigForSession(org, currentTarget.standard || 'SMC');
   }, [currentTarget, ISM_DOC_ELEMENTS]);
 
   // Butir checklist siap render untuk tabel UI.

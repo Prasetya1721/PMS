@@ -24,6 +24,7 @@ import {
 } from '../../data/auditMasterData';
 import { AuditInstitutionHeader, getInstitutionBranding } from './AuditInstitutionHeader';
 import { BkiShipboardChecklistReport } from './BkiShipboardChecklistReport';
+import { BkiDocChecklistReport } from './BkiDocChecklistReport';
 
 export const AuditReportModal = ({
   session,
@@ -76,23 +77,26 @@ export const AuditReportModal = ({
   };
 
   // Resolusi checklist sesuai lembaga audit
-  // HANYA BKI yang memiliki template resmi — lembaga lain menghasilkan items=[]
-  const checklistConfig = getChecklistConfigForSession(activeSession.externalOrganization || activeSession.standard);
+  // HANYA BKI yang memiliki template resmi (SMC: F23.14.06 Rev 05, DOC: F23.14.05 Rev 06) — lembaga lain menghasilkan items=[]
+  const checklistConfig = getChecklistConfigForSession(
+    activeSession.externalOrganization || activeSession.standard,
+    activeSession.standard || 'SMC'
+  );
   const isBKISession = isBKIOrganization(activeSession.externalOrganization || checklistConfig.organizationId);
 
   // Prioritas data checklist:
-  // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI dan SMC, buang template BKI)
-  // 2. activeSession.checklist (tersimpan di object sesi — jika bukan BKI dan SMC, buang template BKI)
+  // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI, buang template bawaan)
+  // 2. activeSession.checklist (tersimpan di object sesi — jika bukan BKI, buang template bawaan)
   // 3. Template statis dari checklistConfig (hanya terisi jika BKI, kosong [] untuk lembaga lain)
   const resolveSessionChecklist = () => {
     if (Array.isArray(liveChecklist)) {
-      if (activeSession.standard === 'SMC' && !isBKISession) {
+      if (!isBKISession) {
         return liveChecklist.filter(item => item.isManual);
       }
       return liveChecklist;
     }
     if (Array.isArray(activeSession.checklist) && activeSession.checklist.length > 0) {
-      if (activeSession.standard === 'SMC' && !isBKISession) {
+      if (!isBKISession) {
         return activeSession.checklist.filter(item => item.isManual);
       }
       return activeSession.checklist;
@@ -322,7 +326,9 @@ export const AuditReportModal = ({
                   transition: 'all 0.15s ease'
                 }}
               >
-                {isBKI ? '3. Checklist Resmi BKI (Persis PDF Rev 05)' : `3. Checklist Audit ${institutionBranding.shortName}`}
+                {isBKI
+                  ? (activeSession.standard === 'DOC' ? '3. Checklist Resmi DOC BKI (Persis PDF Rev 06)' : '3. Checklist Resmi BKI (Persis PDF Rev 05)')
+                  : `3. Checklist Audit ${institutionBranding.shortName}`}
               </button>
             </div>
 
@@ -1017,12 +1023,21 @@ export const AuditReportModal = ({
             {/* ===================================================================== */}
             {reportMode === 'checklist' && (
               isBKI ? (
-                <BkiShipboardChecklistReport
-                  session={activeSession}
-                  vessel={currentVessel}
-                  liveChecklist={liveChecklist}
-                  findings={sessionFindings}
-                />
+                activeSession.standard === 'DOC' ? (
+                  <BkiDocChecklistReport
+                    session={activeSession}
+                    vessel={currentVessel}
+                    liveChecklist={liveChecklist}
+                    findings={sessionFindings}
+                  />
+                ) : (
+                  <BkiShipboardChecklistReport
+                    session={activeSession}
+                    vessel={currentVessel}
+                    liveChecklist={liveChecklist}
+                    findings={sessionFindings}
+                  />
+                )
               ) : (
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   {/* Notice Lembaga Non-BKI */}
