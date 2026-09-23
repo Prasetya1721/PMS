@@ -424,7 +424,7 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
                         required
                         value={customExternalOrg}
                         onChange={(e) => setCustomExternalOrg(e.target.value)}
-                        placeholder="cth: RINA Services / KSOP Kelas II Pontianak..."
+                        placeholder="cth: Lloyd's Register (LR) / Bureau Veritas (BV) / ClassNK / RINA..."
                         className="input-control"
                       />
                     </div>

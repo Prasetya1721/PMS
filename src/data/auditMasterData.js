@@ -324,20 +324,6 @@ export const BKI_AUDIT_MASTER = {
  */
 export const NON_BKI_AUDIT_ORGANIZATIONS = [
   {
-    id: 'ksop',
-    organizationId: 'ksop',
-    code: 'KSOP',
-    name: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)',
-    shortName: 'KSOP Pontianak',
-    category: 'NON_BKI',
-    badgeColor: '#2563eb',
-    standard: 'SMC/Statutory',
-    hasOfficialTemplate: false,
-    description: 'Pemeriksaan kelaiklautan kapal, keselamatan pelayaran, sertifikasi statutori & pencegahan pencemaran di wilayah pelabuhan.',
-    note: 'Format checklist KSOP disusun secara mandiri sesuai ranah kelaiklautan & statutori. Template resmi BKI tidak berlaku.',
-    items: []
-  },
-  {
     id: 'hubla',
     organizationId: 'hubla',
     code: 'HUBLA',
@@ -352,59 +338,17 @@ export const NON_BKI_AUDIT_ORGANIZATIONS = [
     items: []
   },
   {
-    id: 'lr',
-    organizationId: 'lr',
-    code: 'LR',
-    name: "Lloyd's Register (LR)",
-    shortName: "Lloyd's",
+    id: 'ksop',
+    organizationId: 'ksop',
+    code: 'KSOP',
+    name: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)',
+    shortName: 'KSOP Pontianak',
     category: 'NON_BKI',
-    badgeColor: '#dc2626',
-    standard: 'SMC/Class',
+    badgeColor: '#2563eb',
+    standard: 'SMC/Statutory',
     hasOfficialTemplate: false,
-    description: 'Badan klasifikasi internasional asal Inggris (IACS Member).',
-    note: 'Memakai sistem audit ISM/ISPS Lloyd\'s Register tersendiri. Template resmi BKI tidak berlaku.',
-    items: []
-  },
-  {
-    id: 'bv',
-    organizationId: 'bv',
-    code: 'BV',
-    name: 'Bureau Veritas (BV)',
-    shortName: 'BV',
-    category: 'NON_BKI',
-    badgeColor: '#d97706',
-    standard: 'SMC/Class',
-    hasOfficialTemplate: false,
-    description: 'Badan klasifikasi internasional asal Prancis (IACS Member).',
-    note: 'Memakai sistem audit ISM Bureau Veritas tersendiri. Template resmi BKI tidak berlaku.',
-    items: []
-  },
-  {
-    id: 'classnk',
-    organizationId: 'classnk',
-    code: 'NK',
-    name: 'Nippon Kaiji Kyokai (ClassNK)',
-    shortName: 'ClassNK',
-    category: 'NON_BKI',
-    badgeColor: '#4f46e5',
-    standard: 'SMC/Class',
-    hasOfficialTemplate: false,
-    description: 'Badan klasifikasi internasional asal Jepang (IACS Member).',
-    note: 'Memakai sistem audit ISM ClassNK tersendiri. Template resmi BKI tidak berlaku.',
-    items: []
-  },
-  {
-    id: 'rina',
-    organizationId: 'rina',
-    code: 'RINA',
-    name: 'RINA Services Marine',
-    shortName: 'RINA',
-    category: 'NON_BKI',
-    badgeColor: '#7c3aed',
-    standard: 'SMC/Class',
-    hasOfficialTemplate: false,
-    description: 'Badan klasifikasi internasional asal Italia (IACS Member).',
-    note: 'Memakai sistem audit ISM RINA tersendiri. Template resmi BKI tidak berlaku.',
+    description: 'Pemeriksaan kelaiklautan kapal, keselamatan pelayaran, sertifikasi statutori & pencegahan pencemaran di wilayah pelabuhan.',
+    note: 'Format checklist KSOP disusun secara mandiri sesuai ranah kelaiklautan & statutori. Template resmi BKI tidak berlaku.',
     items: []
   },
   {
@@ -417,7 +361,7 @@ export const NON_BKI_AUDIT_ORGANIZATIONS = [
     badgeColor: '#64748b',
     standard: 'Custom',
     hasOfficialTemplate: false,
-    description: 'Auditor eksternal independen atau otoritas maritim lainnya.',
+    description: 'Auditor eksternal independen atau badan klasifikasi internasional lainnya (seperti Lloyd\'s Register, Bureau Veritas, ClassNK, RINA, dll) yang dapat diinput sendiri saat diminta bantuan.',
     note: 'Format checklist disesuaikan manual oleh auditor per sesi pemeriksaan.',
     items: []
   }
@@ -524,39 +468,11 @@ const AUDIT_CHECKLIST_REGISTRY = {
     note: ORG_CHECKLIST_NOTE,
     items: []
   },
-  lr: {
-    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'lr'),
-    organizationName: "Lloyd's Register (LR)",
-    checked: false,
-    note: ORG_CHECKLIST_NOTE,
-    items: []
-  },
-  bv: {
-    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'bv'),
-    organizationName: 'Bureau Veritas (BV)',
-    checked: false,
-    note: ORG_CHECKLIST_NOTE,
-    items: []
-  },
-  classnk: {
-    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'classnk'),
-    organizationName: 'Nippon Kaiji Kyokai (ClassNK)',
-    checked: false,
-    note: ORG_CHECKLIST_NOTE,
-    items: []
-  },
-  rina: {
-    ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'rina'),
-    organizationName: 'RINA Services Marine',
-    checked: false,
-    note: ORG_CHECKLIST_NOTE,
-    items: []
-  },
   custom: {
     ...NON_BKI_AUDIT_ORGANIZATIONS.find(o => o.id === 'custom'),
-    organizationName: 'Lembaga Audit Eksternal Lainnya',
+    organizationName: 'Lembaga Audit Eksternal Lainnya (Input Manual)',
     checked: false,
-    note: 'Lembaga belum terdaftar pada template. Silakan susun checklist manual sesuai regulasi lembaga terkait.',
+    note: 'Lembaga eksternal lainnya diinput manual sesuai penunjukan (seperti LR, BV, ClassNK, RINA, dll).',
     items: []
   },
   internal: {
@@ -573,7 +489,7 @@ const AUDIT_CHECKLIST_REGISTRY = {
  *
  * ATURAN MUTLAK:
  * - HANYA BKI yang mengembalikan butir template (74 klausul).
- * - Seluruh lembaga lain (KSOP, Hubla, LR, BV, dll) SELALU mengembalikan array KOSONG [].
+ * - Seluruh lembaga lain (KSOP, Hubla, Custom, dll) SELALU mengembalikan array KOSONG [].
  *
  * @param {string|object} organization - ID, nama, atau objek lembaga
  * @returns {Array} daftar butir checklist milik lembaga tersebut
@@ -623,14 +539,10 @@ export const resolveOrganizationId = (organization, fallback = 'custom') => {
   );
   if (matched) return matched.id;
 
-  // Cocokkan nama resmi di dalam string panjang (mis. "KSOP Pontianak")
+  // Cocokkan nama resmi di dalam string panjang (mis. "KSOP Pontianak", "Ditjen Perhubungan Laut")
   const aliasMap = [
-    { id: 'hubla', keywords: ['hubla', 'perhubungan laut', 'kemenhub'] },
-    { id: 'ksop', keywords: ['ksop', 'kesyahbandaran', 'otoritas pelabuhan'] },
-    { id: 'lr', keywords: ['lloyd', 'lloyds register', 'lr '] },
-    { id: 'bv', keywords: ['bureau veritas', 'bv '] },
-    { id: 'classnk', keywords: ['classnk', 'class nk', 'nippon kaiji'] },
-    { id: 'rina', keywords: ['rina'] }
+    { id: 'hubla', keywords: ['hubla', 'perhubungan laut', 'kemenhub', 'ditjen'] },
+    { id: 'ksop', keywords: ['ksop', 'kesyahbandaran', 'otoritas pelabuhan'] }
   ];
   const aliasHit = aliasMap.find(a => a.keywords.some(k => lowered.includes(k)));
   if (aliasHit) return aliasHit.id;

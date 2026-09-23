@@ -1099,7 +1099,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                           required
                           value={customExternalOrg}
                           onChange={(e) => setCustomExternalOrg(e.target.value)}
-                          placeholder="contoh: KSOP Kelas II Pontianak / RINA Classification..."
+                          placeholder="cth: Lloyd's Register (LR) / Bureau Veritas (BV) / ClassNK / RINA..."
                           className="input-control"
                           style={{ borderColor: '#a855f7' }}
                         />
@@ -1441,7 +1441,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                 required
                                 value={customExternalOrg}
                                 onChange={(e) => setCustomExternalOrg(e.target.value)}
-                                placeholder="cth: RINA Classification / KSOP Kelas II..."
+                                placeholder="cth: Lloyd's Register (LR) / Bureau Veritas (BV) / ClassNK / RINA..."
                                 className="input-control"
                               />
                             </div>
