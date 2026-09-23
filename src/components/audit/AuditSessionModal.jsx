@@ -111,8 +111,8 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Screen State: Step 0 (Pre-Selection / Setup) vs Step 1 (Full Form 5 Tabs)
-  // New sessions start at Setup Step (Step 0) so the user selects Internal/External & DOC/SMC first.
-  const [isSetupStep, setIsSetupStep] = useState(!isEdit);
+  // New sessions start at Setup Step (Step 0) only if target is not preselected.
+  const [isSetupStep, setIsSetupStep] = useState(!isEdit && !defaultVesselId);
 
   // Fullscreen toggle state (defaults to true for rich workstation comfort)
   const [isFullscreen, setIsFullscreen] = useState(true);

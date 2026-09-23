@@ -37,7 +37,7 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
     showToast
   } = usePMS();
 
-  const isEdit = Boolean(finding);
+  const isEdit = Boolean(finding && finding.id && !finding.isDraft);
   const [isFullscreen, setIsFullscreen] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
