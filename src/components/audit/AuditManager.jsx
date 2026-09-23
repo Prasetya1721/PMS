@@ -302,21 +302,12 @@ export const AuditManager = () => {
   const activeChecklistConfig = useMemo(() => {
     if (!currentTarget) return getChecklistConfigForSession(null);
     const session = currentTarget.lastAudit || currentTarget.audits?.[0] || null;
-    const org = session?.externalOrganization ?? null;
+    const org = session?.externalOrganization ?? (currentTarget.auditType === 'Internal' ? 'internal' : null);
     if (currentTarget.standard === 'DOC') {
-      if (org && isBKIOrganization(org)) {
-        return getChecklistConfigForSession(org, 'DOC');
-      }
-      return {
-        organizationId: 'dpa',
-        organizationName: 'Audit Internal Kantor (DOC Standar ISM)',
-        checked: true,
-        items: ISM_DOC_ELEMENTS,
-        note: ''
-      };
+      return getChecklistConfigForSession(org || 'internal', 'DOC');
     }
-    return getChecklistConfigForSession(org, currentTarget.standard || 'SMC');
-  }, [currentTarget, ISM_DOC_ELEMENTS]);
+    return getChecklistConfigForSession(org || 'internal', currentTarget.standard || 'SMC');
+  }, [currentTarget]);
 
   // Butir checklist siap render untuk tabel UI.
   // Dinormalisasi dari activeChecklistConfig agar tabel cukup memakai
@@ -1889,10 +1880,10 @@ export const AuditManager = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    {isBKIOrganization(activeChecklistConfig.organizationId) ? (
+                    {isBKIOrganization(activeChecklistConfig.organizationId) || activeChecklistConfig.organizationId === 'internal' ? (
                       <>
-                        <span>Checklist Resmi BKI (SMS Shipboard Checklist Rev 05)</span>
-                        <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>Template BKI 74 Butir</span>
+                        <span>Checklist {activeChecklistConfig.organizationId === 'internal' ? 'Audit Internal' : 'Resmi BKI'} ({currentTarget.standard === 'DOC' ? 'DOC Rev 06' : 'SMS Shipboard Rev 05'})</span>
+                        <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>Standar BKI ({currentTarget.standard === 'DOC' ? '13 Seksi' : '74 Butir'})</span>
                       </>
                     ) : (
                       <>
@@ -1902,8 +1893,10 @@ export const AuditManager = () => {
                     )}
                   </h4>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {isBKIOrganization(activeChecklistConfig.organizationId)
-                      ? `Pemeriksaan komprehensif seluruh area operasional kapal ${currentTarget.name} standar BKI F23.14.06-2024 Rev 05 (termasuk klausul khusus tipe kapal A s/d E).`
+                    {isBKIOrganization(activeChecklistConfig.organizationId) || activeChecklistConfig.organizationId === 'internal'
+                      ? (currentTarget.standard === 'DOC'
+                          ? 'Pemeriksaan kepatuhan kantor pusat PT. PBK mengadopsi standar resmi BKI F23.14.05-2025 Rev 06 (13 seksi ISM Code).'
+                          : `Pemeriksaan komprehensif seluruh area operasional kapal ${currentTarget.name} mengadopsi standar BKI F23.14.06-2024 Rev 05 (74 butir checklist).`)
                       : `Format checklist pemeriksaan untuk ${activeChecklistConfig.organizationName} disesuaikan secara mandiri. Template resmi BKI dipisahkan agar tidak terpakai oleh lembaga ini.`}
                   </p>
                 </div>

@@ -698,10 +698,10 @@ export const INTERNAL_AUDIT_MASTER = {
   category: 'INTERNAL',
   badgeColor: '#0891b2',
   standard: 'DOC & SMC',
-  hasOfficialTemplate: false,
-  description: 'Tim auditor internal Designated Person Ashore (DPA) dan Departemen QHSE PT. Pelayaran Baharimas Kalimantan.',
-  note: 'Audit internal perusahaan menggunakan 12 elemen ISM Code untuk DOC kantor dan kriteria keselamatan internal armada.',
-  items: []
+  hasOfficialTemplate: true,
+  description: 'Tim auditor internal Designated Person Ashore (DPA) dan Departemen QHSE PT. Pelayaran Baharimas Kalimantan mengadopsi standar resmi BKI DOC Rev 06 & SMC Rev 05.',
+  note: 'Audit internal perusahaan mengadopsi formulir checklist standar resmi BKI: DOC Rev 06 untuk kantor darat dan SMC Rev 05 untuk armada kapal.',
+  items: BKI_SMC_CHECKLIST_TEMPLATE
 };
 
 // Gabungan seluruh organisasi audit eksternal untuk backward compatibility
@@ -768,6 +768,13 @@ const CHECKLIST_SOURCE_DOCUMENT = {
     revision: 'Rev 06 / Document Revision 00',
     reference: '00143pk26 — SOLAS 1974 Chapter IX dan ISM Code',
     issuedBy: 'Biro Klasifikasi Indonesia (BKI)'
+  },
+  internal: {
+    docNumber: 'F23.14.06-2024 Rev 05 / F23.14.05-2025 Rev 06',
+    docTitle: 'Checklist Audit Internal ISM Code (Standar BKI DOC Rev 06 & SMC Rev 05)',
+    revision: 'Rev 05 / Rev 06',
+    reference: 'SOLAS 1974 Chapter IX dan ISM Code (Standar Resmi BKI)',
+    issuedBy: 'PT. Pelayaran Baharimas Kalimantan'
   }
 };
 
@@ -814,9 +821,10 @@ const AUDIT_CHECKLIST_REGISTRY = {
   internal: {
     ...INTERNAL_AUDIT_MASTER,
     organizationName: INTERNAL_AUDIT_MASTER.name,
-    checked: false,
-    note: 'Audit internal perusahaan menggunakan kriteria DPA / QHSE.',
-    items: []
+    checked: true,
+    hasOfficialTemplate: true,
+    note: 'Audit internal perusahaan mengadopsi checklist standar resmi BKI (DOC Rev 06 untuk kantor & SMC Rev 05 untuk armada).',
+    items: BKI_SMC_CHECKLIST_TEMPLATE
   }
 };
 
@@ -824,18 +832,22 @@ const AUDIT_CHECKLIST_REGISTRY = {
  * Ambil daftar checklist sesuai lembaga audit.
  *
  * ATURAN:
- * - HANYA BKI yang mengembalikan butir template resmi.
- * - BKI + standard='DOC'  → BKI_DOC_CHECKLIST_TEMPLATE (audit kantor perusahaan)
- * - BKI + standard='SMC'  → BKI_SMC_CHECKLIST_TEMPLATE (audit kapal)
- * - Seluruh lembaga lain (KSOP, Hubla, Custom, dll) SELALU mengembalikan array KOSONG [].
+ * - BKI dan Audit Internal PBK menggunakan butir template standar resmi BKI:
+ *   - DOC  → BKI_DOC_CHECKLIST_TEMPLATE (audit kantor perusahaan)
+ *   - SMC  → BKI_SMC_CHECKLIST_TEMPLATE (audit kapal)
+ * - Lembaga eksternal non-BKI (KSOP, Hubla, Custom, dll) SELALU mengembalikan array KOSONG [].
  *
  * @param {string|object} organization - ID, nama, atau objek lembaga
  * @param {string} [standard='SMC'] - standar audit: 'DOC' atau 'SMC'
  * @returns {Array} daftar butir checklist milik lembaga tersebut
  */
 export const getChecklistForOrganization = (organization, standard = 'SMC') => {
-  if (!isBKIOrganization(organization)) {
-    return []; // Lembaga selain BKI SELALU kosong!
+  const orgId = resolveOrganizationId(organization);
+  const isBki = isBKIOrganization(organization);
+  const isInternal = orgId === 'internal' || organization === 'internal' || String(organization).toLowerCase().includes('internal') || String(organization).toLowerCase().includes('baharimas');
+
+  if (!isBki && !isInternal) {
+    return []; // Lembaga selain BKI dan Internal SELALU kosong!
   }
   if (String(standard).toUpperCase() === 'DOC') {
     return BKI_DOC_CHECKLIST_TEMPLATE;
@@ -897,11 +909,6 @@ export const resolveOrganizationId = (organization, fallback = 'custom') => {
  *
  * Menggabungkan resolusi lembaga + pengambilan butir checklist sehingga seluruh
  * komponen audit memakai sumber tunggal yang konsisten.
-/**
- * Ambil konfigurasi checklist siap pakai untuk sebuah sesi audit.
- *
- * Menggabungkan resolusi lembaga + pengambilan butir checklist sehingga seluruh
- * komponen audit memakai sumber tunggal yang konsisten.
  *
  * @param {string|object} organization - lembaga audit eksternal pada sesi
  * @param {string} [standard='SMC'] - standar audit: 'DOC' (kantor) atau 'SMC' (kapal)
@@ -911,8 +918,38 @@ export const resolveOrganizationId = (organization, fallback = 'custom') => {
  */
 export const getChecklistConfigForSession = (organization, standard = 'SMC') => {
   const organizationId = resolveOrganizationId(organization);
+  const isInternal = organizationId === 'internal' || organization === 'internal' || String(organization).toLowerCase().includes('internal') || String(organization).toLowerCase().includes('baharimas');
+  const stdUpper = String(standard).toUpperCase();
+  const info = getOrganizationChecklistInfo(organizationId);
+
+  if (isInternal) {
+    const isDoc = stdUpper === 'DOC';
+    const items = isDoc ? BKI_DOC_CHECKLIST_TEMPLATE : BKI_SMC_CHECKLIST_TEMPLATE;
+    return {
+      ...info,
+      organizationId: 'internal',
+      organizationName: 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)',
+      shortName: 'Internal DPA/QHSE',
+      checked: true,
+      hasOfficialTemplate: true,
+      standard: stdUpper,
+      docNumber: isDoc ? 'F23.14.05-2025 Rev 06' : 'F23.14.06-2024 Rev 05',
+      docTitle: isDoc
+        ? 'Checklist Audit Internal DOC (Standar BKI Rev 06 - 13 Seksi)'
+        : 'Checklist Audit Internal SMC (Standar BKI Rev 05 - 74 Klausul)',
+      revision: isDoc ? 'Rev 06 / Document Revision 00' : 'Rev 05 / Document Revision 00',
+      reference: isDoc ? '00143pk26 — SOLAS 1974 Chapter IX & ISM Code' : '00954PK26 — SOLAS 1974 Chapter IX & ISM Code',
+      issuedBy: 'PT. Pelayaran Baharimas Kalimantan (Standar BKI)',
+      total: items.length,
+      core: items.filter(i => !i.isStrikethrough).length,
+      strikethrough: items.filter(i => i.isStrikethrough).length,
+      items,
+      note: 'Audit internal perusahaan mengadopsi checklist standar resmi BKI untuk DOC kantor dan SMC kapal.'
+    };
+  }
+
   return {
-    ...getOrganizationChecklistInfo(organizationId),
+    ...info,
     items: getChecklistForOrganization(organizationId, standard)
   };
 };

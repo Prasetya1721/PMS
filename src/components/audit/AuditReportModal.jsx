@@ -77,17 +77,21 @@ export const AuditReportModal = ({
   };
 
   // Resolusi checklist sesuai lembaga audit
-  // HANYA BKI yang memiliki template resmi (SMC: F23.14.06 Rev 05, DOC: F23.14.05 Rev 06) — lembaga lain menghasilkan items=[]
+  // BKI dan Audit Internal PBK memiliki template resmi (SMC: F23.14.06 Rev 05, DOC: F23.14.05 Rev 06) — lembaga non-BKI menghasilkan items=[]
   const checklistConfig = getChecklistConfigForSession(
-    activeSession.externalOrganization || activeSession.standard,
+    activeSession.externalOrganization || (activeSession.auditType === 'Internal' ? 'internal' : activeSession.standard),
     activeSession.standard || 'SMC'
   );
-  const isBKISession = isBKIOrganization(activeSession.externalOrganization || checklistConfig.organizationId);
+  const isBKISession = isBKIOrganization(activeSession.externalOrganization || checklistConfig.organizationId) ||
+    activeSession.auditType === 'Internal' ||
+    checklistConfig.organizationId === 'internal' ||
+    String(activeSession.externalOrganization).toLowerCase().includes('internal') ||
+    String(activeSession.externalOrganization).toLowerCase().includes('baharimas');
 
   // Prioritas data checklist:
-  // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI, buang template bawaan)
-  // 2. activeSession.checklist (tersimpan di object sesi — jika bukan BKI, buang template bawaan)
-  // 3. Template statis dari checklistConfig (hanya terisi jika BKI, kosong [] untuk lembaga lain)
+  // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI & bukan Internal, buang template bawaan)
+  // 2. activeSession.checklist (tersimpan di object sesi — jika bukan BKI & bukan Internal, buang template bawaan)
+  // 3. Template statis dari checklistConfig (terisi untuk BKI & Internal, kosong [] untuk lembaga lain)
   const resolveSessionChecklist = () => {
     if (Array.isArray(liveChecklist)) {
       if (!isBKISession) {
@@ -1026,7 +1030,7 @@ export const AuditReportModal = ({
             {/* MODE 3: SMS SHIPBOARD CHECKLIST                                       */}
             {/* ===================================================================== */}
             {reportMode === 'checklist' && (
-              isBKI ? (
+              (isBKI || activeSession.auditType === 'Internal' || checklistConfig.organizationId === 'internal') ? (
                 activeSession.standard === 'DOC' ? (
                   <BkiDocChecklistReport
                     session={activeSession}
