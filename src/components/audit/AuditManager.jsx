@@ -31,13 +31,17 @@ import {
   Undo2,
   Zap,
   Play,
-  CheckSquare
+  CheckSquare,
+  Compass,
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
 import { SubmitEvidenceModal } from './SubmitEvidenceModal';
 import { AuditNotificationModal } from './AuditNotificationModal';
 import { AuditReportModal } from './AuditReportModal';
+import { AuditRoleFlowModal } from './AuditRoleFlowModal';
 import { calculateNCRange, calculateFleetTargetTimeStats, formatIndoDate } from '../../utils/auditTimeUtils';
 import {
   getChecklistConfigForSession,
@@ -70,6 +74,7 @@ export const AuditManager = () => {
     openNCCount,
     closedNCCount,
     currentUser,
+    currentRole,
     showToast
   } = usePMS();
 
@@ -113,6 +118,54 @@ export const AuditManager = () => {
   const [reportModalSession, setReportModalSession] = useState(null);
   const [reportModalFinding, setReportModalFinding] = useState(null);
   const [reportModalMode, setReportModalMode] = useState('session'); // 'session' | 'ncr' | 'checklist'
+
+  // Interactive Perspective state: 'dpa' (Kantor Darat) | 'nakhoda' (Onboard Kapal)
+  const [auditRolePerspective, setAuditRolePerspective] = useState(() => {
+    try {
+      const userRole = (currentUser?.role || currentRole || '').toLowerCase();
+      if (userRole.includes('nakhoda') || userRole.includes('master') || userRole.includes('kapal')) {
+        return 'nakhoda';
+      }
+    } catch {}
+    return 'dpa';
+  });
+
+  const [showRoleFlowModal, setShowRoleFlowModal] = useState(false);
+
+  // Helper deskripsi tanggung jawab peran sesuai tahap aktif
+  const getRoleGuidance = (tab, role) => {
+    if (role === 'dpa') {
+      switch (tab) {
+        case 'sessions':
+          return 'DPA merencanakan jadwal audit periodik, menunjuk Lead Auditor & tim independen, menetapkan tanggal pelaksanaan, dan mengirimkan surat tugas resmi ke kapal.';
+        case 'checklist':
+          return 'DPA / Auditor memantau evaluasi 74 butir klausul SMC kapal / 13 seksi DOC kantor, memverifikasi kesesuaian SOP darat dengan kapal, dan mencoret klausul N/A.';
+        case 'findings':
+          return 'DPA / Auditor meninjau daftar temuan, menetapkan derajat ketidaksesuaian (Major/Minor/Obs), menentukan target batas waktu (Due Date), dan menerbitkan form NCR.';
+        case 'capa':
+          return 'DPA memeriksa bukti fisik perbaikan yang dikirimkan oleh Nakhoda, mengevaluasi efektivitas tindakan perbaikan (CAPA), dan mengesahkan penutupan temuan (Close NC).';
+        case 'reporting':
+          return 'DPA menetapkan Deklarasi Kelaiklautan (Fit to Sail / Full Compliance), mengunci sesi audit menjadi Completed, dan menandatangani Laporan Eksekutif.';
+        default:
+          return 'DPA memantau kepatuhan sertifikat statutory kapal dan ketersediaan suku cadang kritis.';
+      }
+    } else {
+      switch (tab) {
+        case 'sessions':
+          return 'Nakhoda bertindak selaku Auditee Resmi, menghadiri Opening Meeting bersama tim auditor, mengonfirmasi kesiapan kru kapal, dan menyiapkan dokumen SMS di anjungan.';
+        case 'checklist':
+          return 'Nakhoda mendampingi auditor saat inspeksi fisik geladak, kamar mesin, pengujian alat keselamatan (LSA/FFA), serta verifikasi logbook navigasi dan perawatan PMS.';
+        case 'findings':
+          return 'Nakhoda menerima daftar ketidaksesuaian yang ditemukan auditor di kapal, memahami butir klausul yang terlanggar, dan menandatangani pengakuan temuan lapangan.';
+        case 'capa':
+          return 'Nakhoda memimpin perbaikan fisik onboard (Correction), menganalisis akar masalah (RCA), menyusun langkah pencegahan, melampirkan foto bukti, dan mengirimkan eviden ke DPA.';
+        case 'reporting':
+          return 'Nakhoda menghadiri Closing Meeting, menandatangani lembar penerimaan laporan audit, mengonfirmasi status Fit to Sail, dan mengarsipkan dokumen di anjungan kapal.';
+        default:
+          return 'Nakhoda memastikan masa berlaku sertifikat kapal aktif dan permintaan logistik suku cadang telah diajukan ke kantor darat.';
+      }
+    }
+  };
 
   // Manual checklist state per vessel
   const [customChecklistItems, setCustomChecklistItems] = useState([]);
@@ -1010,7 +1063,7 @@ export const AuditManager = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
                 <Plus size={15} color="#38bdf8" />
-                <span>+ Sesi Audit Baru</span>
+                <span>Sesi Audit Baru</span>
               </button>
               <button
                 onClick={() => {
@@ -1022,7 +1075,7 @@ export const AuditManager = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
                 <AlertTriangle size={15} />
-                <span>+ Catat Temuan NC</span>
+                <span>Catat Temuan NC</span>
               </button>
             </div>
           </div>
@@ -1521,46 +1574,24 @@ export const AuditManager = () => {
               </div>
             </div>
 
-            {/* Vessel Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <button
-                onClick={() => {
-                  const targetSession = currentTarget.audits?.find(s => s.status === 'Completed') || currentTarget.audits?.[0];
-                  setReportModalSession(targetSession || null);
-                  setReportModalFinding(null);
-                  setReportModalMode('session');
-                  setReportModalOpen(true);
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#0284c7' }}
-                title="Cetak Laporan Audit ISM Code Resmi (DOC/SMC Standar BKI & Ditjen Hubla)"
-              >
-                <Printer size={15} color="#0284c7" />
-                <span>🖨️ Cetak Laporan Audit Resmi</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEditingSession(null);
-                  setSessionModalOpen(true);
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-              >
-                <Plus size={15} color="#38bdf8" />
-                <span>+ Sesi Audit {currentTarget.name.split(' ')[0]}</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEditingFinding(null);
-                  setFindingDefaultAuditId(currentTarget.lastAudit?.id || null);
-                  setFindingModalOpen(true);
-                }}
-                className="btn btn-primary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
-              >
-                <AlertTriangle size={15} />
-                <span>+ Catat Temuan NC Kapal Ini</span>
-              </button>
+            {/* Vessel Status Quick Summary */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.78rem'
+              }}>
+                <ShieldCheck size={16} color={currentTarget.openNC === 0 ? '#10b981' : '#ef4444'} />
+                <span style={{ color: 'var(--text-muted)' }}>Status Kepatuhan:</span>
+                <strong style={{ color: currentTarget.openNC === 0 ? '#10b981' : '#ef4444' }}>
+                  {currentTarget.openNC === 0 ? 'Bebas NC (Terkendali)' : `${currentTarget.openNC} NC Perlu Tindakan`}
+                </strong>
+              </div>
             </div>
           </div>
 
@@ -1799,39 +1830,7 @@ export const AuditManager = () => {
                   </span>
                 </div>
               </div>
-            ) : (
-              <div className="audit-notice-banner audit-notice-info">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{
-                    padding: '0.65rem',
-                    borderRadius: '50%',
-                    background: 'rgba(2, 132, 199, 0.2)',
-                    color: '#0284c7',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <ShieldCheck size={26} />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0284c7' }}>
-                      🛡️ NOTIS KEPATUHAN: Status Kelaikan & Safety Management System Aman!
-                    </h4>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginTop: '0.2rem', opacity: 0.9 }}>
-                      Tidak ditemukan ketidaksesuaian terbuka pada <strong>{currentTarget.name}</strong>. Anda dapat menjadwalkan audit periodik atau memasukkan checklist manual.
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setVesselTab('checklist')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontWeight: 700 }}
-                >
-                  Periksa Checklist Kapal
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* ========================================================================= */}
@@ -1864,6 +1863,82 @@ export const AuditManager = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {/* Role Switcher Pill */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  padding: '2px',
+                  gap: '2px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setAuditRolePerspective('dpa')}
+                    style={{
+                      border: 'none',
+                      background: auditRolePerspective === 'dpa' ? '#0284c7' : 'transparent',
+                      color: auditRolePerspective === 'dpa' ? '#ffffff' : 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Aktifkan sudut pandang DPA (Kantor Darat): Perencanaan, Evaluasi Temuan, Otorisasi CAPA, dan Deklarasi Kelaiklautan"
+                  >
+                    <Building2 size={12} />
+                    <span>DPA (Darat)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuditRolePerspective('nakhoda')}
+                    style={{
+                      border: 'none',
+                      background: auditRolePerspective === 'nakhoda' ? '#10b981' : 'transparent',
+                      color: auditRolePerspective === 'nakhoda' ? '#ffffff' : 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Aktifkan sudut pandang Nakhoda (Kapal Onboard): Auditee Resmi, Pendampingan Checklist, Eksekusi Perbaikan & Kirim Eviden Foto"
+                  >
+                    <Ship size={12} />
+                    <span>Nakhoda (Kapal)</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRoleFlowModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    color: '#8b5cf6',
+                    borderColor: 'rgba(139, 92, 246, 0.35)',
+                    background: 'rgba(139, 92, 246, 0.08)'
+                  }}
+                  title="Lihat bagan perbandingan alur kerja DPA vs Nakhoda dan Matriks RACI"
+                >
+                  <Compass size={13} />
+                  <span>Alur DPA & Nakhoda</span>
+                </button>
+
                 {!activeSession && (
                   <button
                     type="button"
@@ -1872,7 +1947,7 @@ export const AuditManager = () => {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 800 }}
                   >
                     <Play size={13} fill="currentColor" />
-                    <span>Mulai Sesi Audit Cepat</span>
+                    <span>Mulai Sesi Cepat</span>
                   </button>
                 )}
                 <button
@@ -1892,7 +1967,7 @@ export const AuditManager = () => {
                   title="Muat contoh simulasi lengkap audit SMC (Sesi BKI, 74 checklist terisi, temuan NC 10.3, dan CAPA)"
                 >
                   <Sparkles size={13} />
-                  <span>Contoh Audit SMC</span>
+                  <span>Contoh SMC</span>
                 </button>
                 <button
                   type="button"
@@ -2015,6 +2090,65 @@ export const AuditManager = () => {
                 );
               })}
             </div>
+
+            {/* Contextual Role Guidance Ribbon */}
+            <div style={{
+              marginTop: '0.75rem',
+              padding: '0.65rem 0.95rem',
+              borderRadius: '8px',
+              background: auditRolePerspective === 'dpa'
+                ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.09), rgba(2, 132, 199, 0.02))'
+                : 'linear-gradient(135deg, rgba(16, 185, 129, 0.09), rgba(16, 185, 129, 0.02))',
+              border: auditRolePerspective === 'dpa'
+                ? '1px solid rgba(2, 132, 199, 0.3)'
+                : '1px solid rgba(16, 185, 129, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: '280px' }}>
+                <div style={{
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  background: auditRolePerspective === 'dpa' ? '#0284c7' : '#10b981',
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  flexShrink: 0
+                }}>
+                  {auditRolePerspective === 'dpa' ? <Building2 size={13} /> : <Ship size={13} />}
+                  <span>{auditRolePerspective === 'dpa' ? 'FOKUS TUGAS DPA' : 'TANGGUNG JAWAB NAKHODA'}</span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-main)', lineHeight: '1.45' }}>
+                  {getRoleGuidance(vesselTab, auditRolePerspective)}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowRoleFlowModal(true)}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    padding: '0.3rem 0.65rem'
+                  }}
+                  title="Buka panduan lengkap alur DPA, Nakhoda, dan matriks RACI"
+                >
+                  <BookOpen size={12} />
+                  <span>Pelajari Alur Lengkap</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* ===================================================================== */}
@@ -2074,8 +2208,23 @@ export const AuditManager = () => {
                     onChange={(e) => setInVesselSearch(e.target.value)}
                     placeholder="Cari klausul / temuan..."
                     className="input-control"
-                    style={{ width: '200px', fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
+                    style={{ width: '180px', fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingFinding(null);
+                      setFindingDefaultAuditId(activeSession?.id || currentTarget.lastAudit?.id || null);
+                      setFindingModalOpen(true);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700 }}
+                    title="Catat temuan ketidaksesuaian baru untuk kapal ini"
+                  >
+                    <Plus size={14} />
+                    <span>Catat Temuan NC</span>
+                  </button>
                 </div>
               </div>
 
@@ -2375,7 +2524,7 @@ export const AuditManager = () => {
           {vesselTab === 'sessions' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Riwayat Sesi Audit Resmi: {currentTarget.name}</h4>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Tahap 1: Inisiasi & Riwayat Sesi Audit Resmi: {currentTarget.name}</h4>
                 <button
                   onClick={() => {
                     setEditingSession(null);
@@ -2385,9 +2534,156 @@ export const AuditManager = () => {
                   style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                 >
                   <Plus size={14} />
-                  <span>+ Buat Sesi Audit Baru</span>
+                  <span>+ Buat Sesi Baru (Tahap 1)</span>
                 </button>
               </div>
+
+              {/* Active Session Workspace Card */}
+              {activeSession && (
+                <div
+                  className="glass-card"
+                  style={{
+                    padding: '1.25rem 1.5rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid #0284c7',
+                    background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.1) 0%, rgba(15, 23, 42, 0.7) 100%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    boxShadow: '0 8px 24px rgba(2, 132, 199, 0.15)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '10px',
+                        background: 'rgba(2, 132, 199, 0.2)',
+                        border: '1px solid rgba(2, 132, 199, 0.4)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#38bdf8',
+                        flexShrink: 0
+                      }}>
+                        <ShieldCheck size={26} />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#38bdf8' }}>
+                            Sesi Audit Aktif (Tahap 1 Terkonfirmasi)
+                          </span>
+                          <span className={`badge ${activeSession.status === 'Completed' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.68rem' }}>
+                            {activeSession.status}
+                          </span>
+                        </div>
+                        <h3 className="mono" style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0.2rem 0', color: '#f8fafc' }}>
+                          {activeSession.auditNo}
+                        </h3>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                          Standar: <strong>{activeSession.standard}</strong> • Jenis: <strong>{activeSession.auditType}</strong> • Target: <strong>{activeSession.targetName || currentTarget.name}</strong>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons to seamlessly continue through Stages 2-5 */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setVesselTab('checklist')}
+                        className="btn btn-primary btn-sm"
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          padding: '0.5rem 1rem',
+                          background: '#0284c7',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+                        }}
+                        title="Buka Tahap 2: Checklist Klausul untuk sesi ini"
+                      >
+                        <FileCheck size={16} />
+                        <span>📋 Lanjut ke 2. Checklist Klausul ➔</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setEditingSession(activeSession);
+                          setSessionModalOpen(true);
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          padding: '0.5rem 0.85rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem'
+                        }}
+                        title="Edit data sesi dan tim (Tahap 1)"
+                      >
+                        <Edit size={14} />
+                        <span>✏️ Edit Sesi & Tim</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setReportModalSession(activeSession);
+                          setReportModalMode('full');
+                          setReportModalOpen(true);
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          padding: '0.5rem 0.85rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          color: '#38bdf8'
+                        }}
+                        title="Cetak Laporan Audit Resmi A4 / PDF"
+                      >
+                        <Printer size={14} />
+                        <span>🖨️ Cetak Laporan</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary metadata grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '0.85rem',
+                    background: 'var(--bg-surface-elevated)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    fontSize: '0.75rem'
+                  }}>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block' }}>Lead Auditor:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{activeSession.leadAuditor || '-'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block' }}>Auditee / Wakil:</span>
+                      <strong style={{ color: 'var(--text-main)' }}>{activeSession.auditee || '-'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block' }}>Tanggal Pelaksanaan:</span>
+                      <strong className="mono" style={{ color: 'var(--text-main)' }}>{activeSession.auditDate || '-'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block' }}>Klausul Diperiksa:</span>
+                      <strong style={{ color: '#10b981' }}>
+                        {activeSession.checklist?.filter(c => c.result)?.length || activeSession.itemsComplied || 0} / {activeSession.checklist?.length || (activeSession.standard === 'DOC' ? 13 : 74)} Klausul
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {currentTarget.audits.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
@@ -2429,18 +2725,13 @@ export const AuditManager = () => {
                         </div>
                         <div style={{ display: 'flex', gap: '0.35rem' }}>
                           <button
-                            onClick={() => {
-                              setReportModalSession(s);
-                              setReportModalFinding(null);
-                              setReportModalMode('session');
-                              setReportModalOpen(true);
-                            }}
+                            onClick={() => setVesselTab('checklist')}
                             className="btn btn-primary btn-sm"
                             style={{ fontSize: '0.72rem', padding: '0.3rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                            title="Cetak Laporan Lengkap Sesi Audit Sesuai Standar ISM Code (A4 Print / PDF)"
+                            title="Buka checklist butir klausul untuk sesi audit ini"
                           >
-                            <Printer size={13} />
-                            <span>Cetak Laporan</span>
+                            <FileCheck size={13} />
+                            <span>Buka Checklist</span>
                           </button>
                           <button
                             onClick={() => {
@@ -2448,9 +2739,11 @@ export const AuditManager = () => {
                               setSessionModalOpen(true);
                             }}
                             className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem' }}
+                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                            title="Edit data sesi audit"
                           >
-                            Edit Formulir (5 Tab)
+                            <Edit size={12} />
+                            <span>Edit</span>
                           </button>
                           <button
                             type="button"
@@ -2485,7 +2778,7 @@ export const AuditManager = () => {
                   <ShieldCheck size={36} color="var(--text-muted)" style={{ margin: '0 auto 0.65rem' }} />
                   <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Belum ada sesi audit tercatat untuk kapal ini</h4>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    Klik tombol di bawah untuk membuat sesi audit baru dengan formulir lengkap 5 tab dan mode fullscreen.
+                    Klik tombol di bawah untuk membuat sesi audit baru (Tahap 1: Setup Sesi & Tim), kemudian lanjutkan pemeriksaan klausul di Dashboard Tahap 2.
                   </p>
                   <button
                     onClick={() => {
@@ -2493,9 +2786,10 @@ export const AuditManager = () => {
                       setSessionModalOpen(true);
                     }}
                     className="btn btn-primary btn-sm"
-                    style={{ marginTop: '0.85rem' }}
+                    style={{ marginTop: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                   >
-                    + Buat Sesi Audit Baru
+                    <Plus size={14} />
+                    <span>Buat Sesi Audit Baru (Tahap 1)</span>
                   </button>
                 </div>
               )}
@@ -2555,7 +2849,7 @@ export const AuditManager = () => {
                       : `Cetak Formulir Checklist Audit ${activeChecklistConfig.organizationName}`}
                   >
                     <Printer size={14} />
-                    <span>Cetak Checklist (PDF / Cetak)</span>
+                    <span>Cetak Checklist (PDF)</span>
                   </button>
 
                   <button
@@ -2564,7 +2858,7 @@ export const AuditManager = () => {
                     style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                   >
                     <Plus size={14} />
-                    <span>{showManualCodeForm ? 'Tutup Form' : '+ Tambah Item Manual'}</span>
+                    <span>{showManualCodeForm ? 'Tutup Form' : 'Tambah Item Manual'}</span>
                   </button>
                 </div>
               </div>
@@ -3609,10 +3903,34 @@ export const AuditManager = () => {
                                 setEvidenceModalOpen(true);
                               }}
                               className={`btn btn-sm ${isSubmitted ? 'btn-primary' : 'btn-secondary'}`}
-                              style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}
+                              style={{
+                                fontSize: '0.72rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontWeight: 700,
+                                background: auditRolePerspective === 'nakhoda' && !isClosed ? '#10b981' : undefined,
+                                color: auditRolePerspective === 'nakhoda' && !isClosed ? '#ffffff' : undefined,
+                                border: auditRolePerspective === 'nakhoda' && !isClosed ? 'none' : undefined
+                              }}
+                              title={
+                                auditRolePerspective === 'nakhoda'
+                                  ? 'Nakhoda: Unggah foto/dokumen perbaikan fisik dan kirimkan eviden ke DPA'
+                                  : 'DPA / Auditor: Periksa kelayakan eviden dan lakukan otorisasi penutupan NC'
+                              }
                             >
                               <Upload size={12} />
-                              <span>{isClosed ? 'Tinjau Bukti' : isSubmitted ? 'Verifikasi Eviden Masuk' : 'Input Bukti CAPA'}</span>
+                              <span>
+                                {isClosed
+                                  ? 'Tinjau Bukti'
+                                  : auditRolePerspective === 'nakhoda'
+                                    ? isSubmitted
+                                      ? 'Perbarui Eviden Kapal'
+                                      : 'Unggah Eviden & Kirim ke DPA'
+                                    : isSubmitted
+                                      ? 'Verifikasi Eviden Masuk'
+                                      : 'Input / Review CAPA'}
+                              </span>
                             </button>
 
                             {!isClosed && (
@@ -3628,31 +3946,53 @@ export const AuditManager = () => {
                                   <span>WhatsApp</span>
                                 </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    closeAuditFinding(f.id, 'Diverifikasi langsung melalui Alur CAPA Tahap 4', currentUser?.name || 'Lead Auditor');
-                                    showToast(`✓ Temuan ${f.findingNo || 'NC'} berhasil diverifikasi & berstatus NC Close!`, 'success');
-                                  }}
-                                  className="btn btn-sm"
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                    fontWeight: 700,
-                                    background: '#10b981',
-                                    color: '#fff',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: '0.3rem 0.65rem',
-                                    borderRadius: '6px'
-                                  }}
-                                  title="Langsung verifikasi & tutup temuan ini jika eviden telah valid"
-                                >
-                                  <CheckCircle2 size={12} />
-                                  <span>Tutup NC</span>
-                                </button>
+                                {auditRolePerspective === 'dpa' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      closeAuditFinding(f.id, 'Diverifikasi langsung melalui Alur CAPA Tahap 4 (Otorisasi DPA)', currentUser?.name || 'DPA Baharimas');
+                                      showToast(`✓ Temuan ${f.findingNo || 'NC'} berhasil diverifikasi & disetujui tutup resmi oleh DPA!`, 'success');
+                                    }}
+                                    className="btn btn-sm"
+                                    style={{
+                                      fontSize: '0.72rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                      fontWeight: 700,
+                                      background: '#10b981',
+                                      color: '#fff',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: '0.3rem 0.65rem',
+                                      borderRadius: '6px'
+                                    }}
+                                    title="DPA Otorisasi: Langsung verifikasi & tutup temuan ini jika eviden telah valid"
+                                  >
+                                    <CheckCircle2 size={12} />
+                                    <span>Tutup NC (DPA)</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      showToast(`ℹ️ Sesuai ISM Code Klausul 12, otorisasi penutupan NC dilakukan oleh DPA setelah memeriksa bukti fisik yang dikirimkan kapal.`, 'info');
+                                    }}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{
+                                      fontSize: '0.7rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      color: 'var(--text-muted)',
+                                      borderStyle: 'dashed'
+                                    }}
+                                    title="Klausul 12: Penutupan resmi diotorisasi oleh DPA setelah verifikasi eviden kapal"
+                                  >
+                                    <Clock size={11} />
+                                    <span>Verifikasi DPA</span>
+                                  </button>
+                                )}
                               </>
                             )}
 
@@ -3845,10 +4185,10 @@ export const AuditManager = () => {
                         <div style={{ padding: '0.45rem', borderRadius: '8px', background: 'rgba(2, 132, 199, 0.12)', color: '#0284c7' }}>
                           <FileText size={20} />
                         </div>
-                        <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Formulir Eksekutif</span>
+                        <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Dokumen 1</span>
                       </div>
                       <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
-                        Laporan Audit Eksekutif (Audit Report)
+                        1. Laporan Sesi Audit (Audit Report)
                       </h4>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                         Dokumen komprehensif audit berstandar resmi DOC/SMC. Berisi ringkasan eksekutif kepatuhan, data kapal/kantor, daftar auditor, rekapitulasi klausul, dan lembar tanda tangan pengesahan.
@@ -3876,7 +4216,7 @@ export const AuditManager = () => {
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontWeight: 700, width: '100%', padding: '0.5rem' }}
                     >
                       <Printer size={14} />
-                      <span>Cetak Laporan Lengkap (PDF)</span>
+                      <span>Cetak Dokumen 1: Sesi Audit</span>
                     </button>
                   </div>
 
@@ -3895,10 +4235,10 @@ export const AuditManager = () => {
                         <div style={{ padding: '0.45rem', borderRadius: '8px', background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
                           <AlertTriangle size={20} />
                         </div>
-                        <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>BKI F23.14.07</span>
+                        <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>Dokumen 2</span>
                       </div>
                       <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
-                        Formulir Ketidaksesuaian (NCR Form)
+                        2. Formulir Ketidaksesuaian (NCR Form)
                       </h4>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                         Formulir resmi penutupan temuan NC per butir pemeriksaan. Menyajikan deskripsi temuan, analisis akar masalah (RCA), tindakan korektif/preventif (CAPA), dan verifikasi Lead Auditor.
@@ -3918,7 +4258,7 @@ export const AuditManager = () => {
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontWeight: 700, width: '100%', padding: '0.5rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)' }}
                     >
                       <Printer size={14} />
-                      <span>Cetak Formulir NCR (PDF)</span>
+                      <span>Cetak Dokumen 2: Lembar NCR</span>
                     </button>
                   </div>
 
@@ -3938,11 +4278,11 @@ export const AuditManager = () => {
                           <CheckSquare size={20} />
                         </div>
                         <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>
-                          {currentTarget.standard === 'DOC' ? 'BKI DOC Rev 06' : 'BKI SMC Rev 05'}
+                          Dokumen 3 ({currentTarget.standard === 'DOC' ? 'DOC Rev 06' : 'SMC Rev 05'})
                         </span>
                       </div>
                       <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
-                        Checklist Resmi BKI (A4 Printable)
+                        3. Checklist Resmi BKI (A4 Printable)
                       </h4>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                         Formulir cetak lembar kerja audit {currentTarget.standard === 'DOC' ? 'DOC (13 Seksi)' : 'SMC Shipboard (74 Butir)'} lengkap dengan tanda silang Yes/No/NA, klausul dicoret, dan catatan bukti fisik.
@@ -3970,9 +4310,61 @@ export const AuditManager = () => {
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontWeight: 700, width: '100%', padding: '0.5rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
                     >
                       <Printer size={14} />
-                      <span>Cetak Lembar Checklist (PDF)</span>
+                      <span>Cetak Dokumen 3: Lembar Checklist</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Option to Print All as a Complete Audit Pack Bundle */}
+                <div style={{
+                  marginTop: '0.85rem',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '10px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ padding: '0.4rem', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7' }}>
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        Opsi Cetak Bundel: Ingin mencetak seluruh berkas sekaligus?
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        Anda dapat mencetak masing-masing dokumen di atas secara mandiri, atau klik tombol di samping untuk mencetak bundel 3 dokumen berurutan.
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportModalSession(activeSession || currentTarget.lastAudit);
+                      setReportModalFinding(currentTarget.findings[0] || null);
+                      setReportModalMode('all');
+                      setReportModalOpen(true);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontWeight: 800,
+                      fontSize: '0.76rem',
+                      padding: '0.45rem 0.9rem',
+                      color: '#0284c7',
+                      borderColor: 'rgba(2, 132, 199, 0.4)'
+                    }}
+                  >
+                    <FileText size={14} />
+                    <span>Cetak Semua (Bundle 3 Dokumen)</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -4104,6 +4496,17 @@ export const AuditManager = () => {
           session={editingSession}
           defaultVesselId={activeTargetId}
           defaultStandard={currentTarget?.standard || 'DOC'}
+          onSaved={(savedSession) => {
+            setSessionModalOpen(false);
+            setEditingSession(null);
+            if (savedSession?.vesselId && savedSession.vesselId !== activeTargetId) {
+              setActiveTargetId(savedSession.vesselId);
+            } else if (!savedSession?.vesselId && activeTargetId !== 'office') {
+              setActiveTargetId('office');
+            }
+            setVesselTab('checklist');
+            showToast(`✓ Sesi ${savedSession.auditNo} siap! Silakan lanjutkan pemeriksaan klausul di Dashboard Tahap 2.`, 'info');
+          }}
           onClose={() => {
             setSessionModalOpen(false);
             setEditingSession(null);
@@ -4165,6 +4568,16 @@ export const AuditManager = () => {
           }}
         />
       )}
+
+      {/* ========================================================================= */}
+      {/* MODAL BAGAN ALUR KERJA DPA & NAKHODA (INTERAKTIF & MATRIKS RACI)          */}
+      {/* ========================================================================= */}
+      <AuditRoleFlowModal
+        isOpen={showRoleFlowModal}
+        onClose={() => setShowRoleFlowModal(false)}
+        currentPerspective={auditRolePerspective}
+        onSelectPerspective={(p) => setAuditRolePerspective(p)}
+      />
 
       {/* Modal Preview Bukti Audit Checklist Onboard */}
       {previewChecklistEvidence && (

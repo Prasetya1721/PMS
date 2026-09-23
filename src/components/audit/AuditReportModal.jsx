@@ -172,7 +172,7 @@ export const AuditReportModal = ({
     }
   };
 
-  // Report view mode: 'session' | 'ncr' | 'checklist'
+  // Report view mode: 'session' | 'ncr' | 'checklist' | 'all'
   const [reportMode, setReportMode] = useState(
     initialMode === 'checklist' ? 'checklist' : initialMode === 'ncr' && activeFinding ? 'ncr' : 'session'
   );
@@ -186,9 +186,59 @@ export const AuditReportModal = ({
     }) ||
     (vessels && vessels[0]);
 
-  // Handle print
-  const handlePrint = () => {
-    window.print();
+  // Handle print (dukung cetak dokumen tertentu secara mandiri atau cetak dokumen aktif)
+  const handlePrint = (targetMode = null) => {
+    if (targetMode && targetMode !== reportMode) {
+      setReportMode(targetMode);
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    } else {
+      window.print();
+    }
+  };
+
+  // Dynamic Institution Branding: Multi-Institution (BKI, KSOP, Ditjen Hubla, PBK, Custom)
+  const institutionBranding = getInstitutionBranding(activeSession, activeFinding);
+  const isBKI = institutionBranding.isBKI;
+  const isExternal = activeSession.auditType === 'External' || activeFinding?.auditType === 'External';
+  const appointedOrg = institutionBranding.shortName || 'Badan Klasifikasi Terakreditasi';
+  const institutionDetails = institutionBranding;
+
+  // Helper metadata dokumen aktif untuk cetak masing-masing
+  const getActiveDocInfo = () => {
+    if (reportMode === 'session') {
+      return {
+        num: '1',
+        title: 'Sesi Audit',
+        fullName: `Dokumen 1: Laporan Sesi Audit (${institutionBranding.shortName})`,
+        shortName: '1. Sesi Audit'
+      };
+    }
+    if (reportMode === 'ncr') {
+      return {
+        num: '2',
+        title: 'Lembar NC',
+        fullName: `Dokumen 2: Lembar NC / Observasi (${activeFinding?.findingNo || 'NCR'})`,
+        shortName: '2. Lembar NC'
+      };
+    }
+    if (reportMode === 'checklist') {
+      return {
+        num: '3',
+        title: 'Checklist Resmi',
+        fullName: isBKI
+          ? (activeSession.standard === 'DOC' ? 'Dokumen 3: Checklist Resmi DOC BKI (Rev 06)' : 'Dokumen 3: Checklist Resmi BKI (Rev 05)')
+          : `Dokumen 3: Checklist Audit ${institutionBranding.shortName}`,
+        shortName: '3. Checklist Resmi'
+      };
+    }
+    return {
+      num: 'Semua',
+      title: 'Semua Dokumen',
+      fullName: 'Bundle Lengkap: 3 Dokumen Sekaligus (Sesi + NCR + Checklist)',
+      shortName: 'Semua Dokumen'
+    };
   };
 
   // Compliance percentage calculation
@@ -200,13 +250,6 @@ export const AuditReportModal = ({
 
   // Determine official audit close date
   const officialCloseDate = activeFinding?.evidence?.closedDate || activeSession.targetCloseDate || '2026-03-10';
-
-  // Dynamic Institution Branding: Multi-Institution (BKI, KSOP, Ditjen Hubla, PBK, Custom)
-  const institutionBranding = getInstitutionBranding(activeSession, activeFinding);
-  const isBKI = institutionBranding.isBKI;
-  const isExternal = activeSession.auditType === 'External' || activeFinding?.auditType === 'External';
-  const appointedOrg = institutionBranding.shortName || 'Badan Klasifikasi Terakreditasi';
-  const institutionDetails = institutionBranding;
 
   const modalContent = (
     <div className="audit-report-portal modal-overlay" style={{ zIndex: 12000, padding: '1rem', overflowY: 'auto' }}>
@@ -272,78 +315,191 @@ export const AuditReportModal = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {/* View Mode Toggle: 3 Modes */}
+            {/* View Mode & Cetak Masing-Masing Dokumen */}
             <div
               style={{
                 display: 'flex',
+                alignItems: 'center',
                 background: 'var(--bg-input)',
-                padding: '0.2rem',
+                padding: '0.2rem 0.3rem',
                 borderRadius: '8px',
-                border: '1px solid var(--border-subtle)'
+                border: '1px solid var(--border-subtle)',
+                gap: '0.3rem',
+                flexWrap: 'wrap'
               }}
             >
-              <button
-                type="button"
-                onClick={() => setReportMode('session')}
-                className={`tab-btn ${reportMode === 'session' ? 'active' : ''}`}
+              {/* Dokumen 1: Sesi Audit */}
+              <div
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.76rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontWeight: reportMode === 'session' ? 700 : 600,
-                  color: reportMode === 'session' ? '#ffffff' : 'var(--text-main)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   background: reportMode === 'session' ? 'var(--primary)' : 'transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  borderRadius: '6px',
+                  padding: '0.15rem'
                 }}
               >
-                1. Sesi Audit ({institutionBranding.shortName})
-              </button>
-              <button
-                type="button"
-                onClick={() => setReportMode('ncr')}
-                className={`tab-btn ${reportMode === 'ncr' ? 'active' : ''}`}
+                <button
+                  type="button"
+                  onClick={() => setReportMode('session')}
+                  className={`tab-btn ${reportMode === 'session' ? 'active' : ''}`}
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '5px',
+                    border: 'none',
+                    fontWeight: reportMode === 'session' ? 800 : 600,
+                    color: reportMode === 'session' ? '#ffffff' : 'var(--text-main)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Lihat Pratinjau Dokumen 1: Sesi Audit"
+                >
+                  1. Sesi Audit ({institutionBranding.shortName})
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrint('session');
+                  }}
+                  style={{
+                    padding: '0.25rem 0.45rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    borderRadius: '4px',
+                    border: reportMode === 'session' ? '1px solid rgba(255,255,255,0.4)' : '1px solid var(--border-subtle)',
+                    background: reportMode === 'session' ? 'rgba(255,255,255,0.22)' : 'var(--bg-surface)',
+                    color: reportMode === 'session' ? '#ffffff' : '#0284c7',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                  title="Cetak Masing-Masing: Dokumen 1 Saja (Sesi Audit)"
+                >
+                  <Printer size={12} />
+                  <span>Cetak</span>
+                </button>
+              </div>
+
+              {/* Dokumen 2: Lembar NC / Observasi */}
+              <div
                 style={{
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.76rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontWeight: reportMode === 'ncr' ? 700 : 600,
-                  color: reportMode === 'ncr' ? '#ffffff' : 'var(--text-main)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   background: reportMode === 'ncr' ? 'var(--primary)' : 'transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                2. Lembar NC / Observasi
-              </button>
-              <button
-                type="button"
-                onClick={() => setReportMode('checklist')}
-                className={`tab-btn ${reportMode === 'checklist' ? 'active' : ''}`}
-                style={{
-                  padding: '0.4rem 0.75rem',
-                  fontSize: '0.76rem',
                   borderRadius: '6px',
-                  border: 'none',
-                  fontWeight: reportMode === 'checklist' ? 700 : 600,
-                  color: reportMode === 'checklist' ? '#ffffff' : (isBKI ? '#0284c7' : 'var(--text-main)'),
-                  background: reportMode === 'checklist' ? 'var(--primary)' : 'transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  padding: '0.15rem'
                 }}
               >
-                {isBKI
-                  ? (activeSession.standard === 'DOC' ? '3. Checklist Resmi DOC BKI (Persis PDF Rev 06)' : '3. Checklist Resmi BKI (Persis PDF Rev 05)')
-                  : `3. Checklist Audit ${institutionBranding.shortName}`}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setReportMode('ncr')}
+                  className={`tab-btn ${reportMode === 'ncr' ? 'active' : ''}`}
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '5px',
+                    border: 'none',
+                    fontWeight: reportMode === 'ncr' ? 800 : 600,
+                    color: reportMode === 'ncr' ? '#ffffff' : 'var(--text-main)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Lihat Pratinjau Dokumen 2: Lembar NC / Observasi"
+                >
+                  2. Lembar NC / Observasi
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrint('ncr');
+                  }}
+                  style={{
+                    padding: '0.25rem 0.45rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    borderRadius: '4px',
+                    border: reportMode === 'ncr' ? '1px solid rgba(255,255,255,0.4)' : '1px solid var(--border-subtle)',
+                    background: reportMode === 'ncr' ? 'rgba(255,255,255,0.22)' : 'var(--bg-surface)',
+                    color: reportMode === 'ncr' ? '#ffffff' : '#f59e0b',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                  title="Cetak Masing-Masing: Dokumen 2 Saja (Lembar NC / Observasi)"
+                >
+                  <Printer size={12} />
+                  <span>Cetak</span>
+                </button>
+              </div>
+
+              {/* Dokumen 3: Checklist Resmi BKI / Lembaga */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: reportMode === 'checklist' ? 'var(--primary)' : 'transparent',
+                  borderRadius: '6px',
+                  padding: '0.15rem'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setReportMode('checklist')}
+                  className={`tab-btn ${reportMode === 'checklist' ? 'active' : ''}`}
+                  style={{
+                    padding: '0.35rem 0.6rem',
+                    fontSize: '0.75rem',
+                    borderRadius: '5px',
+                    border: 'none',
+                    fontWeight: reportMode === 'checklist' ? 800 : 600,
+                    color: reportMode === 'checklist' ? '#ffffff' : (isBKI ? '#0284c7' : 'var(--text-main)'),
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Lihat Pratinjau Dokumen 3: Checklist Resmi"
+                >
+                  {isBKI
+                    ? (activeSession.standard === 'DOC' ? '3. Checklist Resmi DOC BKI (Persis PDF Rev 06)' : '3. Checklist Resmi BKI (Persis PDF Rev 05)')
+                    : `3. Checklist Audit ${institutionBranding.shortName}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePrint('checklist');
+                  }}
+                  style={{
+                    padding: '0.25rem 0.45rem',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    borderRadius: '4px',
+                    border: reportMode === 'checklist' ? '1px solid rgba(255,255,255,0.4)' : '1px solid var(--border-subtle)',
+                    background: reportMode === 'checklist' ? 'rgba(255,255,255,0.22)' : 'var(--bg-surface)',
+                    color: reportMode === 'checklist' ? '#ffffff' : '#10b981',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                  title="Cetak Masing-Masing: Dokumen 3 Saja (Checklist Resmi)"
+                >
+                  <Printer size={12} />
+                  <span>Cetak</span>
+                </button>
+              </div>
             </div>
 
-            {/* Print Button */}
+            {/* Print Button: Cetak Dokumen Ini Saja */}
             <button
               type="button"
-              onClick={handlePrint}
+              onClick={() => handlePrint()}
               className="btn btn-primary btn-sm"
               style={{
                 display: 'flex',
@@ -353,10 +509,32 @@ export const AuditReportModal = ({
                 padding: '0.45rem 0.9rem',
                 boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
               }}
-              title="Cetak dokumen standar A4 atau simpan ke PDF"
+              title={`Cetak hanya ${getActiveDocInfo().fullName} (PDF A4)`}
             >
               <Printer size={15} />
-              <span>Cetak / PDF (A4)</span>
+              <span>Cetak {getActiveDocInfo().shortName} Saja</span>
+            </button>
+
+            {/* Secondary Option: Cetak Semua (Bundle) */}
+            <button
+              type="button"
+              onClick={() => handlePrint('all')}
+              className="btn btn-secondary btn-sm"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                padding: '0.45rem 0.75rem',
+                color: reportMode === 'all' ? '#0284c7' : 'var(--text-main)',
+                borderColor: reportMode === 'all' ? '#0284c7' : 'var(--border-subtle)',
+                background: reportMode === 'all' ? 'rgba(2, 132, 199, 0.12)' : 'transparent'
+              }}
+              title="Cetak seluruh berkas audit lengkap (Dokumen 1, 2, dan 3 digabung)"
+            >
+              <FileText size={14} />
+              <span>Cetak Semua (Bundle)</span>
             </button>
 
             {/* Close Modal Button */}
@@ -369,6 +547,37 @@ export const AuditReportModal = ({
             >
               <X size={18} />
             </button>
+          </div>
+        </div>
+
+        {/* Banner Notis Mode Cetak Terpisah (Masing-Masing) */}
+        <div
+          className="no-print"
+          style={{
+            padding: '0.45rem 1.25rem',
+            background: 'rgba(2, 132, 199, 0.07)',
+            borderBottom: '1px solid var(--border-subtle)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '0.75rem',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="badge badge-primary" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+              {reportMode === 'all' ? 'SEMUA DOKUMEN (BUNDLE)' : `DOKUMEN ${getActiveDocInfo().num} DARI 3`}
+            </span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700 }}>
+              {getActiveDocInfo().fullName}
+            </span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+              ({reportMode === 'all' ? 'Dokumen dicetak berurutan' : 'Format resmi dicetak terpisah / mandiri'})
+            </span>
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+            💡 Tip: Klik tombol <strong style={{ color: '#0284c7' }}>&quot;Cetak&quot;</strong> pada salah satu tab di atas untuk mencetak dokumen tersebut masing-masing.
           </div>
         </div>
 

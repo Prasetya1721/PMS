@@ -320,15 +320,47 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
             );
           })()}
 
+          {/* Kolaborasi Peran DPA & Nakhoda Ribbon */}
+          <div style={{
+            padding: '0.65rem 0.95rem',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(2, 132, 199, 0.08) 100%)',
+            border: '1px solid var(--border-subtle)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem',
+            fontSize: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge badge-success" style={{ fontSize: '0.68rem', fontWeight: 800 }}>🚢 Bagian 1: Nakhoda</span>
+              <span style={{ color: 'var(--text-muted)' }}>➔ Tindakan Koreksi, RCA & Eviden Fisik</span>
+              <span style={{ color: 'var(--border-subtle)' }}>|</span>
+              <span className="badge badge-info" style={{ fontSize: '0.68rem', fontWeight: 800 }}>🏢 Bagian 2: DPA</span>
+              <span style={{ color: 'var(--text-muted)' }}>➔ Verifikasi Efektivitas & Otorisasi Tutup NC</span>
+            </div>
+            <div style={{ color: 'var(--text-subtle)', fontSize: '0.72rem' }}>
+              Standar Regulasi: <strong>ISM Code Klausul 9 (Laporan Ketidaksesuaian & Tindakan Korektif)</strong>
+            </div>
+          </div>
+
           {/* Form: Submisi Bukti Eviden Perbaikan */}
           <form onSubmit={handleSubmitEvidence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <FileText size={16} color="#0284c7" />
-                  <span>Formulir Rencana Tindakan Perbaikan & Bukti Eviden (Auditee)</span>
-                </h4>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Sesuai Formulir Laporan Ketidaksesuaian ISM Code</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="badge badge-success" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                    🚢 Tanggung Jawab Nakhoda / Kapal
+                  </span>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                    <FileText size={16} color="#10b981" />
+                    <span>Bagian I: Rencana Tindakan Perbaikan (CAPA) & Unggah Eviden</span>
+                  </h4>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                  Nakhoda memimpin perbaikan fisik onboard, analisis akar masalah (RCA), dan melampirkan bukti foto untuk diserahkan ke DPA.
+                </span>
               </div>
 
               <button
@@ -522,12 +554,22 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
             flexDirection: 'column',
             gap: '0.85rem'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ShieldCheck size={18} color="#10b981" />
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Verifikasi Auditor ISM & Penutupan Temuan (Close NC)</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="badge badge-info" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                    🏢 Otorisasi DPA / Auditor Darat
+                  </span>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                    <ShieldCheck size={18} color="#0284c7" />
+                    <span>Bagian II: Verifikasi Eviden & Otorisasi Penutupan (Close NC)</span>
+                  </h4>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.2rem' }}>
+                  DPA memeriksa berkas perbaikan dari kapal, mengevaluasi efektivitas pemenuhan klausul, dan mengesahkan penutupan resmi.
+                </span>
               </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Sesuai Bagian Verifikasi Laporan NCR</span>
+              <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>Formulir BKI F23.14.07</span>
             </div>
 
             {/* Verifikasi Status Upgrade / Downgrade / Tetap */}
