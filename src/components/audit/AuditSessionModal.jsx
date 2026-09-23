@@ -2284,21 +2284,6 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               const isNo = ['No', 'Major NC', 'Minor NC', 'Observation'].includes(resultVal);
                               const isNA = resultVal === 'N/A';
 
-                              const cbStyle = (active, color) => ({
-                                width: '28px',
-                                height: '28px',
-                                fontSize: '20px',
-                                lineHeight: '28px',
-                                textAlign: 'center',
-                                cursor: item.isStrikethrough ? 'not-allowed' : 'pointer',
-                                color: active ? color : 'var(--border-glass)',
-                                opacity: active ? 1 : 0.4,
-                                userSelect: 'none',
-                                display: 'block',
-                                margin: '0 auto',
-                                transition: 'all 0.15s ease'
-                              });
-
                               return (
                                 <tr key={item.id} style={{ background: item.isStrikethrough ? 'rgba(239, 68, 68, 0.03)' : undefined }}>
                                   {/* No. + Kode */}
@@ -2353,37 +2338,40 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                     )}
                                   </td>
 
-                                  {/* Yes ☐ */}
+                                  {/* Yes */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                    <span
+                                    <div
+                                      className={`audit-checkbox-box ${isYes ? 'active-yes' : ''}`}
                                       title={isYes ? 'Batal pilih Yes (Kosongkan)' : 'Tandai: Complied / Yes'}
                                       onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isYes ? '' : 'Complied')}
-                                      style={cbStyle(isYes, '#16a34a')}
+                                      style={{ cursor: item.isStrikethrough ? 'not-allowed' : 'pointer' }}
                                     >
-                                      {isYes ? '⊠' : '□'}
-                                    </span>
+                                      {isYes && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
+                                    </div>
                                   </td>
 
-                                  {/* No ☐ */}
+                                  {/* No */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                    <span
+                                    <div
+                                      className={`audit-checkbox-box ${isNo ? 'active-no' : ''}`}
                                       title={isNo ? 'Batal pilih No (Kosongkan)' : 'Tandai: Minor NC / No'}
                                       onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isNo ? '' : 'Minor NC')}
-                                      style={cbStyle(isNo, '#dc2626')}
+                                      style={{ cursor: item.isStrikethrough ? 'not-allowed' : 'pointer' }}
                                     >
-                                      {isNo ? '⊠' : '□'}
-                                    </span>
+                                      {isNo && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
+                                    </div>
                                   </td>
 
-                                  {/* N/A ☐ */}
+                                  {/* N/A */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                    <span
+                                    <div
+                                      className={`audit-checkbox-box ${isNA ? 'active-na' : ''}`}
                                       title={isNA ? 'Batal pilih N/A (Kosongkan)' : 'Tandai: N/A (Tidak Berlaku)'}
                                       onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isNA ? '' : 'N/A')}
-                                      style={cbStyle(isNA, '#64748b')}
+                                      style={{ cursor: item.isStrikethrough ? 'not-allowed' : 'pointer' }}
                                     >
-                                      {isNA ? '⊠' : '□'}
-                                    </span>
+                                      {isNA && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
+                                    </div>
                                   </td>
 
                                   {/* Remark / Catatan */}

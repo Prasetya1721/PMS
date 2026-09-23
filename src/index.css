@@ -2149,3 +2149,78 @@ input[type="datetime-local"] {
   color: var(--text-main);
 }
 
+/* =========================================================
+   AUDIT CHECKLIST INTERACTIVE THICK CHECKBOXES
+   Thick, prominent, high-visibility checkboxes for Yes/No/NA
+   ========================================================= */
+.audit-checkbox-box {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  border: 2px solid #64748b;
+  background: rgba(100, 116, 139, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.audit-checkbox-box:hover {
+  border-color: #0284c7;
+  background: rgba(2, 132, 199, 0.12);
+  transform: scale(1.1);
+}
+
+.audit-checkbox-box.active-yes {
+  border: 2.5px solid #16a34a !important;
+  background: rgba(22, 163, 74, 0.18) !important;
+  color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25) !important;
+}
+
+.audit-checkbox-box.active-no {
+  border: 2.5px solid #dc2626 !important;
+  background: rgba(220, 38, 38, 0.18) !important;
+  color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25) !important;
+}
+
+.audit-checkbox-box.active-na {
+  border: 2.5px solid #475569 !important;
+  background: rgba(71, 85, 105, 0.22) !important;
+  color: #475569;
+  box-shadow: 0 0 0 2px rgba(71, 85, 105, 0.25) !important;
+}
+
+[data-theme='light'] .audit-checkbox-box {
+  border: 2px solid #475569;
+  background: #f8fafc;
+}
+
+[data-theme='light'] .audit-checkbox-box:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+[data-theme='light'] .audit-checkbox-box.active-yes {
+  border: 2.5px solid #15803d !important;
+  background: rgba(22, 163, 74, 0.15) !important;
+  color: #15803d;
+}
+
+[data-theme='light'] .audit-checkbox-box.active-no {
+  border: 2.5px solid #b91c1c !important;
+  background: rgba(220, 38, 38, 0.15) !important;
+  color: #b91c1c;
+}
+
+[data-theme='light'] .audit-checkbox-box.active-na {
+  border: 2.5px solid #334155 !important;
+  background: rgba(71, 85, 105, 0.18) !important;
+  color: #334155;
+}
+
