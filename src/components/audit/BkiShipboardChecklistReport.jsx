@@ -27,7 +27,7 @@ export const BkiShipboardChecklistReport = ({
   // Helper render hasil checklist (Yes / No / N/A)
   const getResultBoxes = (item) => {
     const isStriked = Boolean(item?.isStrikethrough);
-    const res = item?.result || item?.defaultResult || '';
+    const res = item?.result || '';
     const isYes = !isStriked && (res === 'Yes' || res === 'Complied');
     const isNo = !isStriked && ['No', 'Minor NC', 'Major NC', 'Observation'].includes(res);
     const isNA = isStriked || res === 'N/A';
@@ -45,7 +45,15 @@ export const BkiShipboardChecklistReport = ({
   // Helper lookup item dari liveChecklist berdasarkan nomor atau kode
   const findItem = (no) => {
     if (Array.isArray(liveChecklist) && liveChecklist.length > 0) {
-      const match = liveChecklist.find(c => c.no === no || c.code === no || c.id === `chk-${no}` || c.code?.endsWith(no));
+      const match = liveChecklist.find(c =>
+        c.no === no ||
+        c.code === no ||
+        c.id === no ||
+        c.id === `chk-${no}` ||
+        c.id === `chk-add-${no}` ||
+        String(c.code || '').trim().toLowerCase() === String(no).trim().toLowerCase() ||
+        String(c.no || '').trim().toLowerCase() === String(no).trim().toLowerCase()
+      );
       if (match) return match;
     }
     return { no, result: '', isStrikethrough: false, remark: '' };
@@ -61,7 +69,7 @@ export const BkiShipboardChecklistReport = ({
     const relatedFinding = findings.find(f => f.clauseCode === no || f.clauseCode === item?.code);
     const remarkContent = relatedFinding
       ? `See NC ${relatedFinding.findingNo || '1/4'}`
-      : customRemark || item?.notes || item?.remark || '';
+      : (item?.notes ? item.notes : (finalStriked ? 'Tidak berlaku (dicoret)' : (customRemark || item?.remark || '')));
 
     return (
       <tr key={no} style={{ background: finalStriked ? '#fcfcfc' : isNo ? '#fff5f5' : '#ffffff', position: 'relative' }}>
@@ -75,7 +83,18 @@ export const BkiShipboardChecklistReport = ({
         {/* Kolom Items to be checked */}
         <td style={{ padding: '3px 6px', border: '1px solid #000000', verticalAlign: 'top', fontSize: '6.8pt', lineHeight: 1.35, width: '45%' }}>
           <div style={{ textDecoration: finalStriked ? 'line-through' : 'none', color: finalStriked ? '#64748b' : '#000000' }}>
-            {text}
+            {item?.checkPoint ? (
+              <div>
+                <span style={{ fontWeight: 600 }}>{item.checkPoint}</span>
+                {text && text !== item.checkPoint && (
+                  <span style={{ fontSize: '6pt', color: finalStriked ? '#94a3b8' : '#64748b', fontStyle: 'italic', display: 'block', marginTop: '1px' }}>
+                    {text}
+                  </span>
+                )}
+              </div>
+            ) : (
+              text
+            )}
           </div>
           {subChecks && (
             <div style={{ marginTop: '2px', fontSize: '6.2pt', color: finalStriked ? '#94a3b8' : '#334155' }}>
@@ -101,16 +120,12 @@ export const BkiShipboardChecklistReport = ({
 
         {/* Kolom Remark */}
         <td style={{ padding: '3px 5px', border: '1px solid #000000', verticalAlign: 'top', fontSize: '6.5pt', lineHeight: 1.3, width: '26%', color: isNo ? '#b91c1c' : '#000000', fontWeight: isNo ? 700 : 400 }}>
-          {finalStriked ? (
-            <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Tidak berlaku (dicoret)</span>
-          ) : (
-            remarkContent
-          )}
+          {remarkContent}
         </td>
 
         {/* Kolom ISM Code */}
         <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', verticalAlign: 'middle', fontSize: '6.8pt', fontWeight: 700, width: '8%' }}>
-          {ismCode}
+          {item?.ismCode || ismCode}
         </td>
       </tr>
     );
@@ -773,28 +788,38 @@ export const BkiShipboardChecklistReport = ({
               </td>
             </tr>
 
-            {/* A. OIL TANKER (DICORET) */}
-            <tr style={{ background: '#f8fafc' }}>
-              <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>A</td>
-              <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: 'line-through' }}>
-                OIL TANKER (Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)
-              </td>
-            </tr>
-            {renderRow('A.1', 'Has instrument for measuring flammable gas concentration been properly calibrated?', 'SOLAS II-2/4-5.7', '', null, true)}
-            {renderRow('A.2', 'Are records of discharging of slop, valve closing operations in Oil Record Book Part II?', 'MARPOL Annex I', '', null, true)}
-            {renderRow('A.3', 'Are there records of COW operations in Oil Record Book Part II?', 'MARPOL Annex I', '', null, true)}
+            {/* A. OIL TANKER */}
+            {(() => {
+              const isStrikedA = ['A.1', 'A.2', 'A.3'].some(n => findItem(n)?.isStrikethrough);
+              return (
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>A</td>
+                  <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: isStrikedA ? 'line-through' : 'none' }}>
+                    OIL TANKER {isStrikedA ? '(Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)' : ''}
+                  </td>
+                </tr>
+              );
+            })()}
+            {renderRow('A.1', 'Has instrument for measuring flammable gas concentration been properly calibrated?', 'SOLAS II-2/4-5.7')}
+            {renderRow('A.2', 'Are records of discharging of slop, valve closing operations in Oil Record Book Part II?', 'MARPOL Annex I')}
+            {renderRow('A.3', 'Are there records of COW operations in Oil Record Book Part II?', 'MARPOL Annex I')}
 
-            {/* B. GAS CARRIER (DICORET) */}
-            <tr style={{ background: '#f8fafc' }}>
-              <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>B</td>
-              <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: 'line-through' }}>
-                GAS CARRIER (Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)
-              </td>
-            </tr>
-            {renderRow('B.1', 'Have portable and fixed gas concentration measurement instruments properly calibrated?', 'IGC Code 13.6.6', '', null, true)}
-            {renderRow('B.2', 'Is crew in charge of cargo operation adequately trained for safe handling?', 'IGC Code 18.3', '', null, true)}
-            {renderRow('B.3', 'Does crew understand Company procedure for entering cargo holds, tanks, enclosed spaces?', 'IGC Code 18.4', '', null, true)}
-            {renderRow('B.4', 'Has ship been loaded with cargo gas listed in Annex of Gas Fitness Certificate?', 'IGC Code 18.2', '', null, true)}
+            {/* B. GAS CARRIER */}
+            {(() => {
+              const isStrikedB = ['B.1', 'B.2', 'B.3', 'B.4', 'B.5', 'B.6', 'B.7'].some(n => findItem(n)?.isStrikethrough);
+              return (
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>B</td>
+                  <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: isStrikedB ? 'line-through' : 'none' }}>
+                    GAS CARRIER {isStrikedB ? '(Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)' : ''}
+                  </td>
+                </tr>
+              );
+            })()}
+            {renderRow('B.1', 'Have portable and fixed gas concentration measurement instruments properly calibrated?', 'IGC Code 13.6.6')}
+            {renderRow('B.2', 'Is crew in charge of cargo operation adequately trained for safe handling?', 'IGC Code 18.3')}
+            {renderRow('B.3', 'Does crew understand Company procedure for entering cargo holds, tanks, enclosed spaces?', 'IGC Code 18.4')}
+            {renderRow('B.4', 'Has ship been loaded with cargo gas listed in Annex of Gas Fitness Certificate?', 'IGC Code 18.2')}
           </tbody>
         </table>
 
@@ -802,7 +827,7 @@ export const BkiShipboardChecklistReport = ({
       </div>
 
       {/* ===================================================================== */}
-      {/* HALAMAN 9 DARI 10: GAS CONT., CHEMICAL, BULK CARRIER (DICORET)        */}
+      {/* HALAMAN 9 DARI 10: GAS CONT., CHEMICAL, BULK CARRIER                  */}
       {/* ===================================================================== */}
       <div className="bki-print-page" style={{ marginBottom: '25px', paddingBottom: '10px' }}>
         {renderBkiTopBar()}
@@ -810,43 +835,58 @@ export const BkiShipboardChecklistReport = ({
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '6.8pt', border: '1px solid #000000', borderTop: 'none' }}>
           <tbody>
-            {/* B. Gas Carrier lanjutan (DICORET) */}
-            {renderRow('B.5', 'In event of change of cargo gas, tank cleaning carried out according to procedure?', 'IGC Code 18.2', '', null, true)}
-            {renderRow('B.6', 'In event of simultaneous carriage of cargo gases, possibility of dangerous reaction investigated?', 'IGC Code 18.2', '', null, true)}
-            {renderRow('B.7', 'Are MARPOL Annex II cargo handling operations recorded in Cargo Record Book?', 'MARPOL Annex II', '', null, true)}
+            {/* B. Gas Carrier lanjutan */}
+            {renderRow('B.5', 'In event of change of cargo gas, tank cleaning carried out according to procedure?', 'IGC Code 18.2')}
+            {renderRow('B.6', 'In event of simultaneous carriage of cargo gases, possibility of dangerous reaction investigated?', 'IGC Code 18.2')}
+            {renderRow('B.7', 'Are MARPOL Annex II cargo handling operations recorded in Cargo Record Book?', 'MARPOL Annex II')}
 
-            {/* C. CHEMICAL TANKER (DICORET) */}
-            <tr style={{ background: '#f8fafc' }}>
-              <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>C</td>
-              <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: 'line-through' }}>
-                CHEMICAL TANKER (Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)
-              </td>
-            </tr>
-            {renderRow('C.1', 'Is crew in charge of cargo operation adequately trained for safe handling including emergency?', 'IBC Code 16.3', '', null, true)}
-            {renderRow('C.2', 'Does crew understand Company procedure for opening & entering into cargo tanks?', 'IBC Code 16.4', '', null, true)}
-            {renderRow('C.3', 'Are MARPOL Annex II cargo handling operations recorded in Cargo Record Book?', 'MARPOL Annex II', '', null, true)}
-            {renderRow('C.4', 'In event of carriage of mixed cargoes, total hazard assessed by specialist before loading?', 'IBC Code 16.2.2', '', null, true)}
+            {/* C. CHEMICAL TANKER */}
+            {(() => {
+              const isStrikedC = ['C.1', 'C.2', 'C.3', 'C.4'].some(n => findItem(n)?.isStrikethrough);
+              return (
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>C</td>
+                  <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: isStrikedC ? 'line-through' : 'none' }}>
+                    CHEMICAL TANKER {isStrikedC ? '(Dicoret — tidak berlaku untuk tipe kapal Tugboat / Other Cargo Ship)' : ''}
+                  </td>
+                </tr>
+              );
+            })()}
+            {renderRow('C.1', 'Is crew in charge of cargo operation adequately trained for safe handling including emergency?', 'IBC Code 16.3')}
+            {renderRow('C.2', 'Does crew understand Company procedure for opening & entering into cargo tanks?', 'IBC Code 16.4')}
+            {renderRow('C.3', 'Are MARPOL Annex II cargo handling operations recorded in Cargo Record Book?', 'MARPOL Annex II')}
+            {renderRow('C.4', 'In event of carriage of mixed cargoes, total hazard assessed by specialist before loading?', 'IBC Code 16.2.2')}
 
-            {/* D. BULK CARRIER (DICORET) */}
-            <tr style={{ background: '#f8fafc' }}>
-              <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>D</td>
-              <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: 'line-through' }}>
-                BULK CARRIER ( INCLUDING BULK CARRIER OTHER THAN CHAPTER IX OF SOLAS ) (Dicoret)
-              </td>
-            </tr>
-            {renderRow('D.1', 'Did crew training and drills carried out according to evacuation procedure for cargo hold flooding?', 'SOLAS Reg. XII/9', '', null, true)}
-            {renderRow('D.2', 'Are &quot;Hatch Cover Maintenance Plans&quot; in accordance with MSC 169 (79) incorporated into SMS?', 'SOLAS Reg. XII/7.2', '', null, true)}
-            {renderRow('D.3', 'Is ship provided with procedures for handling cargo which may liquefy (eg: Nickel concentrate)?', '', '', null, true)}
+            {/* D. BULK CARRIER */}
+            {(() => {
+              const isStrikedD = ['D.1', 'D.2', 'D.3'].some(n => findItem(n)?.isStrikethrough);
+              return (
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>D</td>
+                  <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: isStrikedD ? 'line-through' : 'none' }}>
+                    BULK CARRIER ( INCLUDING BULK CARRIER OTHER THAN CHAPTER IX OF SOLAS ) {isStrikedD ? '(Dicoret)' : ''}
+                  </td>
+                </tr>
+              );
+            })()}
+            {renderRow('D.1', 'Did crew training and drills carried out according to evacuation procedure for cargo hold flooding?', 'SOLAS Reg. XII/9')}
+            {renderRow('D.2', 'Are "Hatch Cover Maintenance Plans" in accordance with MSC 169 (79) incorporated into SMS?', 'SOLAS Reg. XII/7.2')}
+            {renderRow('D.3', 'Is ship provided with procedures for handling cargo which may liquefy (eg: Nickel concentrate)?', '')}
 
-            {/* E. Self-unloading Bulk Carriers (DICORET) */}
-            <tr style={{ background: '#f8fafc' }}>
-              <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>E</td>
-              <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: 'line-through' }}>
-                Self-unloading bulk carriers featuring internally installed conveyor systems - Fire Safety Risk Assessment (IMSBC Code 3.1.2)
-              </td>
-            </tr>
-            {renderRow('E.1', 'Have you procedures for fire safety risk assessment in SMS? (Identification of risk, safeguards)', '', '', null, true)}
-            {renderRow('E.2', 'What is scope of fire safety risk assessment for vessel? (Cargo handling areas on self-unloading)', '', '', null, true)}
+            {/* E. Self-unloading Bulk Carriers */}
+            {(() => {
+              const isStrikedE = ['E.1', 'E.2', 'E.3', 'E.4', 'E.5', 'E.6', 'E.7', 'E.8'].some(n => findItem(n)?.isStrikethrough);
+              return (
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '3px 4px', border: '1px solid #000000', textAlign: 'center', fontWeight: 900 }}>E</td>
+                  <td colSpan={6} style={{ padding: '3px 6px', border: '1px solid #000000', fontWeight: 900, textDecoration: isStrikedE ? 'line-through' : 'none' }}>
+                    Self-unloading bulk carriers featuring internally installed conveyor systems - Fire Safety Risk Assessment (IMSBC Code 3.1.2) {isStrikedE ? '(Dicoret)' : ''}
+                  </td>
+                </tr>
+              );
+            })()}
+            {renderRow('E.1', 'Have you procedures for fire safety risk assessment in SMS? (Identification of risk, safeguards)', '')}
+            {renderRow('E.2', 'What is scope of fire safety risk assessment for vessel? (Cargo handling areas on self-unloading)', '')}
           </tbody>
         </table>
 
@@ -862,12 +902,12 @@ export const BkiShipboardChecklistReport = ({
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '6.8pt', border: '1px solid #000000', borderTop: 'none', marginBottom: '14px' }}>
           <tbody>
-            {renderRow('E.3', 'Conveyor systems (Maintenance of rotor bearing and shaft)?', '', '', null, true)}
-            {renderRow('E.4', 'Fire-Extinguishing system (Fire Detecting Alarm System, etc.)?', '', '', null, true)}
-            {renderRow('E.5', 'Operating conditions and cargo? Hot work near conveyor systems?', '', '', null, true)}
-            {renderRow('E.6', 'Who has responsibility for implementation of fire safety risk assessment?', '', '', null, true)}
-            {renderRow('E.7', 'Are identified fire safety risks reviewed at meetings for system review?', '', '', null, true)}
-            {renderRow('E.8', 'Are there any safeguards newly established taking accounts of results of review?', '', '', null, true)}
+            {renderRow('E.3', 'Conveyor systems (Maintenance of rotor bearing and shaft)?', '')}
+            {renderRow('E.4', 'Fire-Extinguishing system (Fire Detecting Alarm System, etc.)?', '')}
+            {renderRow('E.5', 'Operating conditions and cargo? Hot work near conveyor systems?', '')}
+            {renderRow('E.6', 'Who has responsibility for implementation of fire safety risk assessment?', '')}
+            {renderRow('E.7', 'Are identified fire safety risks reviewed at meetings for system review?', '')}
+            {renderRow('E.8', 'Are there any safeguards newly established taking accounts of results of review?', '')}
           </tbody>
         </table>
 
