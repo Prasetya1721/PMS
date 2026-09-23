@@ -69,13 +69,15 @@ export const AuditReportModal = ({
     auditeeSign: 'Capt. Ekhsan'
   };
 
-  // Resolusi checklist sesuai lembaga audit (BKI terisi, lembaga lain dikosongkan)
+  // Resolusi checklist sesuai lembaga audit
+  // HANYA BKI yang memiliki template resmi \u2014 lembaga lain menghasilkan items=[]
   const checklistConfig = getChecklistConfigForSession(activeSession.externalOrganization || activeSession.standard);
+  const isBKISession = checklistConfig.organizationId === 'bki';
 
   // Prioritas data checklist:
-  // 1. liveChecklist (real-time dari AuditSessionModal — selalu segar)
+  // 1. liveChecklist (real-time dari AuditSessionModal \u2014 selalu segar)
   // 2. activeSession.checklist (tersimpan di object sesi)
-  // 3. Template statis dari checklistConfig (fallback jika sesi baru)
+  // 3. Template statis dari checklistConfig (hanya terisi jika BKI, kosong untuk lembaga lain)
   const rawSessionChecklist =
     (Array.isArray(liveChecklist) && liveChecklist.length > 0)
       ? liveChecklist
@@ -93,7 +95,7 @@ export const AuditReportModal = ({
         remark: item.notes || item.remark || '',
         isStrikethrough: Boolean(item.isStrikethrough)
       }))
-    : checklistConfig.items;
+    : checklistConfig.items; // kosong [] jika bukan BKI
 
 
   // Find all findings related to this session or target

@@ -43,16 +43,18 @@ import {
 /**
  * Bangun baris checklist interaktif dari registry checklist lembaga audit.
  *
- * BKI memakai template resmi F23.14.06-2024 Rev 05 (termasuk butir yang dicoret),
- * bersumber dari dokumen resmi 00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf.
- * Lembaga lain mengembalikan array kosong karena format checklist antar lembaga
- * berbeda dan harus diisi manual oleh auditor.
+ * HANYA BKI yang memiliki template resmi (F23.14.06-2024 Rev 05).
+ * Lembaga lain mengembalikan array KOSONG — auditor menyusun butir manual.
  *
  * @param {string|object} organization - lembaga audit eksternal pada sesi
- * @returns {Array} baris checklist siap pakai
+ * @returns {Array} baris checklist siap pakai (kosong jika bukan BKI)
  */
 const buildChecklistFromOrganization = (organization) => {
-  const { items } = getChecklistConfigForSession(organization);
+  const { organizationId, items } = getChecklistConfigForSession(organization);
+
+  // Guard: hanya BKI yang punya template checklist standar
+  if (organizationId !== 'bki' || !items || items.length === 0) return [];
+
   return items.map(el => {
     const norm = normalizeChecklistItem(el);
     return {
@@ -165,11 +167,13 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   }, [vessels, vesselId]);
 
   // Tab 3: Interactive Checklist (bersumber dari registry checklist per lembaga)
+  // HANYA BKI yang memiliki template — lembaga lain mulai dengan daftar kosong
   const [checklist, setChecklist] = useState(() => {
     if (session?.checklist && session.checklist.length > 0) {
       return session.checklist;
     }
     if (initialStandard === 'SMC') {
+      // Hanya muat template jika lembaga adalah BKI
       return buildChecklistFromOrganization(initialOrgStr);
     }
     return ISM_DOC_ELEMENTS.map(el => ({
@@ -286,7 +290,8 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         `Implementasi keselamatan maritim di atas kapal ${vName} berjalan efektif. Seluruh peralatan navigasi, mesin, dan latihan darurat (drills) terverifikasi. Sertifikat SMC kapal direkomendasikan untuk diperpanjang/dipertahankan.`
       );
 
-      // Load checklist sesuai lembaga audit yang dipilih (BKI = template Rev 05)
+      // Load checklist sesuai lembaga audit:
+      // BKI → template resmi Rev 05; lembaga lain → kosong (isi manual)
       setChecklist(buildChecklistFromOrganization(externalOrganization));
     }
   };
@@ -301,6 +306,8 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
     if (newAuditType === 'Internal') {
       setExternalOrganization('PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)');
+      // Audit internal tidak memakai template BKI — kosongkan checklist
+      setChecklist([]);
       if (standard === 'DOC') {
         setLeadAuditor('Capt. Bambang Suryono, M.Mar (Lead Auditor DPA PBK)');
         setAuditTeam('Ir. H. Syamsul Bahri (QHSE), Dimas Wicaksono (Fleet Supt)');
@@ -311,11 +318,13 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         setLeadAuditorSign('Capt. Ahmad Fauzi');
       }
     } else {
-      // External
+      // External: Set default ke BKI dan muat template BKI
       const defaultExtOrg = externalOrganization && externalOrganization !== 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)'
         ? externalOrganization
         : 'Biro Klasifikasi Indonesia (BKI)';
       setExternalOrganization(defaultExtOrg);
+      // Muat template jika lembaga adalah BKI
+      setChecklist(buildChecklistFromOrganization(defaultExtOrg));
 
       if (standard === 'DOC') {
         setLeadAuditor('Auditor Ditjen Perhubungan Laut / Surveyor RO Ditunjuk');
@@ -1838,17 +1847,34 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               ? 'Checklist Audit ISM Code Darat (12 Elemen Kantor Pusat PT. PBK)'
                               : 'Pemeriksaan Checklist ISM (SMS Shipboard Checklist Rev 05)'}
                           </span>
-                          <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Formulir Resmi</span>
+                          {(() => {
+                            const orgId = getChecklistConfigForSession(externalOrganization).organizationId;
+                            const isBKI = orgId === 'bki';
+                            return standard === 'SMC' && isBKI
+                              ? <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Formulir BKI Resmi</span>
+                              : standard === 'SMC'
+                                ? <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>Isi Manual</span>
+                                : <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>Formulir Resmi</span>;
+                          })()}
                         </h4>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                          {standard === 'DOC'
-                            ? 'Standar IMO ISM Code Resolusi A.741(18) untuk manajemen operasional kantor darat. Setiap butir dapat dinilai dan dilampiri bukti audit.'
-                            : 'Formulir 00954PK26_F23_14_06-2024 Rev 05. Klausul khusus tipe kapal (A s/d E yang dicoret di PDF) tetap diikutsertakan dan dapat dinilai serta diunggah bukti.'}
-                        </p>
+                        {(() => {
+                          const orgId = getChecklistConfigForSession(externalOrganization).organizationId;
+                          const orgName = getChecklistConfigForSession(externalOrganization).organizationName;
+                          const isBKI = orgId === 'bki';
+                          return (
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              {standard === 'DOC'
+                                ? 'Standar IMO ISM Code Resolusi A.741(18) untuk manajemen operasional kantor darat. Setiap butir dapat dinilai dan dilampiri bukti audit.'
+                                : isBKI
+                                  ? 'Formulir 00954PK26_F23_14_06-2024 Rev 05 — Template standar resmi BKI. Klausul khusus tipe kapal (A s/d E yang dicoret di PDF) tetap diikutsertakan.'
+                                  : `Checklist untuk lembaga ${orgName} tidak tersedia — setiap lembaga memiliki format tersendiri. Silakan tambah butir pemeriksaan secara manual.`}
+                            </p>
+                          );
+                        })()}
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {standard === 'SMC' && (
+                        {standard === 'SMC' && getChecklistConfigForSession(externalOrganization).organizationId === 'bki' && (
                           <button
                             type="button"
                             onClick={handleLoadSMSChecklistTemplate}
@@ -1872,6 +1898,44 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                         </button>
                       </div>
                     </div>
+
+                    {/* Banner: Non-BKI empty state — hanya tampil jika SMC dan bukan BKI */}
+                    {standard === 'SMC' && getChecklistConfigForSession(externalOrganization).organizationId !== 'bki' && (
+                      <div style={{
+                        padding: '1.5rem 1.75rem',
+                        borderRadius: '10px',
+                        border: '1.5px dashed #f59e0b',
+                        background: 'rgba(245,158,11,0.07)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>📋</div>
+                        <div>
+                          <h5 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#d97706', marginBottom: '0.35rem' }}>
+                            Template Checklist Tidak Tersedia untuk {getChecklistConfigForSession(externalOrganization).organizationName}
+                          </h5>
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.6, maxWidth: '520px' }}>
+                            Formulir checklist SMS Shipboard <strong>hanya tersedia untuk BKI</strong> (Biro Klasifikasi Indonesia) berdasarkan standar F23.14.06-2024 Rev 05.
+                            Setiap lembaga audit memiliki format dan standar pemeriksaan yang berbeda.
+                          </p>
+                          <p style={{ fontSize: '0.78rem', color: '#d97706', marginTop: '0.4rem', fontWeight: 600 }}>
+                            Silakan gunakan tombol <strong>&quot;+ Tambah Item Manual&quot;</strong> untuk menyusun butir pemeriksaan sesuai standar lembaga yang ditunjuk.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowManualItemForm(true)}
+                          className="btn btn-primary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                        >
+                          <Plus size={14} />
+                          <span>+ Mulai Tambah Butir Pemeriksaan Manual</span>
+                        </button>
+                      </div>
+                    )}
 
                     {/* Filter Bar */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

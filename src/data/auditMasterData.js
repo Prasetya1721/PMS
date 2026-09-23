@@ -1,4 +1,4 @@
-﻿// Master Data Standar Audit ISM Code (DOC & SMC)
+// Master Data Standar Audit ISM Code (DOC & SMC)
 // PT. Pelayaran Baharimas Kalimantan
 // Standard: IMO Resolution A.741(18) as amended (ISM Code)
 
@@ -445,8 +445,9 @@ const resolveOrganizationId = (organization, fallback = 'custom') => {
   );
   if (matched) return matched.id;
 
-  // Lembaga internal perusahaan (DPA/QHSE) & audit internal tidak memakai lembaga eksternal
-  if (/internal|dpa|qhse|pelayaran baharimas/i.test(raw)) return 'bki';
+  // Lembaga internal perusahaan (DPA/QHSE) & audit internal tidak memakai template lembaga eksternal
+  // — kembalikan 'custom' (kosong) agar auditor menyusun checklist secara manual.
+  if (/internal|dpa|qhse|pelayaran baharimas/i.test(raw)) return 'custom';
 
   // Cocokkan nama resmi di dalam string panjang (mis. "BKI Cabang Pontianak")
   const aliasMap = [
