@@ -275,11 +275,15 @@ export const AuditReportModal = ({
                 onClick={() => setReportMode('session')}
                 className={`tab-btn ${reportMode === 'session' ? 'active' : ''}`}
                 style={{
-                  padding: '0.35rem 0.65rem',
-                  fontSize: '0.74rem',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.76rem',
                   borderRadius: '6px',
                   border: 'none',
-                  fontWeight: reportMode === 'session' ? 700 : 500
+                  fontWeight: reportMode === 'session' ? 700 : 600,
+                  color: reportMode === 'session' ? '#ffffff' : 'var(--text-main)',
+                  background: reportMode === 'session' ? 'var(--primary)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 1. Sesi Audit ({institutionBranding.shortName})
@@ -289,11 +293,15 @@ export const AuditReportModal = ({
                 onClick={() => setReportMode('ncr')}
                 className={`tab-btn ${reportMode === 'ncr' ? 'active' : ''}`}
                 style={{
-                  padding: '0.35rem 0.65rem',
-                  fontSize: '0.74rem',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.76rem',
                   borderRadius: '6px',
                   border: 'none',
-                  fontWeight: reportMode === 'ncr' ? 700 : 500
+                  fontWeight: reportMode === 'ncr' ? 700 : 600,
+                  color: reportMode === 'ncr' ? '#ffffff' : 'var(--text-main)',
+                  background: reportMode === 'ncr' ? 'var(--primary)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 2. Lembar NC / Observasi
@@ -303,12 +311,15 @@ export const AuditReportModal = ({
                 onClick={() => setReportMode('checklist')}
                 className={`tab-btn ${reportMode === 'checklist' ? 'active' : ''}`}
                 style={{
-                  padding: '0.35rem 0.65rem',
-                  fontSize: '0.74rem',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.76rem',
                   borderRadius: '6px',
                   border: 'none',
-                  fontWeight: reportMode === 'checklist' ? 700 : 500,
-                  color: isBKI ? '#0284c7' : undefined
+                  fontWeight: reportMode === 'checklist' ? 700 : 600,
+                  color: reportMode === 'checklist' ? '#ffffff' : (isBKI ? '#0284c7' : 'var(--text-main)'),
+                  background: reportMode === 'checklist' ? 'var(--primary)' : 'transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 {isBKI ? '3. Checklist Resmi BKI (Persis PDF Rev 05)' : `3. Checklist Audit ${institutionBranding.shortName}`}
