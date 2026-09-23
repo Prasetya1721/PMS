@@ -155,6 +155,10 @@ const AppContent = () => {
         return <DocumentTracker />;
       case 'audit':
         return <AuditManager />;
+      case 'audit_smc':
+        return <AuditManager initialStandard="SMC" />;
+      case 'audit_doc':
+        return <AuditManager initialStandard="DOC" />;
       case 'notifications':
         return <NotificationCenter />;
       case 'reports':

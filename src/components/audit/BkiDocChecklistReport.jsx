@@ -25,6 +25,13 @@ export const BkiDocChecklistReport = ({
   const auditLocation = session?.auditLocation || 'Kantor Pusat';
   const runningHeaderTitle = `Report id: ${companyName} - ${reportNo}`;
 
+  // Sumber checklist efektif: prioritaskan liveChecklist lalu session.checklist
+  const effectiveList = (Array.isArray(liveChecklist) && liveChecklist.length > 0)
+    ? liveChecklist
+    : (Array.isArray(session?.checklist) && session.checklist.length > 0)
+    ? session.checklist
+    : [];
+
   const getResultBoxes = (item) => {
     const isStriked = Boolean(item?.isStrikethrough);
     const res = item?.result || '';
@@ -40,8 +47,8 @@ export const BkiDocChecklistReport = ({
   };
 
   const findItem = (no) => {
-    if (Array.isArray(liveChecklist) && liveChecklist.length > 0) {
-      const match = liveChecklist.find(c =>
+    if (effectiveList.length > 0) {
+      const match = effectiveList.find(c =>
         c.no === no || c.code === no || c.id === no ||
         c.id === `doc-${no}` ||
         String(c.code || '').trim().toLowerCase() === String(no).trim().toLowerCase() ||
@@ -56,7 +63,12 @@ export const BkiDocChecklistReport = ({
     const item = findItem(no);
     const { yesBox, noBox, isNo, isStriked } = getResultBoxes(item);
     const finalStriked = isStrikethroughForced || isStriked;
-    const relatedFinding = findings.find(f => f.clauseCode === no || f.clauseCode === item?.code);
+    const relatedFinding = findings.find(f => {
+      const fCode = String(f.clauseCode || f.elementNumberOfCode || '').trim();
+      const noStr = String(no || '').trim();
+      const itemCode = String(item?.code || '').trim();
+      return (fCode && (fCode === noStr || fCode === itemCode || fCode.startsWith(`${noStr}.`) || noStr.startsWith(`${fCode}.`)));
+    });
     const remarkContent = relatedFinding
       ? `See NC ${relatedFinding.findingNo || '1/4'}`
       : (item?.notes ? item.notes : (finalStriked ? 'N/A' : (customRemark || item?.remark || '')));
@@ -167,46 +179,69 @@ export const BkiDocChecklistReport = ({
               <div>Document Revision 00</div>
             </div>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '6.8pt' }}>
-            <tbody>
-              <tr>
-                <td style={{ ...infoTd, width: '20%' }}><strong>No. Laporan / Report Number</strong></td>
-                <td style={{ ...infoTd, width: '30%', fontWeight: 700 }}>{reportNo}</td>
-                <td style={{ ...infoTd, width: '20%' }}><strong>Jenis Audit / Type of Audit</strong></td>
-                <td style={{ ...infoTd, width: '30%' }}>{'\u2612'} Audit Tahunan (Annual Audit)</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>Nama Perusahaan / Company Name</strong></td>
-                <td colSpan={3} style={{ ...infoTd, fontWeight: 700 }}>{companyName}</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>Alamat / Address</strong></td>
-                <td colSpan={3} style={infoTd}>{companyAddress}</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>No. IMO Perusahaan</strong></td>
-                <td style={infoTd}>{imoCompanyNo}</td>
-                <td style={infoTd}><strong>Tanggal Audit / Date of Audit</strong></td>
-                <td style={infoTd}>{auditDateStr}</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>Auditor</strong></td>
-                <td style={infoTd}>{auditorName}</td>
-                <td style={infoTd}><strong>Tempat Audit / Location</strong></td>
-                <td style={infoTd}>{auditLocation}</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>DPA / Perwakilan Perusahaan</strong></td>
-                <td colSpan={3} style={infoTd}>{dpaName}</td>
-              </tr>
-              <tr>
-                <td style={infoTd}><strong>Negara Bendera / Flag State</strong></td>
-                <td style={infoTd}>INDONESIA</td>
-                <td style={infoTd}><strong>Persyaratan Pemerintah</strong></td>
-                <td style={infoTd}>Yes</td>
-              </tr>
-            </tbody>
-          </table>
+          {(() => {
+            const scopeLower = String(session?.scope || session?.auditNo || '').toLowerCase();
+            const isAwal = scopeLower.includes('awal') || scopeLower.includes('initial');
+            const isAntara = scopeLower.includes('antara') || scopeLower.includes('interim') || scopeLower.includes('intermediate');
+            const isTambahan = scopeLower.includes('tambahan') || scopeLower.includes('additional');
+            const isTahunan = !isAwal && !isAntara && !isTambahan;
+
+            return (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '6.8pt' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ ...infoTd, width: '20%' }}><strong>No. Laporan / Report Number</strong></td>
+                    <td style={{ ...infoTd, width: '30%', fontWeight: 700 }}>{reportNo}</td>
+                    <td style={{ ...infoTd, width: '20%' }}><strong>Jenis Audit / Type of Audit</strong></td>
+                    <td style={{ ...infoTd, width: '30%', fontWeight: 700 }}>
+                      <span>{isTahunan ? '\u2612' : '\u2610'} Tahunan</span> &nbsp;
+                      <span>{isAwal ? '\u2612' : '\u2610'} Awal</span> &nbsp;
+                      <span>{isAntara ? '\u2612' : '\u2610'} Antara</span> &nbsp;
+                      <span>{isTambahan ? '\u2612' : '\u2610'} Tambahan</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>Nama Perusahaan / Company Name</strong></td>
+                    <td style={{ ...infoTd, fontWeight: 700 }}>{companyName}</td>
+                    <td style={infoTd}><strong>No. Sertifikat DOC</strong></td>
+                    <td style={{ ...infoTd, fontWeight: 700, color: '#0369a1' }}>
+                      {session?.docCertificateNo || 'DOC-IDN-PBK/2024-R1'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>Alamat / Address</strong></td>
+                    <td style={infoTd}>{companyAddress}</td>
+                    <td style={infoTd}><strong>Divisi / Departemen</strong></td>
+                    <td style={{ ...infoTd, fontWeight: 600 }}>
+                      {session?.docDepartment || 'Divisi DPA, QHSE & Operasional Armada Darat'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>No. IMO Perusahaan</strong></td>
+                    <td style={infoTd}>{imoCompanyNo}</td>
+                    <td style={infoTd}><strong>Tanggal Audit / Date of Audit</strong></td>
+                    <td style={infoTd}>{auditDateStr}</td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>Auditor</strong></td>
+                    <td style={infoTd}>{auditorName}</td>
+                    <td style={infoTd}><strong>Tempat Audit / Location</strong></td>
+                    <td style={infoTd}>{auditLocation}</td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>DPA / Perwakilan Perusahaan</strong></td>
+                    <td colSpan={3} style={infoTd}>{dpaName}</td>
+                  </tr>
+                  <tr>
+                    <td style={infoTd}><strong>Negara Bendera / Flag State</strong></td>
+                    <td style={infoTd}>INDONESIA</td>
+                    <td style={infoTd}><strong>Persyaratan Pemerintah</strong></td>
+                    <td style={infoTd}>Yes</td>
+                  </tr>
+                </tbody>
+              </table>
+            );
+          })()}
         </div>
 
         <table style={tableStyle}>

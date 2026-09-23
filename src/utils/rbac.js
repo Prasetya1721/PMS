@@ -136,8 +136,9 @@ export const ROLE_PERMISSIONS = {
 export const hasAccess = (role, moduleId) => {
   if (!role) return false;
   if (role === 'Super Admin') return true;
+  const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   const allowed = ROLE_PERMISSIONS[role] || [];
-  return allowed.includes(moduleId);
+  return allowed.includes(moduleId) || allowed.includes(baseModule);
 };
 
 /**
@@ -150,13 +151,14 @@ export const hasAccess = (role, moduleId) => {
 export const hasAccessWithOverrides = (role, moduleId, sidebarOverrides) => {
   if (!role) return false;
   if (role === 'Super Admin') return true;
+  const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   // If overrides exist for this role, use them instead of default
   if (sidebarOverrides && sidebarOverrides[role] && Array.isArray(sidebarOverrides[role])) {
-    return sidebarOverrides[role].includes(moduleId);
+    return sidebarOverrides[role].includes(moduleId) || sidebarOverrides[role].includes(baseModule);
   }
   // Fallback to default RBAC
   const allowed = ROLE_PERMISSIONS[role] || [];
-  return allowed.includes(moduleId);
+  return allowed.includes(moduleId) || allowed.includes(baseModule);
 };
 
 /**

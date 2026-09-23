@@ -1824,10 +1824,22 @@ export const VesselDashboard = () => {
                     targetName: currentShip.name,
                     standard: 'SMC',
                     auditNo: `AUD-EXT-SMC-BKI-2026/04`,
+                    reportId: `0859-PK/ISM-SMC/2026`,
                     status: 'Completed',
+                    auditType: 'External',
+                    externalOrganization: 'Biro Klasifikasi Indonesia (BKI)',
+                    smcCertificateNo: currentShip.smcCertificateNo || `SMC-TB-${(currentShip.name || 'ARMADA').replace(/\s+/g, '')}/2026`,
+                    imo: currentShip.imo || currentShip.regNo || '-',
+                    callSign: currentShip.callSign || '-',
+                    gt: currentShip.gt || '-',
+                    portOfRegistry: currentShip.portOfRegistry || 'PONTIANAK',
                     leadAuditor: 'Surveyor BKI Cabang Pontianak (Auditor Eksternal ISM Hubla)',
+                    auditTeam: ['Surveyor Madya BKI Pontianak', 'Marine Safety Inspector'],
                     auditee: `Capt. Hendra Gunawan, M.Mar & Ir. Bambang Wijaya (KKM ${currentShip.name})`,
-                    auditDate: '2026-07-20'
+                    auditLocation: `Onboard ${currentShip.name} (Pelabuhan Dwikora Pontianak)`,
+                    auditDate: '2026-07-20',
+                    targetCloseDate: '2026-10-20',
+                    scope: `Audit Kelaikan Sistem Manajemen Keselamatan (SMC) Kapal Onboard sesuai IMO Res. A.741(18) / ISM Code dan BKI SMS Shipboard Checklist Rev 05.`
                   });
                 }}
                 className="btn btn-secondary btn-sm"

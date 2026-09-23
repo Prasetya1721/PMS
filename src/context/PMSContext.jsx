@@ -3186,6 +3186,8 @@ export const PMSProvider = ({ children }) => {
   const lowStockCount = filteredSpareparts.filter(s => s.status === 'Low Stock' || s.status === 'Critical').length;
   const openNCCount = filteredAuditFindings.filter(f => f.status === 'NC Open' || f.status === 'Eviden Submitted').length;
   const closedNCCount = filteredAuditFindings.filter(f => f.status === 'NC Close').length;
+  const smcOpenNCCount = (auditFindings || []).filter(f => (f.standard === 'SMC' || f.vesselId) && (f.status === 'NC Open' || f.status === 'Eviden Submitted')).length;
+  const docOpenNCCount = (auditFindings || []).filter(f => (f.standard === 'DOC' || !f.vesselId) && (f.status === 'NC Open' || f.status === 'Eviden Submitted')).length;
 
   // Items within 1 month (H-30) of expiry: daysUntilExpiry <= 30
   const h30ExpiringItems = [
@@ -3323,6 +3325,8 @@ export const PMSProvider = ({ children }) => {
         allExpiringItems,
         openNCCount,
         closedNCCount,
+        smcOpenNCCount,
+        docOpenNCCount,
 
         // Actions
         updateRunningHours,

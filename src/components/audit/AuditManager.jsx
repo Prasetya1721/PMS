@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import {
   ShieldCheck,
@@ -50,7 +50,7 @@ import {
   BKI_AUDIT_MASTER
 } from '../../data/auditMasterData';
 
-export const AuditManager = () => {
+export const AuditManager = ({ initialStandard = null }) => {
   const {
     audits,
     allAudits,
@@ -73,16 +73,37 @@ export const AuditManager = () => {
     ISM_DOC_ELEMENTS,
     openNCCount,
     closedNCCount,
+    smcOpenNCCount,
+    docOpenNCCount,
     currentUser,
     currentRole,
     showToast
   } = usePMS();
 
+  // Active Standard: 'SMC' (Kapal Armada) | 'DOC' (Kantor Perusahaan)
+  const [activeStandard, setActiveStandard] = useState(() => initialStandard === 'DOC' ? 'DOC' : 'SMC');
+
   // Selected Target in Audit Gateway:
-  // null = Layar Pemilihan Kapal (Gateway)
+  // null = Layar Pemilihan Kapal (Gateway SMC)
   // 'office' = Kantor Pusat PT. PBK (Audit DOC)
   // 'v-xxx' = Kapal Armada tertentu (Audit SMC)
-  const [activeTargetId, setActiveTargetId] = useState(null);
+  const [activeTargetId, setActiveTargetId] = useState(() => {
+    if (initialStandard === 'DOC') return 'office';
+    return null;
+  });
+
+  // Keep state synchronized if initialStandard changes (e.g. from Sidebar sub-menu navigation)
+  useEffect(() => {
+    if (initialStandard === 'DOC') {
+      setActiveStandard('DOC');
+      setActiveTargetId('office');
+    } else if (initialStandard === 'SMC') {
+      setActiveStandard('SMC');
+      if (activeTargetId === 'office') {
+        setActiveTargetId(null);
+      }
+    }
+  }, [initialStandard]);
 
   // Gateway filters
   const [gatewaySearch, setGatewaySearch] = useState('');
@@ -364,6 +385,89 @@ export const AuditManager = () => {
     const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
     return { total, answered, complied, nc, na, percent };
   }, [activeChecklistItems, vesselStrikethroughOverrides, vesselChecklistResults]);
+
+  // Helper sinkronisasi data sesi audit dengan seluruh form dan state aktif (Checklist, Sertifikat, Spek Kapal/DOC)
+  const getEnrichedReportSession = useCallback((baseSession = null) => {
+    const raw = baseSession || activeSession || currentTarget?.lastAudit || {};
+    const isDoc = (raw.standard || currentTarget?.standard) === 'DOC';
+
+    // 1. Sinkronisasi checklist: gabungkan activeChecklistItems dengan live state (results, notes, strikethrough, evidence)
+    const mergedChecklist = (activeChecklistItems || []).map(item => {
+      const isStriked = vesselStrikethroughOverrides[item.code] !== undefined
+        ? vesselStrikethroughOverrides[item.code]
+        : (item.isStrikethrough !== undefined ? Boolean(item.isStrikethrough) : false);
+
+      const res = vesselChecklistResults[item.code] !== undefined
+        ? vesselChecklistResults[item.code]
+        : (isStriked ? 'N/A' : (item.result || ''));
+
+      const note = vesselChecklistNotes[item.code] !== undefined
+        ? vesselChecklistNotes[item.code]
+        : (item.notes || item.remark || '');
+
+      const ev = checklistEvidenceMap[item.code] || item.evidence || null;
+
+      return {
+        ...item,
+        result: res,
+        notes: note,
+        remark: note,
+        isStrikethrough: Boolean(isStriked),
+        evidence: ev
+      };
+    });
+
+    // 2. Data kapal teknis jika SMC
+    const vesselObj = currentTarget?.type !== 'office' ? currentTarget : null;
+
+    // 3. Sertifikat & Departemen
+    const docDept = raw.docDepartment || (isDoc ? 'Divisi DPA, QHSE & Operasional Armada Darat' : null);
+    const docCert = raw.docCertificateNo || (isDoc ? `DOC-IDN-PBK/${new Date().getFullYear()}-R1` : null);
+    const smcCert = raw.smcCertificateNo || (!isDoc && vesselObj ? (vesselObj.smcCertificateNo || `SMC-TB-${(vesselObj.name || '').replace(/\s+/g, '')}/${new Date().getFullYear()}`) : null);
+
+    return {
+      ...raw,
+      id: raw.id || `aud-${currentTarget?.id || 'target'}-${Date.now()}`,
+      auditNo: raw.auditNo || `AUD-${currentTarget?.standard || 'SMC'}-${(currentTarget?.name || 'TARGET').replace(/\s+/g, '')}-${new Date().getFullYear()}`,
+      reportId: raw.reportId || raw.auditNo || (isDoc ? '0858-PK/ISM-DOC/2026' : '0859-PK/ISM-SMC/2026'),
+      auditType: raw.auditType || 'Internal',
+      externalOrganization: raw.externalOrganization || (raw.auditType === 'External' ? 'Biro Klasifikasi Indonesia (BKI)' : 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)'),
+      standard: raw.standard || currentTarget?.standard || (isDoc ? 'DOC' : 'SMC'),
+      targetType: raw.targetType || (isDoc ? 'Office' : 'Vessel'),
+      targetName: raw.targetName || currentTarget?.name || (isDoc ? 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan' : 'Armada Kapal'),
+      vesselId: raw.vesselId || (isDoc ? null : currentTarget?.id),
+      docDepartment: docDept,
+      docCertificateNo: docCert,
+      smcCertificateNo: smcCert,
+      leadAuditor: raw.leadAuditor || 'Capt. Marine Safety Inspector (Lead Auditor)',
+      auditTeam: raw.auditTeam && (Array.isArray(raw.auditTeam) ? raw.auditTeam.length > 0 : Boolean(raw.auditTeam))
+        ? raw.auditTeam
+        : ['Safety Officer PBK', 'Marine Superintendent'],
+      auditee: raw.auditee || (isDoc ? 'Direktur Operasional, DPA & Para Manager Darat' : `Nakhoda & KKM ${currentTarget?.name || 'Kapal'}`),
+      auditLocation: raw.auditLocation || (isDoc ? 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)' : `Onboard ${currentTarget?.name || 'Kapal Armada'}`),
+      auditDate: raw.auditDate || new Date().toISOString().split('T')[0],
+      targetCloseDate: raw.targetCloseDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      scope: raw.scope || (isDoc
+        ? 'Audit Kepatuhan Tahunan Sistem Manajemen Keselamatan Darat (DOC) PT. PBK mencakup 13 Seksi BKI DOC Rev 06 / ISM Code 2025.'
+        : `Audit Kelaikan Sistem Manajemen Keselamatan (SMC) Kapal Onboard sesuai IMO Res. A.741(18) / ISM Code dan BKI SMS Shipboard Checklist Rev 05.`),
+      status: raw.status || 'In Progress',
+      checklist: mergedChecklist.length > 0 ? mergedChecklist : (raw.checklist || []),
+      totalItemsChecked: mergedChecklist.length || raw.totalItemsChecked || 0,
+      itemsComplied: mergedChecklist.filter(c => c.result === 'Complied' || c.result === 'Yes').length || raw.itemsComplied || 0,
+      imo: raw.imo || vesselObj?.imo || vesselObj?.regNo || '-',
+      callSign: raw.callSign || vesselObj?.callSign || '-',
+      gt: raw.gt || vesselObj?.gt || '-',
+      portOfRegistry: raw.portOfRegistry || vesselObj?.portOfRegistry || 'PONTIANAK'
+    };
+  }, [
+    activeSession,
+    currentTarget,
+    activeChecklistItems,
+    vesselStrikethroughOverrides,
+    vesselChecklistResults,
+    vesselChecklistNotes,
+    checklistEvidenceMap
+  ]);
 
   // Handler Inisiasi Cepat Sesi Audit (1-Click Launch)
   const handleQuickLaunchSession = () => {
@@ -1019,6 +1123,124 @@ export const AuditManager = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
 
       {/* ========================================================================= */}
+      {/* TOP ISM MODULE SELECTOR: SMC KAPAL vs DOC KANTOR                          */}
+      {/* ========================================================================= */}
+      <div className="glass-card" style={{
+        padding: '0.85rem 1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
+        border: '1px solid var(--border-subtle)',
+        background: 'var(--bg-surface-card)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <div style={{
+            width: '38px',
+            height: '38px',
+            borderRadius: '9px',
+            background: 'rgba(2, 132, 199, 0.15)',
+            color: '#0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {activeStandard === 'DOC' || activeTargetId === 'office' ? <Building2 size={20} /> : <Ship size={20} />}
+          </div>
+          <div>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Modul Audit & Kepatuhan ISM Code Aktif:
+            </span>
+            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)', marginTop: '0.1rem' }}>
+              {activeStandard === 'DOC' || activeTargetId === 'office'
+                ? '🏢 Audit DOC (Document of Compliance) — Kantor Pusat PT. PBK'
+                : '🚢 Audit SMC (Safety Management Certificate) — Armada Kapal'}
+            </div>
+          </div>
+        </div>
+
+        {/* Segmented Switcher Buttons */}
+        <div style={{
+          display: 'flex',
+          background: 'var(--bg-surface-elevated)',
+          padding: '4px',
+          borderRadius: '10px',
+          border: '1px solid var(--border-subtle)',
+          gap: '4px'
+        }}>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveStandard('SMC');
+              if (activeTargetId === 'office') {
+                setActiveTargetId(null);
+              }
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.45rem 0.95rem',
+              borderRadius: '7px',
+              border: 'none',
+              fontSize: '0.8rem',
+              fontWeight: (activeStandard === 'SMC' && activeTargetId !== 'office') ? 800 : 500,
+              cursor: 'pointer',
+              background: (activeStandard === 'SMC' && activeTargetId !== 'office')
+                ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                : 'transparent',
+              color: (activeStandard === 'SMC' && activeTargetId !== 'office') ? '#ffffff' : 'var(--text-muted)',
+              boxShadow: (activeStandard === 'SMC' && activeTargetId !== 'office') ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Ship size={15} />
+            <span>Audit SMC Kapal</span>
+            {smcOpenNCCount > 0 && (
+              <span className="badge badge-warning" style={{ fontSize: '0.62rem', padding: '0.1rem 0.38rem' }}>
+                {smcOpenNCCount} NC
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveStandard('DOC');
+              setActiveTargetId('office');
+              setVesselTab('findings');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.45rem 0.95rem',
+              borderRadius: '7px',
+              border: 'none',
+              fontSize: '0.8rem',
+              fontWeight: (activeStandard === 'DOC' || activeTargetId === 'office') ? 800 : 500,
+              cursor: 'pointer',
+              background: (activeStandard === 'DOC' || activeTargetId === 'office')
+                ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
+                : 'transparent',
+              color: (activeStandard === 'DOC' || activeTargetId === 'office') ? '#ffffff' : 'var(--text-muted)',
+              boxShadow: (activeStandard === 'DOC' || activeTargetId === 'office') ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Building2 size={15} />
+            <span>Audit DOC Kantor</span>
+            {docOpenNCCount > 0 && (
+              <span className="badge badge-info" style={{ fontSize: '0.62rem', padding: '0.1rem 0.38rem' }}>
+                {docOpenNCCount} NC
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
       {/* 1. LAYAR PEMILIHAN KAPAL / FLEET SELECTION GATEWAY (activeTargetId === null) */}
       {/* ========================================================================= */}
       {!activeTargetId && (
@@ -1042,12 +1264,12 @@ export const AuditManager = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                   <h2 style={{ fontSize: '1.55rem', fontWeight: 800 }}>Portal Audit ISM Code Per Armada Kapal</h2>
                   <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
-                    {vessels.length} Kapal & Kantor Pusat PBK
+                    {vessels.length} Kapal Armada
                   </span>
                 </div>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '780px', lineHeight: '1.5' }}>
-                  Silakan <strong>pilih kapal terlebih dahulu</strong> di bawah ini untuk mengakses ruang audit dan menu audit khusus masing-masing kapal.
-                  Setiap kapal memiliki pencatatan temuan, eviden perbaikan, dan notis status <strong>NC Open / NC Close</strong> mandiri.
+                  Silakan <strong>pilih kapal terlebih dahulu</strong> di bawah ini untuk mengakses ruang audit SMC khusus kapal tersebut.
+                  Untuk audit kantor perusahaan, silakan pilih tab <strong>Audit DOC Kantor</strong> di atas atau melalui sub-menu sidebar.
                 </p>
               </div>
             </div>
@@ -1063,7 +1285,7 @@ export const AuditManager = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
                 <Plus size={15} color="#38bdf8" />
-                <span>Sesi Audit Baru</span>
+                <span>+ Sesi Audit SMC Kapal</span>
               </button>
               <button
                 onClick={() => {
@@ -1497,7 +1719,12 @@ export const AuditManager = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
-                onClick={() => setActiveTargetId(null)}
+                onClick={() => {
+                  setActiveTargetId(null);
+                  if (activeStandard === 'DOC') {
+                    setActiveStandard('SMC');
+                  }
+                }}
                 className="btn btn-secondary btn-sm"
                 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
@@ -2294,7 +2521,8 @@ export const AuditManager = () => {
                             {/* Official Print Report Button */}
                             <button
                               onClick={() => {
-                                setReportModalSession(null);
+                                const relatedSession = allAudits?.find(a => a.id === f.auditId || a.auditNo === f.auditNo) || activeSession || currentTarget?.lastAudit;
+                                setReportModalSession(getEnrichedReportSession(relatedSession));
                                 setReportModalFinding(f);
                                 setReportModalMode('ncr');
                                 setReportModalOpen(true);
@@ -2534,7 +2762,7 @@ export const AuditManager = () => {
                   style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
                 >
                   <Plus size={14} />
-                  <span>+ Buat Sesi Baru (Tahap 1)</span>
+                  <span>{currentTarget.standard === 'DOC' ? '+ Buat Sesi DOC Kantor Baru' : '+ Buat Sesi SMC Kapal Baru'}</span>
                 </button>
               </div>
 
@@ -2630,8 +2858,8 @@ export const AuditManager = () => {
 
                       <button
                         onClick={() => {
-                          setReportModalSession(activeSession);
-                          setReportModalMode('full');
+                          setReportModalSession(getEnrichedReportSession(activeSession));
+                          setReportModalMode('session');
                           setReportModalOpen(true);
                         }}
                         className="btn btn-secondary btn-sm"
@@ -2828,16 +3056,7 @@ export const AuditManager = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => {
-                      setReportModalSession(currentTarget.lastAudit || {
-                        id: 'checklist-print',
-                        auditNo: `AUD-SMC-${currentTarget.name.replace(/\s+/g, '')}-2026`,
-                        auditType: 'Internal',
-                        standard: currentTarget.standard,
-                        targetName: currentTarget.name,
-                        vesselId: currentTarget.id,
-                        leadAuditor: 'Capt. Ahmad Fauzi (Marine Safety Inspector)',
-                        auditDate: new Date().toISOString().split('T')[0]
-                      });
+                      setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                       setReportModalFinding(null);
                       setReportModalMode('checklist');
                       setReportModalOpen(true);
@@ -3688,7 +3907,7 @@ export const AuditManager = () => {
                     type="button"
                     onClick={() => {
                       const targetFinding = currentTarget.findings.find(f => f.status === 'Eviden Submitted') || currentTarget.findings[0] || null;
-                      setReportModalSession(activeSession || currentTarget.lastAudit);
+                      setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                       setReportModalFinding(targetFinding);
                       setReportModalMode('ncr');
                       setReportModalOpen(true);
@@ -3999,7 +4218,7 @@ export const AuditManager = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                setReportModalSession(activeSession || currentTarget.lastAudit);
+                                setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                                 setReportModalFinding(f);
                                 setReportModalMode('ncr');
                                 setReportModalOpen(true);
@@ -4198,16 +4417,7 @@ export const AuditManager = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        setReportModalSession(activeSession || currentTarget.lastAudit || {
-                          id: 'report-session',
-                          auditNo: `AUD-${currentTarget.standard}-${currentTarget.name.replace(/\s+/g, '')}-2026`,
-                          auditType: 'Internal',
-                          standard: currentTarget.standard,
-                          targetName: currentTarget.name,
-                          vesselId: currentTarget.id,
-                          leadAuditor: 'Capt. Marine Safety Inspector',
-                          auditDate: new Date().toISOString().split('T')[0]
-                        });
+                        setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                         setReportModalFinding(null);
                         setReportModalMode('session');
                         setReportModalOpen(true);
@@ -4249,7 +4459,7 @@ export const AuditManager = () => {
                       type="button"
                       onClick={() => {
                         const firstFinding = currentTarget.findings[0] || null;
-                        setReportModalSession(activeSession || currentTarget.lastAudit);
+                        setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                         setReportModalFinding(firstFinding);
                         setReportModalMode('ncr');
                         setReportModalOpen(true);
@@ -4292,16 +4502,7 @@ export const AuditManager = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        setReportModalSession(activeSession || currentTarget.lastAudit || {
-                          id: 'checklist-print',
-                          auditNo: `AUD-${currentTarget.standard}-${currentTarget.name.replace(/\s+/g, '')}-2026`,
-                          auditType: 'Internal',
-                          standard: currentTarget.standard,
-                          targetName: currentTarget.name,
-                          vesselId: currentTarget.id,
-                          leadAuditor: 'Capt. Marine Safety Inspector',
-                          auditDate: new Date().toISOString().split('T')[0]
-                        });
+                        setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                         setReportModalFinding(null);
                         setReportModalMode('checklist');
                         setReportModalOpen(true);
@@ -4345,7 +4546,7 @@ export const AuditManager = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setReportModalSession(activeSession || currentTarget.lastAudit);
+                      setReportModalSession(getEnrichedReportSession(activeSession || currentTarget.lastAudit));
                       setReportModalFinding(currentTarget.findings[0] || null);
                       setReportModalMode('all');
                       setReportModalOpen(true);
@@ -4495,7 +4696,7 @@ export const AuditManager = () => {
         <AuditSessionModal
           session={editingSession}
           defaultVesselId={activeTargetId}
-          defaultStandard={currentTarget?.standard || 'DOC'}
+          defaultStandard={editingSession?.standard || currentTarget?.standard || (activeStandard === 'DOC' ? 'DOC' : 'SMC')}
           onSaved={(savedSession) => {
             setSessionModalOpen(false);
             setEditingSession(null);
@@ -4561,6 +4762,7 @@ export const AuditManager = () => {
           session={reportModalSession}
           finding={reportModalFinding}
           initialMode={reportModalMode}
+          liveChecklist={reportModalSession?.checklist}
           onClose={() => {
             setReportModalOpen(false);
             setReportModalSession(null);

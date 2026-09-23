@@ -722,11 +722,30 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
         <AuditReportModal
           finding={{
             ...finding,
+            correction,
+            rootCause,
+            correctiveAction,
+            preventiveAction,
+            agreedDate,
+            assignedTo: submittedBy || finding?.assignedTo,
             status: 'NC Close',
+            dateClosed: verificationDate || new Date().toISOString().split('T')[0],
             evidence: {
               ...finding.evidence,
+              correction,
+              rootCause,
+              rootCauseAnalysis: rootCause,
+              correctiveAction,
+              preventiveAction,
+              agreedDate,
+              submittedBy,
+              fileName: fileName || finding?.evidence?.fileName || `EVIDEN_${(finding?.findingNo || 'NC').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+              fileUrl,
+              fileSize,
+              verifiedUpgradeDowngrade,
+              verifiedSatisfactory,
               auditorReviewNotes: auditorNotes,
-              closedDate: new Date().toISOString().split('T')[0]
+              closedDate: verificationDate || new Date().toISOString().split('T')[0]
             }
           }}
           initialMode="ncr"

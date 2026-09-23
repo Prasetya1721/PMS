@@ -24,6 +24,13 @@ export const BkiShipboardChecklistReport = ({
 
   const runningHeaderTitle = `Report id: PT. PELAYARAN BAHARIMAS KALIMANTAN - ${vesselName} – ${reportNo}`;
 
+  // Sumber checklist efektif: prioritaskan liveChecklist lalu session.checklist
+  const effectiveList = (Array.isArray(liveChecklist) && liveChecklist.length > 0)
+    ? liveChecklist
+    : (Array.isArray(session?.checklist) && session.checklist.length > 0)
+    ? session.checklist
+    : [];
+
   // Helper render hasil checklist (Yes / No / N/A)
   const getResultBoxes = (item) => {
     const isStriked = Boolean(item?.isStrikethrough);
@@ -42,10 +49,10 @@ export const BkiShipboardChecklistReport = ({
     };
   };
 
-  // Helper lookup item dari liveChecklist berdasarkan nomor atau kode
+  // Helper lookup item dari effectiveList berdasarkan nomor atau kode
   const findItem = (no) => {
-    if (Array.isArray(liveChecklist) && liveChecklist.length > 0) {
-      const match = liveChecklist.find(c =>
+    if (effectiveList.length > 0) {
+      const match = effectiveList.find(c =>
         c.no === no ||
         c.code === no ||
         c.id === no ||
@@ -65,8 +72,13 @@ export const BkiShipboardChecklistReport = ({
     const { yesBox, noBox, naBox, isNo, isStriked } = getResultBoxes(item);
     const finalStriked = isStrikethroughForced || isStriked;
 
-    // Rujukan temuan NC jika ada
-    const relatedFinding = findings.find(f => f.clauseCode === no || f.clauseCode === item?.code);
+    // Rujukan temuan NC jika ada (pencocokan fleksibel)
+    const relatedFinding = findings.find(f => {
+      const fCode = String(f.clauseCode || f.elementNumberOfCode || '').trim();
+      const noStr = String(no || '').trim();
+      const itemCode = String(item?.code || '').trim();
+      return (fCode && (fCode === noStr || fCode === itemCode || fCode.startsWith(`${noStr}.`) || noStr.startsWith(`${fCode}.`)));
+    });
     const remarkContent = relatedFinding
       ? `See NC ${relatedFinding.findingNo || '1/4'}`
       : (item?.notes ? item.notes : (finalStriked ? 'Tidak berlaku (dicoret)' : (customRemark || item?.remark || '')));
@@ -213,36 +225,50 @@ export const BkiShipboardChecklistReport = ({
         </div>
 
         {/* TABEL DATA AUDIT (NO LAPORAN, NO SMK, TANGGAL, JENIS AUDIT, AUDITOR) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7pt', border: '1px solid #000000', marginBottom: '6px' }}>
-          <tbody>
-            <tr>
-              <td style={{ width: '38%', padding: '3px 6px', border: '1px solid #000000' }}>
-                <div style={{ fontSize: '6.2pt' }}>No. Laporan / <em>Report Number</em></div>
-                <div style={{ fontWeight: 800 }}>{reportNo}</div>
-              </td>
-              <td style={{ width: '27%', padding: '3px 6px', border: '1px solid #000000' }}>
-                <div style={{ fontSize: '6.2pt' }}>No. SMK / <em>SMS No</em></div>
-                <div style={{ fontWeight: 700 }}>{session?.smcCertificateNo || '—'}</div>
-              </td>
-              <td style={{ width: '35%', padding: '3px 6px', border: '1px solid #000000' }}>
-                <div style={{ fontSize: '6.2pt' }}>Tanggal Audit / <em>Date of Audit</em></div>
-                <div style={{ fontWeight: 800 }}>{auditDateStr}</div>
-              </td>
-            </tr>
-            <tr>
-              <td style={{ padding: '3px 6px', border: '1px solid #000000' }}>
-                <div style={{ fontSize: '6.2pt' }}>Jenis Audit / <em>Type of Audit</em></div>
-                <div style={{ fontWeight: 700, fontSize: '6.8pt', marginTop: '1px' }}>
-                  ☒ Audit Pembaruan &nbsp; ☐ Awal &nbsp; ☐ Antara &nbsp; ☐ Tambahan
-                </div>
-              </td>
-              <td colSpan={2} style={{ padding: '3px 6px', border: '1px solid #000000' }}>
-                <div style={{ fontSize: '6.2pt' }}>Auditor Yang Melaksanakan Audit: / <em>Auditor(S) Performing Audit</em></div>
-                <div style={{ fontWeight: 900, fontSize: '7.5pt', textTransform: 'uppercase' }}>{auditorName}</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {(() => {
+          const scopeLower = String(session?.scope || session?.auditNo || '').toLowerCase();
+          const isAwal = scopeLower.includes('awal') || scopeLower.includes('initial');
+          const isAntara = scopeLower.includes('antara') || scopeLower.includes('interim') || scopeLower.includes('intermediate');
+          const isTambahan = scopeLower.includes('tambahan') || scopeLower.includes('additional');
+          const isPembaruan = !isAwal && !isAntara && !isTambahan;
+          const resolvedSmcNo = session?.smcCertificateNo || vessel?.smcCertificateNo || (vesselName ? `SMC-TB-${vesselName.replace(/\s+/g, '')}/2026` : '—');
+
+          return (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '7pt', border: '1px solid #000000', marginBottom: '6px' }}>
+              <tbody>
+                <tr>
+                  <td style={{ width: '38%', padding: '3px 6px', border: '1px solid #000000' }}>
+                    <div style={{ fontSize: '6.2pt' }}>No. Laporan / <em>Report Number</em></div>
+                    <div style={{ fontWeight: 800 }}>{reportNo}</div>
+                  </td>
+                  <td style={{ width: '27%', padding: '3px 6px', border: '1px solid #000000' }}>
+                    <div style={{ fontSize: '6.2pt' }}>No. SMK / <em>SMS No</em></div>
+                    <div style={{ fontWeight: 700 }}>{resolvedSmcNo}</div>
+                  </td>
+                  <td style={{ width: '35%', padding: '3px 6px', border: '1px solid #000000' }}>
+                    <div style={{ fontSize: '6.2pt' }}>Tanggal Audit / <em>Date of Audit</em></div>
+                    <div style={{ fontWeight: 800 }}>{auditDateStr}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '3px 6px', border: '1px solid #000000' }}>
+                    <div style={{ fontSize: '6.2pt' }}>Jenis Audit / <em>Type of Audit</em></div>
+                    <div style={{ fontWeight: 700, fontSize: '6.8pt', marginTop: '1px' }}>
+                      <span>{isPembaruan ? '☒' : '☐'} Audit Pembaruan</span> &nbsp;
+                      <span>{isAwal ? '☒' : '☐'} Awal</span> &nbsp;
+                      <span>{isAntara ? '☒' : '☐'} Antara</span> &nbsp;
+                      <span>{isTambahan ? '☒' : '☐'} Tambahan</span>
+                    </div>
+                  </td>
+                  <td colSpan={2} style={{ padding: '3px 6px', border: '1px solid #000000' }}>
+                    <div style={{ fontSize: '6.2pt' }}>Auditor Yang Melaksanakan Audit: / <em>Auditor(S) Performing Audit</em></div>
+                    <div style={{ fontWeight: 900, fontSize: '7.5pt', textTransform: 'uppercase' }}>{auditorName}</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          );
+        })()}
 
         {/* DENGAN INI DILAPORKAN HASIL TINDAK LANJUT AUDIT */}
         <div style={{ fontSize: '6.5pt', fontWeight: 700, marginBottom: '4px' }}>
@@ -286,7 +312,7 @@ export const BkiShipboardChecklistReport = ({
                 Nomor IMO<br /><em>IMO Number</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.imo || vessel?.regNo || '-'}
+                {vessel?.imo || session?.imo || vessel?.regNo || '-'}
               </td>
             </tr>
             <tr>
@@ -300,7 +326,7 @@ export const BkiShipboardChecklistReport = ({
                 Nomor/Huruf Pengenal<br /><em>Distinctive Number/Letters</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.callSign || '-'}
+                {vessel?.callSign || session?.callSign || '-'}
               </td>
             </tr>
             <tr>
@@ -308,13 +334,13 @@ export const BkiShipboardChecklistReport = ({
                 Pelabuhan Pendaftaran<br /><em>Port of Registry</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 700 }}>
-                {vessel?.portOfRegistry || 'PONTIANAK'}
+                {vessel?.portOfRegistry || session?.portOfRegistry || 'PONTIANAK'}
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 600 }}>
                 Tonase Kotor<br /><em>Gross Tonnage</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.gt ? String(vessel.gt) : '-'}
+                {vessel?.gt ? String(vessel.gt) : (session?.gt ? String(session.gt) : '-')}
               </td>
             </tr>
             <tr>
