@@ -66,58 +66,53 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
   const [customExternalOrg, setCustomExternalOrg] = useState('');
 
   // Report Reference & Document Identifiers
-  const [reportId, setReportId] = useState(finding?.reportId || currentAudit?.reportId || '0859 - PK/ISM- SMC /2026');
-  const [findingNo, setFindingNo] = useState(finding?.findingNo || '1/4 - 0859 - PK/ISM- SMC /2026');
+  const [reportId, setReportId] = useState(finding?.reportId || currentAudit?.reportId || '');
+  const [findingNo, setFindingNo] = useState(finding?.findingNo || '');
   const [areaUnderAudit, setAreaUnderAudit] = useState(
-    finding?.areaUnderAudit || finding?.targetName || currentAudit?.targetName || 'RP 2004'
+    finding?.areaUnderAudit || finding?.targetName || currentAudit?.targetName || ''
   );
-  const [vesselId, setVesselId] = useState(finding?.vesselId || currentAudit?.vesselId || 'v-rp2004');
+  const [vesselId, setVesselId] = useState(finding?.vesselId || currentAudit?.vesselId || (vessels[0]?.id || ''));
   const [dateOfAudit, setDateOfAudit] = useState(
-    finding?.dateIdentified || currentAudit?.auditDate || '2026-08-18'
+    finding?.dateIdentified || currentAudit?.auditDate || new Date().toISOString().split('T')[0]
   );
   const [elementNumberOfCode, setElementNumberOfCode] = useState(
-    finding?.elementNumberOfCode || finding?.clauseCode || '5.1.5 or other'
+    finding?.elementNumberOfCode || finding?.clauseCode || ''
   );
-  const [clauseCode, setClauseCode] = useState(finding?.clauseCode || '5.1.5');
+  const [clauseCode, setClauseCode] = useState(finding?.clauseCode || '');
   const [clauseName, setClauseName] = useState(
-    finding?.clauseName || 'Tanggung Jawab & Wewenang Nakhoda (Peninjauan Kembali SMK)'
+    finding?.clauseName || ''
   );
   const [isManualClause, setIsManualClause] = useState(true);
 
   // Deficiency Details & Objective Evidence
   const [description, setDescription] = useState(
-    finding?.description ||
-    'Nakhoda belum memahami semua tanggung jawab dan wewenangnya yang telah didokumentasikan menyangkut hal peninjauan kembali SMK dan melaporkan kekurangannya kepada manajemen didarat secara berkala'
+    finding?.description || ''
   );
   const [objectiveEvidence, setObjectiveEvidence] = useState(
-    finding?.objectiveEvidence ||
-    '- Master review tahun 2025 tidak ditemukan saat audit\n- Tidak ditemukan master night order, analisa risiko untuk pekerjaan deck maupun permesinan dan penilaian crew periode semester I tahun 2026 pada saat diaudit'
+    finding?.objectiveEvidence || ''
   );
   const [category, setCategory] = useState(finding?.category || 'Non-Conformity');
 
   // Signatures Stage 1 (Initial Report)
-  const [auditor, setAuditor] = useState(finding?.auditor || currentAudit?.leadAuditor || 'MUHSON NURROCHMAT S');
-  const [auditee, setAuditee] = useState(finding?.auditee || currentAudit?.auditee || 'CAPT. EKHSAN');
-  const [assignedTo, setAssignedTo] = useState(finding?.assignedTo || 'Nakhoda / Master TB. RP 2004');
+  const [auditor, setAuditor] = useState(finding?.auditor || currentAudit?.leadAuditor || '');
+  const [auditee, setAuditee] = useState(finding?.auditee || currentAudit?.auditee || '');
+  const [assignedTo, setAssignedTo] = useState(finding?.assignedTo || '');
 
   // Correction & CAP (By Auditee)
   const [correction, setCorrection] = useState(
-    finding?.correction || finding?.evidence?.correction ||
-    'Melakukan penyusunan formulir Master Review 2025/2026, menerbitkan Master Night Order dan Analisa Risiko (Risk Assessment) deck dan permesinan serta penilaian crew semester I tahun 2026.'
+    finding?.correction || finding?.evidence?.correction || ''
   );
   const [rootCause, setRootCause] = useState(
-    finding?.rootCause || finding?.evidence?.rootCause ||
-    'Nakhoda belum sepenuhnya memahami prosedur peninjauan berkala sistem manajemen keselamatan dan pergantian dokumen master di atas kapal.'
+    finding?.rootCause || finding?.evidence?.rootCause || ''
   );
   const [correctiveAction, setCorrectiveAction] = useState(
-    finding?.correctiveAction || finding?.evidence?.correctiveAction ||
-    'Pihak manajemen darat memberikan penyegaran prosedur ISM Code klausul 5 serta melengkapi template baku Master Review dan checklist verifikasi berkala.'
+    finding?.correctiveAction || finding?.evidence?.correctiveAction || ''
   );
   const [agreedDate, setAgreedDate] = useState(
-    finding?.agreedDate || finding?.dueDate || '2026-11-17'
+    finding?.agreedDate || finding?.dueDate || ''
   );
   const [auditeeSignatureDate, setAuditeeSignatureDate] = useState(
-    finding?.auditeeSignatureDate || '2026-11-17'
+    finding?.auditeeSignatureDate || ''
   );
 
   // Verification Stage (By Auditor)
@@ -128,10 +123,10 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
     finding?.verifiedSatisfactory !== undefined ? finding.verifiedSatisfactory : true
   );
   const [auditorSignatureDate, setAuditorSignatureDate] = useState(
-    finding?.auditorSignatureDate || '2026-11-17'
+    finding?.auditorSignatureDate || ''
   );
   const [auditorReviewNotes, setAuditorReviewNotes] = useState(
-    finding?.evidence?.auditorReviewNotes || 'Dokumen Master Review dan form Analisa Risiko telah diperiksa. Pelaksanaan tindakan korektif memuaskan.'
+    finding?.evidence?.auditorReviewNotes || ''
   );
 
   // File Attachment for Evidence

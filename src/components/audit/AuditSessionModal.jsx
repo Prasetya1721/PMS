@@ -137,18 +137,18 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
   // DOC-specific and SMC-specific meta
   const [docDepartment, setDocDepartment] = useState(
-    session?.docDepartment || 'Seluruh Divisi Darat (DPA, QHSE, Ops, Crewing, Logistik)'
+    session?.docDepartment || ''
   );
   const [docCertificateNo, setDocCertificateNo] = useState(
-    session?.docCertificateNo || 'DOC-IDN-PBK/2024-R1'
+    session?.docCertificateNo || ''
   );
   const [smcCertificateNo, setSmcCertificateNo] = useState(
-    session?.smcCertificateNo || 'SMC-TB-RP2004/2024'
+    session?.smcCertificateNo || ''
   );
 
   // Identity & Registration
   const [reportId, setReportId] = useState(
-    session?.reportId || (initialStandard === 'DOC' ? '0859 - PK/ISM- DOC /2026' : '0859 - PK/ISM- SMC /2026')
+    session?.reportId || ''
   );
   const [auditNo, setAuditNo] = useState(session?.auditNo || '');
   const [leadAuditor, setLeadAuditor] = useState(session?.leadAuditor || '');
@@ -245,29 +245,13 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     const year = new Date().getFullYear();
     const randNum = Math.floor(Math.random() * 900 + 100);
     const prefix = forcedAuditType === 'Internal' ? 'INT' : 'EXT';
-    setAuditNo(`AUD-${prefix}-${newStandard}-${year}/${randNum}`);
-    setReportId(`0859 - PK/ISM- ${newStandard} /2026`);
+    if (!isEdit && !session?.auditNo) {
+      setAuditNo(`AUD-${prefix}-${newStandard}-${year}/${randNum}`);
+    }
 
     if (newStandard === 'DOC') {
       setTargetType('Office');
-      setAuditLocation('Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)');
-      setAuditee('Direktur Operasional, DPA & Para Manager Divisi Darat');
-      setScope('Evaluasi menyeluruh implementasi ISM Code klausul 1 s/d 16 pada operasional kantor darat PT. Pelayaran Baharimas Kalimantan');
       setNewFindingClause('ISM-1');
-
-      if (forcedAuditType === 'Internal') {
-        setLeadAuditor('Capt. Bambang Suryono, M.Mar (Lead Auditor DPA PBK)');
-        setAuditTeam('Ir. H. Syamsul Bahri (QHSE), Dimas Wicaksono (Fleet Supt)');
-      } else {
-        setLeadAuditor('Auditor Ditjen Perhubungan Laut / Surveyor RO Ditunjuk');
-        setAuditTeam('Tim Surveyor Statutory Flag State');
-      }
-
-      setLeadAuditorSign(forcedAuditType === 'Internal' ? 'Capt. Bambang Suryono, M.Mar' : 'Auditor RO / Ditjen Hubla');
-      setAuditeeSign('Direktur Operasional / DPA PT. PBK');
-      setAuditConclusion(
-        'Sistem Manajemen Keselamatan (SMS) Kantor Darat PT. Pelayaran Baharimas Kalimantan telah diimplementasikan secara konsisten dan memenuhi standar ISM Code IMO Res. A.741(18). Sertifikat DOC Perusahaan direkomendasikan dipertahankan.'
-      );
 
       // Load DOC checklist
       setChecklist(ISM_DOC_ELEMENTS.map(el => ({
@@ -284,26 +268,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     } else {
       // SMC Standard
       setTargetType('Vessel');
-      const v = vessels.find(item => item.id === forcedVesselId) || vessels[0];
-      const vName = v?.name || 'Kapal Armada';
-      setAuditLocation(`Onboard ${vName} (Pelabuhan Dwikora Pontianak / Sungai Kapuas)`);
-      setAuditee(`Nakhoda (Capt. Master) & KKM ${vName}`);
-      setScope(`Verifikasi kepatuhan Safety Management System (SMS) ISM Code dan pemeliharaan alat keselamatan di atas kapal ${vName}`);
       setNewFindingClause('1.1');
-
-      if (forcedAuditType === 'Internal') {
-        setLeadAuditor('Capt. Ahmad Fauzi (Marine Safety Inspector / DPA PBK)');
-        setAuditTeam('Tim Safety Officer PT. Pelayaran Baharimas Kalimantan');
-      } else {
-        setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Pontianak)');
-        setAuditTeam('Surveyor Marine BKI Cabang Pontianak');
-      }
-
-      setLeadAuditorSign(forcedAuditType === 'Internal' ? 'Capt. Ahmad Fauzi' : 'Surveyor Senior BKI');
-      setAuditeeSign(`Nakhoda ${vName}`);
-      setAuditConclusion(
-        `Implementasi keselamatan maritim di atas kapal ${vName} berjalan efektif. Seluruh peralatan navigasi, mesin, dan latihan darurat (drills) terverifikasi. Sertifikat SMC kapal direkomendasikan untuk diperpanjang/dipertahankan.`
-      );
 
       // Load checklist sesuai lembaga audit:
       // BKI → template resmi Rev 05; lembaga lain / internal → kosong (isi manual)
@@ -320,21 +285,14 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     const year = new Date().getFullYear();
     const randNum = Math.floor(Math.random() * 900 + 100);
     const prefix = newAuditType === 'Internal' ? 'INT' : 'EXT';
-    setAuditNo(`AUD-${prefix}-${standard}-${year}/${randNum}`);
+    if (!isEdit && !session?.auditNo) {
+      setAuditNo(`AUD-${prefix}-${standard}-${year}/${randNum}`);
+    }
 
     if (newAuditType === 'Internal') {
       setExternalOrganization('PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)');
       // Audit internal tidak memakai template BKI — kosongkan checklist
       setChecklist([]);
-      if (standard === 'DOC') {
-        setLeadAuditor('Capt. Bambang Suryono, M.Mar (Lead Auditor DPA PBK)');
-        setAuditTeam('Ir. H. Syamsul Bahri (QHSE), Dimas Wicaksono (Fleet Supt)');
-        setLeadAuditorSign('Capt. Bambang Suryono, M.Mar');
-      } else {
-        setLeadAuditor('Capt. Ahmad Fauzi (Marine Safety Inspector / DPA PBK)');
-        setAuditTeam('Tim Safety Officer PT. Pelayaran Baharimas Kalimantan');
-        setLeadAuditorSign('Capt. Ahmad Fauzi');
-      }
     } else {
       // External: Set default ke BKI dan muat template BKI
       const defaultExtOrg = externalOrganization && externalOrganization !== 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)'
@@ -349,17 +307,38 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
           setChecklist(prev => prev.filter(item => item.isManual));
         }
       }
-
-      if (standard === 'DOC') {
-        setLeadAuditor('Auditor Ditjen Perhubungan Laut / Surveyor RO Ditunjuk');
-        setAuditTeam('Tim Surveyor Statutory Flag State');
-        setLeadAuditorSign('Auditor RO / Ditjen Hubla');
-      } else {
-        setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Pontianak)');
-        setAuditTeam('Surveyor Marine BKI Cabang Pontianak');
-        setLeadAuditorSign('Surveyor Senior BKI');
-      }
     }
+  };
+
+  // Helper opsional untuk memuat contoh demo simulasi (RP 2004 / PBK) jika diinginkan
+  const handleLoadSampleDemo = () => {
+    if (standard === 'DOC') {
+      setDocDepartment('Seluruh Divisi Darat (DPA, QHSE, Ops, Crewing, Logistik)');
+      setDocCertificateNo('DOC-IDN-PBK/2024-R1');
+      setReportId('0859 - PK/ISM- DOC /2026');
+      setAuditLocation('Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)');
+      setAuditee('Direktur Operasional, DPA & Para Manager Divisi Darat');
+      setScope('Evaluasi menyeluruh implementasi ISM Code klausul 1 s/d 16 pada operasional kantor darat PT. Pelayaran Baharimas Kalimantan');
+      setLeadAuditor('Auditor Ditjen Perhubungan Laut / Surveyor RO Ditunjuk');
+      setAuditTeam('Tim Surveyor Statutory Flag State');
+      setLeadAuditorSign('Auditor RO / Ditjen Hubla');
+      setAuditeeSign('Direktur Operasional / DPA PT. PBK');
+      setAuditConclusion('Sistem Manajemen Keselamatan (SMS) Kantor Darat PT. Pelayaran Baharimas Kalimantan telah diimplementasikan secara konsisten dan memenuhi standar ISM Code IMO Res. A.741(18). Sertifikat DOC Perusahaan direkomendasikan dipertahankan.');
+    } else {
+      const v = vessels.find(item => item.id === vesselId) || vessels[0];
+      const vName = v?.name || 'RP 2004';
+      setSmcCertificateNo(`SMC-TB-${vName.replace(/\s+/g, '')}/2024`);
+      setReportId('0859 - PK/ISM- SMC /2026');
+      setAuditLocation(`Onboard ${vName} (Pelabuhan Dwikora Pontianak / Sungai Kapuas)`);
+      setAuditee(`Nakhoda (Capt. Master) & KKM ${vName}`);
+      setScope(`Verifikasi kepatuhan Safety Management System (SMS) ISM Code dan pemeliharaan alat keselamatan di atas kapal ${vName}`);
+      setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Pontianak)');
+      setAuditTeam('Surveyor Marine BKI Cabang Pontianak');
+      setLeadAuditorSign('Surveyor Senior BKI');
+      setAuditeeSign(`Nakhoda ${vName}`);
+      setAuditConclusion(`Implementasi keselamatan maritim di atas kapal ${vName} berjalan efektif. Seluruh peralatan navigasi, mesin, dan latihan darurat (drills) terverifikasi. Sertifikat SMC kapal direkomendasikan untuk diperpanjang/dipertahankan.`);
+    }
+    showToast('✓ Contoh data demo berhasil dimuat ke formulir!', 'info');
   };
 
   // Helper perubahan lembaga audit eksternal:
@@ -388,7 +367,10 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   // One-time initial setup on mount if not editing
   useEffect(() => {
     if (!isEdit && !session?.auditNo) {
-      applyStandardSwitch(initialStandard, auditType, initialVesselId);
+      const year = new Date().getFullYear();
+      const randNum = Math.floor(Math.random() * 900 + 100);
+      const prefix = auditType === 'Internal' ? 'INT' : 'EXT';
+      setAuditNo(`AUD-${prefix}-${initialStandard}-${year}/${randNum}`);
     }
   }, []);
 
@@ -654,7 +636,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
     const payload = {
       auditNo: auditNo.trim(),
-      reportId: reportId.trim() || (standard === 'DOC' ? '0859 - PK/ISM- DOC /2026' : '0859 - PK/ISM- SMC /2026'),
+      reportId: reportId.trim(),
       auditType,
       externalOrganization: resolvedExternalOrg,
       standard,
@@ -1159,12 +1141,6 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                           value={vesselId}
                           onChange={(e) => {
                             setVesselId(e.target.value);
-                            const chosen = vessels.find(v => v.id === e.target.value);
-                            if (chosen) {
-                              setAuditLocation(`Onboard ${chosen.name} (Pelabuhan Dwikora Pontianak / Sungai Kapuas)`);
-                              setAuditee(`Nakhoda & KKM ${chosen.name}`);
-                              setAuditeeSign(`Nakhoda ${chosen.name}`);
-                            }
                           }}
                           className="select-control"
                           style={{ fontWeight: 700 }}
@@ -1335,6 +1311,16 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                 <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
                   Target: {targetType === 'Vessel' ? currentSelectedVessel?.name : 'Kantor Pusat'}
                 </span>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleDemo}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.72rem', padding: '0.25rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#0284c7' }}
+                  title="Muat contoh isian data simulasi jika diperlukan"
+                >
+                  <Sparkles size={12} />
+                  <span>Isi Contoh</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsSetupStep(true)}
@@ -1508,12 +1494,6 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               value={vesselId}
                               onChange={(e) => {
                                 setVesselId(e.target.value);
-                                const chosen = vessels.find(v => v.id === e.target.value);
-                                if (chosen) {
-                                  setAuditLocation(`Onboard ${chosen.name} (Pelabuhan Dwikora Pontianak / Sungai Kapuas)`);
-                                  setAuditee(`Nakhoda & KKM ${chosen.name}`);
-                                  setAuditeeSign(`Nakhoda ${chosen.name}`);
-                                }
                               }}
                               className="select-control"
                               style={{ fontWeight: 700 }}
