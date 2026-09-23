@@ -70,32 +70,40 @@ export const AuditReportModal = ({
   };
 
   // Resolusi checklist sesuai lembaga audit
-  // HANYA BKI yang memiliki template resmi \u2014 lembaga lain menghasilkan items=[]
+  // HANYA BKI yang memiliki template resmi — lembaga lain menghasilkan items=[]
   const checklistConfig = getChecklistConfigForSession(activeSession.externalOrganization || activeSession.standard);
   const isBKISession = checklistConfig.organizationId === 'bki';
 
   // Prioritas data checklist:
-  // 1. liveChecklist (real-time dari AuditSessionModal \u2014 selalu segar)
-  // 2. activeSession.checklist (tersimpan di object sesi)
-  // 3. Template statis dari checklistConfig (hanya terisi jika BKI, kosong untuk lembaga lain)
-  const rawSessionChecklist =
-    (Array.isArray(liveChecklist) && liveChecklist.length > 0)
-      ? liveChecklist
-      : (Array.isArray(activeSession.checklist) && activeSession.checklist.length > 0)
-        ? activeSession.checklist
-        : null;
+  // 1. liveChecklist (real-time dari AuditSessionModal — jika bukan BKI dan SMC, buang template BKI)
+  // 2. activeSession.checklist (tersimpan di object sesi — jika bukan BKI dan SMC, buang template BKI)
+  // 3. Template statis dari checklistConfig (hanya terisi jika BKI, kosong [] untuk lembaga lain)
+  const resolveSessionChecklist = () => {
+    if (Array.isArray(liveChecklist)) {
+      if (activeSession.standard === 'SMC' && !isBKISession) {
+        return liveChecklist.filter(item => item.isManual);
+      }
+      return liveChecklist;
+    }
+    if (Array.isArray(activeSession.checklist) && activeSession.checklist.length > 0) {
+      if (activeSession.standard === 'SMC' && !isBKISession) {
+        return activeSession.checklist.filter(item => item.isManual);
+      }
+      return activeSession.checklist;
+    }
+    return isBKISession ? checklistConfig.items : [];
+  };
 
-  const reportChecklistItems = rawSessionChecklist
-    ? rawSessionChecklist.map((item, idx) => ({
-        ...item,
-        no: idx + 1,
-        item: item.name || item.checkPoint || item.code,
-        subsection: item.name || '',
-        ismCode: item.ismCode || '',
-        remark: item.notes || item.remark || '',
-        isStrikethrough: Boolean(item.isStrikethrough)
-      }))
-    : checklistConfig.items; // kosong [] jika bukan BKI
+  const resolvedList = resolveSessionChecklist();
+  const reportChecklistItems = resolvedList.map((item, idx) => ({
+    ...item,
+    no: idx + 1,
+    item: item.name || item.checkPoint || item.code,
+    subsection: item.name || '',
+    ismCode: item.ismCode || '',
+    remark: item.notes || item.remark || '',
+    isStrikethrough: Boolean(item.isStrikethrough)
+  }));
 
 
   // Find all findings related to this session or target
@@ -556,7 +564,9 @@ export const AuditReportModal = ({
                 {reportMode === 'session'
                   ? 'STANDAR ISM CODE — IMO RESOLUTION A.741(18) SEBAGAIMANA TELAH DIUBAH'
                   : reportMode === 'checklist'
-                  ? '00954PK26_F23_14_06-2024 Rev05 • KEPATUHAN KAPAL DI LAUT (TERMASUK KLAUSUL A - E)'
+                  ? (isBKISession
+                      ? '00954PK26_F23_14_06-2024 Rev05 • KEPATUHAN KAPAL DI LAUT (TERMASUK KLAUSUL A - E)'
+                      : `DAFTAR BUTIR PEMERIKSAAN AUDIT • ${checklistConfig.organizationName.toUpperCase()}`)
                   : '(NON-CONFORMITY / OBSERVATION REPORT)'}
               </div>
               <div style={{ display: 'inline-block', borderBottom: '2px solid #000000', width: '90px', margin: '3px auto 0' }} />
@@ -1133,7 +1143,7 @@ export const AuditReportModal = ({
                   const dynamicStruck = reportChecklistItems.filter(c => Boolean(c.isStrikethrough)).length;
                   const dynamicCore = reportChecklistItems.length - dynamicStruck;
                   const hasStruck = dynamicStruck > 0;
-                  const isChecked = checklistConfig.checked || rawSessionChecklist != null;
+                  const isChecked = isBKISession;
                   return (
                     <div style={{
                       padding: '5px 8px',

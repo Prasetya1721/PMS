@@ -119,7 +119,9 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   const rawSessionOrg = session?.externalOrganization;
   const initialOrgStr = typeof rawSessionOrg === 'object' && rawSessionOrg !== null
     ? (rawSessionOrg.name || 'Biro Klasifikasi Indonesia (BKI)')
-    : (rawSessionOrg || 'Biro Klasifikasi Indonesia (BKI)');
+    : (rawSessionOrg || ((session?.auditType === 'Internal' || (!session))
+        ? 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)'
+        : 'Biro Klasifikasi Indonesia (BKI)'));
 
   const [externalOrganization, setExternalOrganization] = useState(initialOrgStr);
   const isKnownOrg = EXTERNAL_AUDIT_ORGANIZATIONS.some(org => org.name === initialOrgStr || org.id === initialOrgStr);
@@ -170,6 +172,13 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   // HANYA BKI yang memiliki template — lembaga lain mulai dengan daftar kosong
   const [checklist, setChecklist] = useState(() => {
     if (session?.checklist && session.checklist.length > 0) {
+      if (initialStandard === 'SMC') {
+        const orgId = getChecklistConfigForSession(initialOrgStr).organizationId;
+        if (orgId !== 'bki') {
+          // Hanya pertahankan butir manual jika ada, template BKI dibuang
+          return session.checklist.filter(item => item.isManual);
+        }
+      }
       return session.checklist;
     }
     if (initialStandard === 'SMC') {
@@ -291,8 +300,11 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
       );
 
       // Load checklist sesuai lembaga audit:
-      // BKI → template resmi Rev 05; lembaga lain → kosong (isi manual)
-      setChecklist(buildChecklistFromOrganization(externalOrganization));
+      // BKI → template resmi Rev 05; lembaga lain / internal → kosong (isi manual)
+      const currentOrg = forcedAuditType === 'Internal'
+        ? 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)'
+        : externalOrganization;
+      setChecklist(buildChecklistFromOrganization(currentOrg));
     }
   };
 
@@ -324,7 +336,14 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         : 'Biro Klasifikasi Indonesia (BKI)';
       setExternalOrganization(defaultExtOrg);
       // Muat template jika lembaga adalah BKI
-      setChecklist(buildChecklistFromOrganization(defaultExtOrg));
+      if (standard === 'SMC') {
+        const orgId = getChecklistConfigForSession(defaultExtOrg).organizationId;
+        if (orgId === 'bki') {
+          setChecklist(buildChecklistFromOrganization(defaultExtOrg));
+        } else {
+          setChecklist(prev => prev.filter(item => item.isManual));
+        }
+      }
 
       if (standard === 'DOC') {
         setLeadAuditor('Auditor Ditjen Perhubungan Laut / Surveyor RO Ditunjuk');
@@ -334,6 +353,30 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         setLeadAuditor('Auditor Senior Biro Klasifikasi Indonesia (BKI Pontianak)');
         setAuditTeam('Surveyor Marine BKI Cabang Pontianak');
         setLeadAuditorSign('Surveyor Senior BKI');
+      }
+    }
+  };
+
+  // Helper perubahan lembaga audit eksternal:
+  // - Jika BKI: muat otomatis template resmi Rev 05
+  // - Jika selain BKI (KSOP, Hubla, LR, BV, dll): KOSONGKAN daftar checklist (hanya pertahankan butir manual jika ada)
+  const handleExternalOrgChange = (newOrg) => {
+    setExternalOrganization(newOrg);
+
+    if (standard === 'SMC') {
+      const orgId = getChecklistConfigForSession(newOrg).organizationId;
+      if (orgId === 'bki') {
+        setChecklist(buildChecklistFromOrganization(newOrg));
+        showToast('✓ Template resmi BKI (F23.14.06-2024 Rev 05) dimuat otomatis.', 'info');
+      } else {
+        // Kosongkan template BKI untuk lembaga selain BKI (KSOP, Hubla, LR, BV, dll.)
+        // Pertahankan hanya butir pemeriksaan manual jika auditor sudah menambahkan item manual
+        setChecklist(prev => prev.filter(item => item.isManual));
+        const orgInfo = getChecklistConfigForSession(newOrg);
+        showToast(
+          `ℹ️ Lembaga "${orgInfo.organizationName}" dipilih. Checklist BKI dikosongkan (format audit disesuaikan lembaga).`,
+          'info'
+        );
       }
     }
   };
@@ -1021,7 +1064,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                       </label>
                       <select
                         value={typeof externalOrganization === 'string' ? externalOrganization : externalOrganization?.name || ''}
-                        onChange={(e) => setExternalOrganization(e.target.value)}
+                        onChange={(e) => handleExternalOrgChange(e.target.value)}
                         className="select-control"
                         style={{ fontWeight: 700, borderColor: '#a855f7' }}
                       >
@@ -1360,7 +1403,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                           <div>
                             <select
                               value={typeof externalOrganization === 'string' ? externalOrganization : externalOrganization?.name || ''}
-                              onChange={(e) => setExternalOrganization(e.target.value)}
+                              onChange={(e) => handleExternalOrgChange(e.target.value)}
                               className="select-control"
                               style={{ fontWeight: 700 }}
                             >
@@ -2171,6 +2214,21 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                           </tr>
                         </thead>
                         <tbody>
+                          {checklist.length === 0 && (
+                            <tr>
+                              <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>📋</div>
+                                <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>
+                                  Daftar Butir Pemeriksaan Kosong
+                                </div>
+                                <div style={{ fontSize: '0.78rem' }}>
+                                  {getChecklistConfigForSession(externalOrganization).organizationId === 'bki'
+                                    ? 'Klik tombol "Muat SMS Checklist Rev 05 Lengkap" di atas untuk memuat template resmi BKI.'
+                                    : `Format checklist untuk ${getChecklistConfigForSession(externalOrganization).organizationName} disesuaikan secara manual. Klik "+ Tambah Item Manual" untuk mulai menambah butir pemeriksaan.`}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
                           {checklist
                             .filter(item => {
                               if (checklistFilter === 'CORE') return !item.isStrikethrough;
@@ -2401,11 +2459,15 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               onChange={(e) => setNewFindingClause(e.target.value)}
                               className="select-control"
                             >
-                              {checklist.map(c => (
-                                <option key={c.code} value={c.code}>
-                                  {c.code} - {c.name}
-                                </option>
-                              ))}
+                              {checklist.length > 0 ? (
+                                checklist.map(c => (
+                                  <option key={c.code} value={c.code}>
+                                    {c.code} - {c.name}
+                                  </option>
+                                ))
+                              ) : (
+                                <option value="GENERAL">Klausul Umum / Belum Terdaftar di Checklist</option>
+                              )}
                             </select>
                           </div>
 
