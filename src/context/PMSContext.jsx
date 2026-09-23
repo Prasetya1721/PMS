@@ -56,7 +56,7 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v14-clean-input-testing';
+const PMS_STORAGE_VERSION = 'v15-clean-audit-bki';
 
 // Auto-purge stale localStorage if version mismatch occurs
 if (typeof window !== 'undefined') {
@@ -222,6 +222,14 @@ export const PMSProvider = ({ children }) => {
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
   const [audits, setAudits] = useState(() => {
+    // Migration: user requested default audit session kosong dan bersih
+    const migrationKey = 'pms_audits_clean_v4';
+    if (!localStorage.getItem(migrationKey)) {
+      localStorage.setItem(migrationKey, 'true');
+      localStorage.setItem('pms_audits', JSON.stringify([]));
+      localStorage.setItem('pms_auditFindings', JSON.stringify([]));
+      return [];
+    }
     const loaded = loadStored('audits', INITIAL_AUDITS);
     if (Array.isArray(loaded)) {
       return loaded.map(a => ({

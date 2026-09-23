@@ -1225,7 +1225,7 @@ export const AuditReportModal = ({
                         const section = chk.section || '';
                         const subsection = chk.subsection || '';
                         const no = chk.no || String(idx + 1);
-                        const resultVal = chk.result || chk.defaultResult || 'Yes';
+                        const resultVal = chk.result || chk.defaultResult || '';
                         const isYes = !isStriked && (resultVal === 'Yes' || resultVal === 'Complied');
                         const isNo = !isStriked && ['No', 'Major NC', 'Minor NC', 'Observation'].includes(resultVal);
                         const isNA = isStriked || resultVal === 'N/A';
@@ -1315,7 +1315,7 @@ export const AuditReportModal = ({
                                 ? <span style={{ color: '#92400e' }}>Dicoret — tidak berlaku untuk tipe kapal ini</span>
                                 : isNC
                                   ? <strong>Lihat Formulir NCR No. {relatedFinding?.findingNo}</strong>
-                                  : (chk.remark || chk.notes || '')}
+                                  : (chk.notes || chk.remark || '')}
                             </td>
 
                             {/* ISM Code */}

@@ -31,11 +31,13 @@ import {
   Anchor,
   Info,
   Strikethrough,
-  Undo2
+  Undo2,
+  RotateCcw
 } from 'lucide-react';
 import { AuditReportModal } from './AuditReportModal';
 import {
   BKI_AUDIT_MASTER,
+  BKI_SMC_CHECKLIST_TEMPLATE,
   NON_BKI_AUDIT_ORGANIZATIONS,
   EXTERNAL_AUDIT_ORGANIZATIONS,
   isBKIOrganization,
@@ -48,6 +50,7 @@ import {
  *
  * HANYA BKI yang memiliki template resmi (F23.14.06-2024 Rev 05).
  * Lembaga lain mengembalikan array KOSONG — auditor menyusun butir manual.
+ * Default: result = '', notes = '' (kosong untuk diisi auditor).
  *
  * @param {string|object} organization - lembaga audit eksternal pada sesi
  * @returns {Array} baris checklist siap pakai (kosong jika bukan BKI)
@@ -68,12 +71,10 @@ const buildChecklistFromOrganization = (organization) => {
       code: norm.code,
       name: norm.name,
       checkPoint: norm.checkPoint,
-      remark: norm.remark,
-      ismCode: norm.ismCode,
-      result: norm.isStrikethrough ? 'N/A' : (el.defaultResult || 'Complied'),
-      notes: norm.isStrikethrough
-        ? 'Klausul khusus tipe kapal (dicoret pada PDF namun tetap diverifikasi)'
-        : (norm.remark || ''),
+      remark: '',
+      ismCode: norm.ismCode || '',
+      result: norm.isStrikethrough ? 'N/A' : (el.defaultResult || ''),
+      notes: '',
       isManual: false,
       isStrikethrough: Boolean(norm.isStrikethrough),
       evidence: null
@@ -185,7 +186,23 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
           return session.checklist.filter(item => item.isManual);
         }
       }
-      return session.checklist;
+      // Sinkronkan klausul dengan template resmi Bahasa Indonesia terbaru
+      return session.checklist.map(item => {
+        const tpl = BKI_SMC_CHECKLIST_TEMPLATE.find(t =>
+          t.id === item.id || t.no === item.code || t.no === item.id
+        );
+        if (tpl) {
+          return {
+            ...item,
+            name: tpl.subsection || tpl.section || item.name,
+            checkPoint: tpl.item || item.checkPoint,
+            ismCode: tpl.ismCode || item.ismCode,
+            remark: '',
+            notes: (item.notes === item.remark || item.notes === tpl.remark) ? '' : (item.notes || '')
+          };
+        }
+        return item;
+      });
     }
     if (initialStandard === 'SMC') {
       // Hanya muat template jika lembaga adalah BKI
@@ -196,7 +213,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
       code: el.code,
       name: el.name,
       checkPoint: el.checkPoints?.[0] || el.description,
-      result: 'Complied',
+      result: '',
       notes: '',
       isManual: false,
       isStrikethrough: false,
@@ -214,7 +231,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   const [manualCode, setManualCode] = useState('');
   const [manualName, setManualName] = useState('');
   const [manualCriteria, setManualCriteria] = useState('');
-  const [manualResult, setManualResult] = useState('Complied');
+  const [manualResult, setManualResult] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [showManualItemForm, setShowManualItemForm] = useState(false);
 
@@ -259,7 +276,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
         code: el.code,
         name: el.name,
         checkPoint: el.checkPoints?.[0] || el.description,
-        result: 'Complied',
+        result: '',
         notes: '',
         isManual: false,
         isStrikethrough: false,
@@ -503,6 +520,16 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     );
   };
 
+  // Kosongkan seluruh pilihan hasil (Yes/No/NA) dan catatan pada checklist
+  const handleClearAllResults = () => {
+    setChecklist(prev => prev.map(item => ({
+      ...item,
+      result: '',
+      notes: ''
+    })));
+    showToast('✓ Seluruh pilihan checklist dan catatan berhasil dikosongkan.', 'info');
+  };
+
   // Add Manual Checklist Item
   const handleAddManualChecklistItem = (e) => {
     e.preventDefault();
@@ -605,12 +632,15 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   // Stats Calculation
   const checklistStats = useMemo(() => {
     const total = checklist.length;
-    const complied = checklist.filter(c => c.result === 'Complied').length;
+    const answered = checklist.filter(c => c.result && c.result !== '').length;
+    const complied = checklist.filter(c => c.result === 'Complied' || c.result === 'Yes').length;
     const obs = checklist.filter(c => c.result === 'Observation').length;
-    const minorNC = checklist.filter(c => c.result === 'Minor NC').length;
+    const minorNC = checklist.filter(c => c.result === 'Minor NC' || c.result === 'No').length;
     const majorNC = checklist.filter(c => c.result === 'Major NC').length;
-    const score = total > 0 ? Math.round((complied / total) * 100) : 100;
-    return { total, complied, obs, minorNC, majorNC, score };
+    const na = checklist.filter(c => c.result === 'N/A' || c.isStrikethrough).length;
+    const effectiveTotal = total - na > 0 ? total - na : total;
+    const score = effectiveTotal > 0 && answered > 0 ? Math.round((complied / effectiveTotal) * 100) : 0;
+    return { total, answered, complied, obs, minorNC, majorNC, na, score };
   }, [checklist]);
 
   // Submit complete session
@@ -1929,6 +1959,19 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                           </button>
                         )}
 
+                        {checklist.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleClearAllResults}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600, color: 'var(--text-muted)' }}
+                            title="Kosongkan seluruh pilihan Yes/No/N/A dan catatan pada checklist"
+                          >
+                            <RotateCcw size={13} />
+                            <span>Kosongkan Pilihan (Reset)</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => setShowManualItemForm(!showManualItemForm)}
@@ -2236,22 +2279,24 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               return true;
                             })
                             .map((item, idx) => {
-                              const resultVal = item.result || 'N/A';
+                              const resultVal = item.result || '';
                               const isYes = resultVal === 'Complied' || resultVal === 'Yes';
                               const isNo = ['No', 'Major NC', 'Minor NC', 'Observation'].includes(resultVal);
-                              const isNA = resultVal === 'N/A' || item.isStrikethrough;
+                              const isNA = resultVal === 'N/A';
 
                               const cbStyle = (active, color) => ({
-                                width: '26px',
-                                height: '26px',
-                                fontSize: '18px',
-                                lineHeight: '26px',
+                                width: '28px',
+                                height: '28px',
+                                fontSize: '20px',
+                                lineHeight: '28px',
                                 textAlign: 'center',
                                 cursor: item.isStrikethrough ? 'not-allowed' : 'pointer',
                                 color: active ? color : 'var(--border-glass)',
+                                opacity: active ? 1 : 0.4,
                                 userSelect: 'none',
                                 display: 'block',
-                                margin: '0 auto'
+                                margin: '0 auto',
+                                transition: 'all 0.15s ease'
                               });
 
                               return (
@@ -2311,8 +2356,8 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                   {/* Yes ☐ */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span
-                                      title="Tandai: Complied / Yes"
-                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', 'Complied')}
+                                      title={isYes ? 'Batal pilih Yes (Kosongkan)' : 'Tandai: Complied / Yes'}
+                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isYes ? '' : 'Complied')}
                                       style={cbStyle(isYes, '#16a34a')}
                                     >
                                       {isYes ? '⊠' : '□'}
@@ -2322,8 +2367,8 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                   {/* No ☐ */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span
-                                      title="Tandai: Minor NC / No"
-                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', 'Minor NC')}
+                                      title={isNo ? 'Batal pilih No (Kosongkan)' : 'Tandai: Minor NC / No'}
+                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isNo ? '' : 'Minor NC')}
                                       style={cbStyle(isNo, '#dc2626')}
                                     >
                                       {isNo ? '⊠' : '□'}
@@ -2333,11 +2378,11 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                   {/* N/A ☐ */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                     <span
-                                      title="Tandai: N/A (Tidak Berlaku)"
-                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', 'N/A')}
-                                      style={cbStyle(isNA && !item.isStrikethrough, '#64748b')}
+                                      title={isNA ? 'Batal pilih N/A (Kosongkan)' : 'Tandai: N/A (Tidak Berlaku)'}
+                                      onClick={() => !item.isStrikethrough && handleChecklistChange(item.id, 'result', isNA ? '' : 'N/A')}
+                                      style={cbStyle(isNA, '#64748b')}
                                     >
-                                      {(isNA && !item.isStrikethrough) ? '⊠' : '□'}
+                                      {isNA ? '⊠' : '□'}
                                     </span>
                                   </td>
 
@@ -2345,15 +2390,12 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                                   <td style={{ verticalAlign: 'middle' }}>
                                     <input
                                       type="text"
-                                      value={item.notes}
+                                      value={item.notes || ''}
                                       onChange={(e) => handleChecklistChange(item.id, 'notes', e.target.value)}
-                                      placeholder={item.remark && item.remark !== item.checkPoint ? item.remark : 'Catatan temuan / bukti fisik...'}
+                                      placeholder="Catatan temuan / bukti fisik..."
                                       className="input-control"
                                       style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
                                     />
-                                    {item.remark && item.remark !== item.checkPoint && !item.notes && (
-                                      <div style={{ fontSize: '0.65rem', color: '#64748b', fontStyle: 'italic', marginTop: '0.2rem' }}>{item.remark}</div>
-                                    )}
                                   </td>
 
                                   {/* Upload Bukti Audit */}
