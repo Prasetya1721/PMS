@@ -12,6 +12,7 @@ import {
   Minimize2,
   Plus,
   Trash2,
+  Edit2,
   CheckCircle2,
   AlertTriangle,
   Package,
@@ -235,6 +236,16 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   const [manualResult, setManualResult] = useState('');
   const [manualNotes, setManualNotes] = useState('');
   const [showManualItemForm, setShowManualItemForm] = useState(false);
+
+  // Edit & Delete Checklist Item state
+  const [editingChecklistItem, setEditingChecklistItem] = useState(null);
+  const [editFormCode, setEditFormCode] = useState('');
+  const [editFormName, setEditFormName] = useState('');
+  const [editFormCheckPoint, setEditFormCheckPoint] = useState('');
+  const [editFormIsmCode, setEditFormIsmCode] = useState('');
+  const [editFormResult, setEditFormResult] = useState('');
+  const [editFormNotes, setEditFormNotes] = useState('');
+  const [deleteChecklistItemTarget, setDeleteChecklistItemTarget] = useState(null);
 
   // Tab 4: Inline New Finding form state
   const [findingsList, setFindingsList] = useState(() => {
@@ -566,9 +577,58 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
     showToast(`✓ Item checklist manual "${newItem.code}" berhasil ditambahkan!`, 'success');
   };
 
+  const handleOpenEditChecklistItem = (item) => {
+    setEditingChecklistItem(item);
+    setEditFormCode(item.code || '');
+    setEditFormName(item.name || '');
+    setEditFormCheckPoint(item.checkPoint || '');
+    setEditFormIsmCode(item.ismCode || '');
+    setEditFormResult(item.result || '');
+    setEditFormNotes(item.notes || '');
+  };
+
+  const handleSaveEditChecklistItem = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!editFormCode.trim() || !editFormName.trim()) {
+      showToast('No./Kode klausul dan Uraian Items to be checked wajib diisi!', 'warning');
+      return;
+    }
+
+    setChecklist(prev => prev.map(item => {
+      if (item.id === editingChecklistItem.id) {
+        return {
+          ...item,
+          code: editFormCode.trim(),
+          name: editFormName.trim(),
+          checkPoint: editFormCheckPoint.trim(),
+          ismCode: editFormIsmCode.trim(),
+          result: editFormResult,
+          notes: editFormNotes.trim()
+        };
+      }
+      return item;
+    }));
+
+    showToast(`✓ Butir pemeriksaan "${editFormCode.trim()}" berhasil diperbarui!`, 'success');
+    setEditingChecklistItem(null);
+  };
+
+  const confirmDeleteChecklistItem = () => {
+    if (!deleteChecklistItemTarget) return;
+    const targetCode = deleteChecklistItemTarget.code;
+    setChecklist(prev => prev.filter(item => item.id !== deleteChecklistItemTarget.id));
+    setDeleteChecklistItemTarget(null);
+    showToast(`✓ Butir checklist "${targetCode}" berhasil dihapus!`, 'info');
+  };
+
   const handleDeleteChecklistItem = (id) => {
-    setChecklist(prev => prev.filter(item => item.id !== id));
-    showToast('Item checklist berhasil dihapus!', 'info');
+    const target = checklist.find(item => item.id === id);
+    if (target) {
+      setDeleteChecklistItemTarget(target);
+    } else {
+      setChecklist(prev => prev.filter(item => item.id !== id));
+      showToast('Item checklist berhasil dihapus!', 'info');
+    }
   };
 
   // Add Finding Inline
@@ -1053,7 +1113,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                       Audit kepatuhan onboard nakhoda & awak kapal menggunakan <strong>SMS Shipboard Checklist (Rev 05)</strong>: kelaikan navigasi, mesin, PMS, LSA/FFA, drill darurat, serta klausul coret A-E.
                     </p>
                     <div style={{ marginTop: '0.85rem', padding: '0.5rem 0.75rem', borderRadius: '6px', background: 'var(--bg-surface-elevated)', fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
-                      🚢 Target: <strong>28 Kapal Armada Baharimas</strong> • SMS Shipboard Checklist Rev 05
+                      🚢 Target: <strong>{vessels.length} Kapal Armada Baharimas</strong> • SMS Shipboard Checklist Rev 05
                     </div>
                   </div>
                 </div>
@@ -1188,7 +1248,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '0.85rem' }}>
                       <div>
                         <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>
-                          Pilih Kapal Armada Baharimas (28 Unit Kapal) *
+                          Pilih Kapal Armada Baharimas ({vessels.length} Unit Kapal) *
                         </label>
                         <select
                           value={vesselId}
@@ -1543,7 +1603,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '0.85rem' }}>
                           <div>
                             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                              Target Kapal Armada (28 Unit) *
+                              Target Kapal Armada ({vessels.length} Unit) *
                             </label>
                             <select
                               value={vesselId}
@@ -2305,7 +2365,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                             <th style={{ width: '52px', textAlign: 'center' }}>N/A</th>
                             <th>Remark / Catatan</th>
                             <th style={{ width: '200px' }}>Upload Bukti Audit</th>
-                            <th style={{ width: '100px', textAlign: 'center' }}>Aksi</th>
+                            <th style={{ width: '135px', textAlign: 'center' }}>Aksi</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2479,12 +2539,43 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
 
                                   {/* Aksi */}
                                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                                      {item.isManual && (
-                                        <button type="button" onClick={() => handleDeleteChecklistItem(item.id)} className="btn btn-secondary btn-sm" style={{ padding: '0.2rem 0.35rem', color: '#ef4444' }} title="Hapus item manual">
-                                          <Trash2 size={12} />
-                                        </button>
-                                      )}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenEditChecklistItem(item)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{
+                                          padding: '0.22rem 0.45rem',
+                                          fontSize: '0.7rem',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.2rem',
+                                          color: '#0284c7',
+                                          borderColor: 'rgba(2, 132, 199, 0.3)'
+                                        }}
+                                        title="Edit butir pemeriksaan ini"
+                                      >
+                                        <Edit2 size={11} />
+                                        <span>Edit</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeleteChecklistItemTarget(item)}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{
+                                          padding: '0.22rem 0.45rem',
+                                          fontSize: '0.7rem',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.2rem',
+                                          color: '#ef4444',
+                                          borderColor: 'rgba(239, 68, 68, 0.3)'
+                                        }}
+                                        title="Hapus butir pemeriksaan ini"
+                                      >
+                                        <Trash2 size={11} />
+                                        <span>Hapus</span>
+                                      </button>
                                     </div>
                                   </td>
                                 </tr>
@@ -3073,6 +3164,258 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
               >
                 <Trash2 size={13} />
                 <span>Ya, Hapus Sesi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Checklist Item Modal */}
+      {editingChecklistItem && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 16000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            background: 'var(--bg-surface-card)',
+            backgroundColor: 'var(--bg-surface-card)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            opacity: 1
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div style={{ padding: '0.45rem', borderRadius: '8px', background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7' }}>
+                  <Edit2 size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>
+                    Edit Butir Pemeriksaan Checklist
+                  </h3>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+                    Ubah nomor klausul, uraian pemeriksaan, kriteria audit, serta catatan hasil
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingChecklistItem(null)}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.35rem 0.5rem' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveEditChecklistItem} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 130px', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                    No. / Kode *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormCode}
+                    onChange={(e) => setEditFormCode(e.target.value)}
+                    className="input-control mono"
+                    style={{ fontWeight: 800, color: '#0284c7' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                    Items to be checked (Nama Butir) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormName}
+                    onChange={(e) => setEditFormName(e.target.value)}
+                    className="input-control"
+                    style={{ fontWeight: 700 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                    Ref. ISM Code
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormIsmCode}
+                    onChange={(e) => setEditFormIsmCode(e.target.value)}
+                    placeholder="cth: 10, 5.1"
+                    className="input-control mono"
+                    style={{ color: '#0284c7' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Kriteria Verifikasi / Detail Pertanyaan Pemeriksaan
+                </label>
+                <textarea
+                  rows={3}
+                  value={editFormCheckPoint}
+                  onChange={(e) => setEditFormCheckPoint(e.target.value)}
+                  placeholder="Detail dokumen, peralatan, sertifikat, atau prosedur yang diperiksa..."
+                  className="input-control"
+                  style={{ fontSize: '0.8rem', lineHeight: '1.4', resize: 'vertical' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Status Evaluasi
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {[
+                    { id: 'Complied', label: '✅ Yes (Sesuai)', bg: '#10b981' },
+                    { id: 'Minor NC', label: '⚠️ Minor NC', bg: '#f59e0b' },
+                    { id: 'Major NC', label: '🚨 Major NC', bg: '#dc2626' },
+                    { id: 'Observation', label: '👁️ Observasi', bg: '#6366f1' },
+                    { id: 'N/A', label: '⚪ N/A (Tidak Berlaku)', bg: '#64748b' },
+                    { id: '', label: '⭕ Belum Diisi', bg: 'var(--border-subtle)' }
+                  ].map(opt => {
+                    const isSelected = editFormResult === opt.id || (opt.id === 'Complied' && editFormResult === 'Yes');
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEditFormResult(opt.id)}
+                        style={{
+                          padding: '0.3rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: isSelected ? 800 : 500,
+                          cursor: 'pointer',
+                          border: isSelected ? `2px solid ${opt.bg}` : '1px solid var(--border-subtle)',
+                          background: isSelected ? opt.bg : 'var(--bg-surface-elevated)',
+                          color: isSelected ? '#ffffff' : 'var(--text-main)',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Remark / Catatan Temuan
+                </label>
+                <textarea
+                  rows={2}
+                  value={editFormNotes}
+                  onChange={(e) => setEditFormNotes(e.target.value)}
+                  placeholder="Catatan temuan atau catatan fisik onboard..."
+                  className="input-control"
+                  style={{ fontSize: '0.8rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingChecklistItem(null)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '0.45rem 1rem' }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '0.45rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                >
+                  <Save size={14} />
+                  <span>Simpan Perubahan</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Item Confirmation Modal */}
+      {deleteChecklistItemTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 16000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div className="glass-card" style={{
+            width: '100%',
+            maxWidth: '440px',
+            background: 'var(--bg-surface-card)',
+            backgroundColor: 'var(--bg-surface-card)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '14px',
+            padding: '1.5rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            opacity: 1
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ padding: '0.5rem', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' }}>
+                <Trash2 size={22} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                  Hapus Butir Checklist?
+                </h4>
+                <span className="mono" style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700 }}>
+                  {deleteChecklistItemTarget.code} - {deleteChecklistItemTarget.name}
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+              Butir pemeriksaan ini akan dihapus dari daftar checklist sesi audit saat ini. Apakah Anda yakin?
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', marginTop: '0.35rem' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteChecklistItemTarget(null)}
+                className="btn btn-secondary btn-sm"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteChecklistItem}
+                className="btn btn-sm"
+                style={{ background: '#ef4444', color: '#fff', fontWeight: 700 }}
+              >
+                Ya, Hapus Butir
               </button>
             </div>
           </div>

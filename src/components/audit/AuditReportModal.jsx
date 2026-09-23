@@ -175,7 +175,11 @@ export const AuditReportModal = ({
 
   // Vessel particulars if target is a ship
   const currentVessel = (vessels || []).find(v => v.id === activeSession.vesselId) ||
-    (vessels || []).find(v => v.name?.toLowerCase().includes('rp 2004')) ||
+    (vessels || []).find(v => v.id === activeFinding?.vesselId) ||
+    (vessels || []).find(v => {
+      const tgt = (activeFinding?.targetName || activeSession?.targetName || '').toLowerCase();
+      return tgt && (v.name?.toLowerCase().includes(tgt) || tgt.includes(v.name?.toLowerCase()));
+    }) ||
     (vessels && vessels[0]);
 
   // Handle print
@@ -555,7 +559,7 @@ export const AuditReportModal = ({
                         <td style={{ padding: '5px 7px', border: '1px solid #000000', fontWeight: 700 }}>Data Teknis Kapal / Unit</td>
                         <td style={{ padding: '5px 7px', border: '1px solid #000000' }}>
                           {activeSession.targetType === 'Vessel'
-                            ? `Reg: ${currentVessel?.regNo || currentVessel?.imo || '1672810'} | Call Sign: ${currentVessel?.callSign || 'YD 4180'} | GT: ${currentVessel?.gt || 174}`
+                            ? `Reg: ${currentVessel?.regNo || currentVessel?.imo || '-'} | Call Sign: ${currentVessel?.callSign || '-'} | GT: ${currentVessel?.gt || '-'}`
                             : 'Kantor Pusat Darat Pontianak'}
                         </td>
                       </tr>
@@ -750,7 +754,7 @@ export const AuditReportModal = ({
                           Area yang diaudit / <em>Area under audit</em>:
                         </div>
                         <div style={{ fontSize: '9pt', fontWeight: 800, marginTop: '2px', color: '#000000' }}>
-                          {activeFinding.targetName || currentVessel?.name || 'TB. RP 2004'}
+                          {activeFinding.targetName || currentVessel?.name || 'Armada Kapal'}
                         </div>
                       </td>
                       <td style={{ width: '50%', padding: '5px 8px', border: '1px solid #000000', verticalAlign: 'top' }}>

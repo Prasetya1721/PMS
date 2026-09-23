@@ -15,7 +15,7 @@ export const BkiShipboardChecklistReport = ({
   findings = []
 }) => {
   // Resolusi data kapal dan sesi
-  const vesselName = vessel?.name || session?.targetName || 'RP 2004';
+  const vesselName = vessel?.name || session?.targetName || 'Armada Kapal';
   const reportNo = session?.reportId || session?.auditNo || '0859-PK/ISM-SMC/2026';
   const auditDateStr = session?.auditDate ? formatIndoDate(session.auditDate) : 'August 18, 2026';
   const auditorName = session?.leadAuditor || session?.leadAuditorSign || 'MUHSON NURROCHMAT S';
@@ -286,7 +286,7 @@ export const BkiShipboardChecklistReport = ({
                 Nomor IMO<br /><em>IMO Number</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.imo || '1672810'}
+                {vessel?.imo || vessel?.regNo || '-'}
               </td>
             </tr>
             <tr>
@@ -294,13 +294,13 @@ export const BkiShipboardChecklistReport = ({
                 Tipe Kapal<br /><em>Type of Ship</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000' }}>
-                Other cargo ship (Towing oil barge)
+                {vessel?.type || session?.vesselType || 'Kapal Tunda (Tugboat)'}
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 600 }}>
                 Nomor/Huruf Pengenal<br /><em>Distinctive Number/Letters</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.callSign || 'YD 4180'}
+                {vessel?.callSign || '-'}
               </td>
             </tr>
             <tr>
@@ -314,7 +314,7 @@ export const BkiShipboardChecklistReport = ({
                 Tonase Kotor<br /><em>Gross Tonnage</em>
               </td>
               <td style={{ padding: '3px 5px', border: '1px solid #000000', fontWeight: 800 }}>
-                {vessel?.gt || '174'}
+                {vessel?.gt ? String(vessel.gt) : '-'}
               </td>
             </tr>
             <tr>

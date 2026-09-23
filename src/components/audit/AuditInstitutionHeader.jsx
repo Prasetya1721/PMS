@@ -254,7 +254,7 @@ export const AuditInstitutionHeader = ({ branding, session, vessel }) => {
 
         {/* Report ID running text */}
         <div style={{ textAlign: 'right', fontSize: '7pt', color: '#000000', marginBottom: '4px', fontWeight: 600 }}>
-          Report id: PT. PELAYARAN BAHARIMAS KALIMANTAN - {vessel?.name || session?.targetName || 'RP 2004'} – {session?.reportId || '0859-PK/ISM-SMC/2026'}
+          Report id: PT. PELAYARAN BAHARIMAS KALIMANTAN - {vessel?.name || session?.targetName || 'Armada Kapal'} – {session?.reportId || '0859-PK/ISM-SMC/2026'}
         </div>
 
         {/* BKI Header Box: Logo at left, Title table at right */}

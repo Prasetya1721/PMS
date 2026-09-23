@@ -58,7 +58,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     '2026-11-17'
   );
   const [submittedBy, setSubmittedBy] = useState(
-    evidence.submittedBy || currentUser?.name || finding?.assignedTo || 'CAPT. EKHSAN (Nakhoda TB. RP 2004)'
+    evidence.submittedBy || currentUser?.name || finding?.assignedTo || 'PIC / Nakhoda Kapal'
   );
 
   const [fileName, setFileName] = useState(evidence.fileName || '');
@@ -116,7 +116,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
       <text x="300" y="190" font-family="sans-serif" font-size="20" font-weight="bold" fill="#f8fafc" text-anchor="middle">BUKTI EVIDEN PERBAIKAN ISM CODE</text>
       <text x="300" y="220" font-family="sans-serif" font-size="14" fill="#38bdf8" text-anchor="middle">PT. PELAYARAN BAHARIMAS KALIMANTAN</text>
       <text x="300" y="250" font-family="monospace" font-size="13" fill="#cbd5e1" text-anchor="middle">Temuan: ${finding.findingNo} | Klausul: ${finding.clauseCode}</text>
-      <text x="300" y="280" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Lokasi: ${finding.targetName || 'Kapal TB. RP 2004'}</text>
+      <text x="300" y="280" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Lokasi: ${finding.targetName || 'Armada Kapal'}</text>
       <rect x="180" y="315" width="240" height="35" rx="6" fill="#047857"/>
       <text x="300" y="338" font-family="sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">VERIFIED AUDIT EVIDENCE</text>
     </svg>`;

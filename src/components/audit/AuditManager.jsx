@@ -51,9 +51,12 @@ export const AuditManager = () => {
     deleteAuditFinding,
     closeAuditFinding,
     vessels,
+    ownerVessels,
+    operatorVessels,
     selectedVesselId,
     setSelectedVesselId,
     shipDocuments,
+    allShipDocuments,
     requisitions,
     ISM_DOC_ELEMENTS,
     openNCCount,
@@ -237,7 +240,7 @@ export const AuditManager = () => {
       lastAudit: officeAudits[0] || null
     };
 
-    // 2. Ships Targets (28 vessels)
+    // 2. Ships Targets (Dynamic from Data Master vessels)
     const vesselTargets = (vessels || []).map(v => {
       const shipFindings = (allAuditFindings || []).filter(f =>
         f.vesselId === v.id || (f.targetName && f.targetName.toLowerCase().includes(v.name.toLowerCase()))
@@ -252,13 +255,15 @@ export const AuditManager = () => {
       const minorNC = shipFindings.filter(f => f.category === 'Minor NC' && f.status === 'NC Open').length;
       const shipTimeStats = calculateFleetTargetTimeStats(shipFindings);
 
+      const isOp = v.id?.startsWith('v-op-') || v.ownershipStatus === 'As Operator';
+
       return {
         id: v.id,
         type: 'vessel',
         name: v.name,
-        subtitle: v.type,
+        subtitle: v.type || 'Kapal Armada PBK',
         standard: 'SMC',
-        ownership: v.ownershipStatus || 'As Owner',
+        ownership: isOp ? 'As Operator' : 'As Owner',
         callSign: v.callSign || 'YDB-PBK',
         imo: v.imo || v.regNo || '-',
         gt: v.gt || 250,
@@ -407,14 +412,25 @@ export const AuditManager = () => {
     });
   }, [currentTarget, statusFilter, severityFilter, inVesselSearch]);
 
+  const ownerCount = useMemo(() => {
+    if (Array.isArray(ownerVessels)) return ownerVessels.length;
+    return (vessels || []).filter(v => !v.id?.startsWith('v-op-') && v.ownershipStatus !== 'As Operator').length;
+  }, [ownerVessels, vessels]);
+
+  const operatorCount = useMemo(() => {
+    if (Array.isArray(operatorVessels)) return operatorVessels.length;
+    return (vessels || []).filter(v => v.id?.startsWith('v-op-') || v.ownershipStatus === 'As Operator').length;
+  }, [operatorVessels, vessels]);
+
   // Relevant certificates for current target
   const currentTargetCertificates = useMemo(() => {
     if (!currentTarget) return [];
+    const docs = allShipDocuments || shipDocuments || [];
     if (currentTarget.id === 'office') {
-      return (shipDocuments || []).filter(d => d.type?.toLowerCase().includes('doc') || d.category === 'Statutory' || d.vesselId === 'all');
+      return docs.filter(d => d.type?.toLowerCase().includes('doc') || d.category === 'Statutory' || d.vesselId === 'all');
     }
-    return (shipDocuments || []).filter(d => d.vesselId === currentTarget.id);
-  }, [shipDocuments, currentTarget]);
+    return docs.filter(d => d.vesselId === currentTarget.id);
+  }, [allShipDocuments, shipDocuments, currentTarget]);
 
   // Relevant requisitions for current target
   const currentTargetRequisitions = useMemo(() => {
@@ -490,7 +506,7 @@ export const AuditManager = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                   <h2 style={{ fontSize: '1.55rem', fontWeight: 800 }}>Portal Audit ISM Code Per Armada Kapal</h2>
                   <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
-                    28 Kapal & Kantor Pusat PBK
+                    {vessels.length} Kapal & Kantor Pusat PBK
                   </span>
                 </div>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '780px', lineHeight: '1.5' }}>
@@ -536,10 +552,10 @@ export const AuditManager = () => {
                 <Ship size={18} color="#38bdf8" />
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#38bdf8' }}>
-                28 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal + 1 DOC</span>
+                {vessels.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal + 1 DOC</span>
               </div>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                17 As Owner • 11 As Operator PBK
+                {ownerCount} As Owner • {operatorCount} As Operator PBK
               </p>
             </div>
 
@@ -618,8 +634,8 @@ export const AuditManager = () => {
                 { id: 'HAS_OPEN_NC', label: `🚨 Ada NC Open (${allFleetTargets.filter(t => t.openNC > 0).length})`, icon: AlertTriangle, highlight: true },
                 { id: 'HAS_SUBMITTED', label: `⏳ Menunggu Eviden (${allFleetTargets.filter(t => t.submittedNC > 0).length})`, icon: Clock },
                 { id: 'CLEAN', label: `✅ Bebas NC Open (${allFleetTargets.filter(t => t.openNC === 0).length})`, icon: CheckCircle2 },
-                { id: 'OWNER', label: `⚓ As Owner (17)`, icon: Ship },
-                { id: 'OPERATOR', label: `⚙️ As Operator (11)`, icon: Ship },
+                { id: 'OWNER', label: `⚓ As Owner (${ownerCount})`, icon: Ship },
+                { id: 'OPERATOR', label: `⚙️ As Operator (${operatorCount})`, icon: Ship },
                 { id: 'OFFICE', label: `🏢 Kantor Pusat DOC`, icon: Building2 }
               ].map(f => {
                 const isActive = gatewayFilter === f.id;
