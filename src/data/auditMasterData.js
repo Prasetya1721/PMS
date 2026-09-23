@@ -1,4 +1,4 @@
-// Master Data Standar Audit ISM Code (DOC & SMC)
+﻿// Master Data Standar Audit ISM Code (DOC & SMC)
 // PT. Pelayaran Baharimas Kalimantan
 // Standard: IMO Resolution A.741(18) as amended (ISM Code)
 
@@ -129,76 +129,480 @@ export const ISM_DOC_ELEMENTS = [
   }
 ];
 
-export const ISM_SMC_ELEMENTS = [
+// Daftar Organisasi / Lembaga Audit Eksternal yang Ditunjuk Perusahaan
+export const EXTERNAL_AUDIT_ORGANIZATIONS = [
   {
-    code: 'SMC-CERT',
-    name: 'Kelaikan & Sertifikasi Statutori Kapal',
-    description: 'Validitas Pas Besar, Surat Ukur, Sertifikat BKI (Lambung & Mesin), Safety Construction, Radio, dan Keselamatan.',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah seluruh sertifikat statutori kapal dalam masa berlaku aktif?',
-      'Apakah endorsement survei tahunan BKI telah ditandatangani surveyor?'
-    ]
+    id: 'bki',
+    name: 'Biro Klasifikasi Indonesia (BKI)',
+    shortName: 'BKI',
+    code: 'BKI',
+    badgeColor: '#0284c7',
+    checklistDoc: '00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf',
+    docNumber: 'F23.14.06-2024 Rev 05',
+    docTitle: 'Checklist untuk Sistem Manajemen Keselamatan Kapal (SMS Shipboard Checklist)',
+    standard: 'SMC',
+    hasOfficialTemplate: true
   },
-  {
-    code: 'SMC-PMS',
-    name: 'Penerapan PMS & Logbook Mesin di Kapal',
-    description: 'Pelaksanaan checklist perawatan terencana mesin utama, genset, sistem towing, kompresor, dan pompa bilga.',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah logbook permesinan diisi setiap jam jaga dengan data suhu dan tekanan akurat?',
-      'Apakah work order PMS terjadwal dikerjakan tepat waktu sesuai jam jalan mesin?'
-    ]
-  },
-  {
-    code: 'SMC-REQ',
-    name: 'Permintaan Barang & Suku Cadang Kritis Gudang',
-    description: 'Pengajuan surat permintaan barang (SPB) ke gudang untuk perbaikan mesin, safety gear, dan material operasional.',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah suku cadang yang rusak segera dibuatkan permintaan barang ke gudang darat?',
-      'Apakah barang yang diterima dari gudang telah diverifikasi fisik dan kualitasnya?'
-    ]
-  },
-  {
-    code: 'SMC-DRILL',
-    name: 'Latihan Darurat & Perlengkapan Keselamatan Kapal',
-    description: 'Kesiapan fisik Inflatable Life Raft (ILR), hydrostatic release unit (HRU), alat pemadam api (APAR), EEBD, dan pyrotechnics.',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah sertifikat servis ILR dan HRU masih berlaku?',
-      'Apakah botol pemadam kebakaran (APAR & CO2 System) dalam tekanan normal?',
-      'Apakah latihan abandone ship dan fire drill dicatat dalam logbook kapal?'
-    ]
-  },
-  {
-    code: 'SMC-NAV',
-    name: 'Navigasi, Radio & Komunikasi Kapal',
-    description: 'Kelaikan Radar, GPS, AIS, Echo Sounder, Radio VHF/MF, EPIRB, SART, dan peta laut terkoreksi (Notices to Mariners).',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah alat navigasi elektronik berfungsi normal tanpa alarm kegagalan?',
-      'Apakah baterai EPIRB dan SART masih dalam masa aktif?'
-    ]
-  },
-  {
-    code: 'SMC-CREW',
-    name: 'Kondisi Kerja, Akomodasi & Kesehatan Awak Kapal',
-    description: 'Kelaikan kotak P3K (Medicine Chest), sertifikat sanitasi kapal (SSCEC), kebersihan dapur/makanan, dan jam istirahat kru (MLC 2006).',
-    applicableTo: 'SMC',
-    checkPoints: [
-      'Apakah Buku Kesehatan Kapal dan SSCEC terbitan Balai Karantina Kesehatan masih berlaku?',
-      'Apakah jam kerja dan istirahat awak kapal memenuhi konvensi maritim?'
-    ]
-  }
+  { id: 'hubla', name: 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)', shortName: 'Hubla / Kemenhub', code: 'HUBLA', badgeColor: '#059669' },
+  { id: 'ksop', name: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)', shortName: 'KSOP Pontianak', code: 'KSOP', badgeColor: '#2563eb' },
+  { id: 'lr', name: "Lloyd's Register (LR)", shortName: 'Lloyds', code: 'LR', badgeColor: '#dc2626' },
+  { id: 'bv', name: 'Bureau Veritas (BV)', shortName: 'BV', code: 'BV', badgeColor: '#d97706' },
+  { id: 'classnk', name: 'Nippon Kaiji Kyokai (ClassNK)', shortName: 'ClassNK', code: 'NK', badgeColor: '#4f46e5' },
+  { id: 'rina', name: 'RINA Services Marine', shortName: 'RINA', code: 'RINA', badgeColor: '#7c3aed' },
+  { id: 'custom', name: 'Lembaga Audit Eksternal Lainnya (Input Manual)', shortName: 'Lembaga Lain', code: 'EXT', badgeColor: '#64748b' }
 ];
+
+/**
+ * Checklist Lengkap Sistem Manajemen Keselamatan Kapal (SMS Shipboard Checklist)
+ * Dokumen Acuan Resmi BKI:
+ *   - File: 00954PK26_F23_14_06-2024 Rev05 SMS SHIPBOARD CHECKLIST.pdf
+ *   - No. Formulir: F23.14.06-2024 Rev 05 (SOLAS IX / ISM Code)
+ *   - Penerbit: Biro Klasifikasi Indonesia (BKI)
+ *   - Standar: Safety Management Certificate (SMC)
+ *
+ * Diikutsertakan seluruh klausul dari Halaman 1 s/d 10 termasuk Klausul Khusus
+ * Tipe Kapal A s/d E (berstatus isStrikethrough: false).
+ */
+export const BKI_SMC_CHECKLIST_TEMPLATE = [
+  // 1. SHIPBOARD TOUR & GENERAL REQUIREMENT
+  // 1.1 Bridge
+  { id: 'chk-1.1.1', no: '1.1.1', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Are there any Navigation equipment or radio equipment left inoperative/ malfunctioned?', ismCode: '10', defaultResult: 'No', remark: 'If Yes, go to 10.11 up to 10.14', isStrikethrough: false },
+  { id: 'chk-1.1.2', no: '1.1.2', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Are updated versions of nautical publications and IAMSAR Manual (Volume III) available?', ismCode: '11.2.1', defaultResult: 'No', remark: 'SOLAS V/21 & 27', isStrikethrough: false },
+  { id: 'chk-1.1.3', no: '1.1.3', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Are maritime safety information from NAVTEX or EGC checked regularly?', ismCode: '7', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.1.4', no: '1.1.4', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Are nautical charts and Notice to Mariners controlled properly?', ismCode: '7', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.1.5', no: '1.1.5', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Is ENCs updated in accordance with ECDIS handling procedure in SMS properly?', ismCode: '7', defaultResult: 'N/A', remark: '', isStrikethrough: false },
+  { id: 'chk-1.1.6', no: '1.1.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.1 Bridge', item: 'Are standing order or night order issued regularly by the master?', ismCode: '7', defaultResult: 'No', remark: 'See NC 1/4', isStrikethrough: false },
+
+  // 1.2 Accommodation Space
+  { id: 'chk-1.2.1', no: '1.2.1', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Are there any crew accommodation facilities left inoperative/ malfunctioned? Common toilets, Shower & toilet in cabins etc.', ismCode: '10', defaultResult: 'No', remark: 'If Yes, go to 10.11 up to 10.14', isStrikethrough: false },
+  { id: 'chk-1.2.2', no: '1.2.2', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Are posted Muster lists updated? (Engine Room, Accommodation Room, Bridge)', ismCode: '8.2', defaultResult: 'No', remark: 'SOLAS III/37', isStrikethrough: false },
+  { id: 'chk-1.2.3', no: '1.2.3', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Is SOLAS training manual controlled properly? (Mess Room, Recreation Room)', ismCode: '8.2', defaultResult: 'No', remark: 'SOLAS III/36', isStrikethrough: false },
+  { id: 'chk-1.2.4', no: '1.2.4', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: "Are ship's drawings and instruction books controlled properly?", ismCode: '11.2.1', defaultResult: 'Yes', remark: 'SOLAS II-1/3-7', isStrikethrough: false },
+  { id: 'chk-1.2.5', no: '1.2.5', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Is posted placard for garbage disposal written in language understood by crew?', ismCode: '6.6', defaultResult: 'Yes', remark: 'MARPOL V/9', isStrikethrough: false },
+  { id: 'chk-1.2.6', no: '1.2.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Are there distinctively marked garbage receptacles to receive garbage for recycling?', ismCode: '6.6', defaultResult: 'Yes', remark: 'MARPOL V, MEPC.201(62)', isStrikethrough: false },
+  { id: 'chk-1.2.7', no: '1.2.7', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Is watch schedule for watchkeeper posted?', ismCode: '7', defaultResult: 'Yes', remark: 'STCW A-VIII/1.5', isStrikethrough: false },
+  { id: 'chk-1.2.8', no: '1.2.8', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Is hospital accommodation ready for emergency use?', ismCode: '1.2', defaultResult: 'N/A', remark: '', isStrikethrough: false },
+  { id: 'chk-1.2.9', no: '1.2.9', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.2 Accommodation Space', item: 'Are medicaments properly controlled?', ismCode: '1.2', defaultResult: 'No', remark: 'See NC 2/4', isStrikethrough: false },
+
+  // 1.3 On Deck & Engine Room
+  { id: 'chk-1.3.1', no: '1.3.1', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are closing appliances, L.S.A. and F.F.A maintained properly? (Lifeboat, Rescue boat, Fire damper)', ismCode: '10', defaultResult: 'Yes', remark: 'Fire damper verified', isStrikethrough: false },
+  { id: 'chk-1.3.2', no: '1.3.2', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are coating / painting of hull parts and equipment maintained properly?', ismCode: '10', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.3.3', no: '1.3.3', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are there any damaged or corroded / rusted equipment or hull parts?', ismCode: '10', defaultResult: 'No', remark: 'Minor corrosion treated', isStrikethrough: false },
+  { id: 'chk-1.3.4', no: '1.3.4', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are there any temporarily repaired parts?', ismCode: '10', defaultResult: 'No', remark: 'Permanent repairs applied', isStrikethrough: false },
+  { id: 'chk-1.3.6', no: '1.3.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are there any machinery and equipment left with their function inoperative? (Fire pump, Emergency fire pump, OWS system)', ismCode: '10.2', defaultResult: 'No', remark: 'Fire pump, emergency fire pump & OWS checked operative', isStrikethrough: false },
+  { id: 'chk-1.3.7', no: '1.3.7', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Are escape route and escape trunk from engine room secured?', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS II-2/13', isStrikethrough: false },
+  { id: 'chk-1.3.8', no: '1.3.8', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.3 On Deck & Machinery', item: 'Is operating instruction of steering changeover posted?', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS V/26 3.1', isStrikethrough: false },
+
+  // 1.4 Interview with officers and/or ratings
+  { id: 'chk-1.4.1', no: '1.4.1', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Interview with Ratings (Deck: Juru Mudi, Engine: Juru Minyak, Catering: Koki) regarding joined date and familiarization', ismCode: '6.3', defaultResult: 'Yes', remark: 'All ratings completed familiarization', isStrikethrough: false },
+  { id: 'chk-1.4.5', no: '1.4.5', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'When did he last participate in an abandon ship drill? (Date: 24/06/2026)', ismCode: '8.2', defaultResult: 'Yes', remark: 'Verified 24/06/2026', isStrikethrough: false },
+  { id: 'chk-1.4.6', no: '1.4.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Does he know his assigned duties in emergency?', ismCode: '8.2', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.4.7', no: '1.4.7', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Does he know how to donning and use fireman outfit and breathing apparatus (EEBD)?', ismCode: '8.2', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.4.9', no: '1.4.9', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Have there been any accidents or hazardous occurrences (near-miss) on board?', ismCode: '9.2', defaultResult: 'No', remark: 'Zero accident recorded', isStrikethrough: false },
+  { id: 'chk-1.4.10', no: '1.4.10', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Did he receive a copy of the records of daily rest hours endorsed by Master?', ismCode: '7', defaultResult: 'Yes', remark: 'STCW A-VIII.7', isStrikethrough: false },
+  { id: 'chk-1.4.8', no: '1.4.8', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.4 Crew Interview', item: 'Does he know location and operation of life-saving appliances (lifeboat, liferaft, lifebuoy) and their launching arrangement?', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS III/19 â€” dipulihkan dari bagian A - E formulir BKI', isStrikethrough: false },
+
+  // 1.6 Shipboard Tour â€” Catatan Pembukaan Auditor (Bagian A s/d E pada Formulir BKI F23.14.06-2024 Rev 05)
+  // Bagian A s/d E adalah "Additional Check Item by Ship Types" yang dicoret pada contoh PDF (catatan pembukaan auditor).
+  // Sesuai permintaan, item yang dicoret TETAP DIMASUKKAN (isStrikethrough: false) agar dapat dipakai pada kapal
+  // dengan tipe yang sesuai, dan ditandai "N/A" pada tipe kapal yang tidak relevan.
+  { id: 'chk-1.6.1', no: '1.6.1', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are there any crew accommodation facilities left inoperative/ malfunctioned (common toilets, shower & toilet in cabins)?', ismCode: '', defaultResult: 'Yes', remark: 'Bagian A - E formulir BKI (catatan pembukaan auditor)', isStrikethrough: false },
+  { id: 'chk-1.6.2', no: '1.6.2', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are posted Muster lists updated? (Engine Room, Accommodation Room, Bridge)', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS III/37 â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.3', no: '1.6.3', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Is SOLAS training manual controlled properly? (Mess Room, Recreation Room)', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS III/36 â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.4', no: '1.6.4', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Is hospital accommodation ready for emergency use?', ismCode: '1.2', defaultResult: 'Yes', remark: 'Dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.5', no: '1.6.5', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are closing appliances, L.S.A. and F.F.A maintained properly? (Lifeboat, Rescue boat, Fire damper)', ismCode: '10', defaultResult: 'Yes', remark: 'SOLAS â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.6', no: '1.6.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are there any machinery and equipment left with their function inoperative? (Steering gear, OWS, Sewage treatment plant, Generators, Fire pumps)', ismCode: '10.2', defaultResult: 'Yes', remark: 'Dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.7', no: '1.6.7', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Is operating instruction of steering changeover posted?', ismCode: '8.2', defaultResult: 'Yes', remark: 'SOLAS V/26 3.1 â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.8', no: '1.6.8', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Is the ship manned in compliance with the Safe Manning Certificate and are officers/ratings certificates valid?', ismCode: '6.2.2', defaultResult: 'Yes', remark: 'SOLAS V/14 â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.9', no: '1.6.9', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are necessary entries made to Oil Record Book, Garbage Record Book and Cargo Record Book?', ismCode: '7', defaultResult: 'Yes', remark: 'MARPOL â€” dicoret pada contoh PDF', isStrikethrough: false },
+  { id: 'chk-1.6.10', no: '1.6.10', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.6 Shipboard Tour (Non-applicable â€” A s/d E Tipe Kapal)', item: 'Are Cargo Securing Manual / Cargo Gear Register and cargo hold bilge system records maintained and valid?', ismCode: '10', defaultResult: 'Yes', remark: 'Dicoret pada contoh PDF', isStrikethrough: false },
+
+
+  // 1.5 Interview with the Master
+  { id: 'chk-1.5.2', no: '1.5.2', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Is validity of statutory certificates informed to the company as per the procedures?', ismCode: '10.1', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.5.3', no: '1.5.3', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Are valid Classification Certificate and records available on board the ship?', ismCode: '1.2.3.1', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.5.5', no: '1.5.5', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Does every seafarer hold a valid medical certificate?', ismCode: '1.2.3.1', defaultResult: 'Yes', remark: 'STCW I-9 3', isStrikethrough: false },
+  { id: 'chk-1.5.6', no: '1.5.6', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Number and Nationality of Master and Officers (6) & Ratings (4) - Indonesia', ismCode: '6.2.1', defaultResult: 'Yes', remark: 'Total 10 Indonesian crew', isStrikethrough: false },
+  { id: 'chk-1.5.7', no: '1.5.7', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Is the ship manned in compliance with the Safe Manning Certificate?', ismCode: '6.2.2', defaultResult: 'Yes', remark: 'SOLAS V/14 compliant', isStrikethrough: false },
+  { id: 'chk-1.5.15', no: '1.5.15', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Are necessary items entered as per SOLAS and SMS logbook requirements?', ismCode: '8.2', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-1.5.17', no: '1.5.17', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Are necessary entries made to Oil Record Book and Garbage Record Book?', ismCode: '7', defaultResult: 'Yes', remark: 'MEPC.201(62)', isStrikethrough: false },
+  { id: 'chk-1.5.21', no: '1.5.21', section: '1. SHIPBOARD TOUR & GENERAL REQUIREMENT', subsection: '1.5 Master Interview', item: 'Flag state requirements: Cyber security (SE 35/2020 SMK 7.28.3) & Health (SE 14/2020 SMK 7.27.3)', ismCode: '1.2.3.1', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+
+  // 2. SAFETY AND ENVIRONMENTAL PROTECTION POLICY
+  { id: 'chk-2.1', no: '2.1', section: '2. SAFETY AND ENVIRONMENTAL PROTECTION POLICY', subsection: '2. Policy', item: 'Is Safety and Environmental Protection Policy available, known and implemented on board?', ismCode: '2', defaultResult: 'Yes', remark: 'Signed by Company Director', isStrikethrough: false },
+
+  // 3. COMPANY RESPONSIBILITIES & AUTHORITIES
+  { id: 'chk-3.1', no: '3.1', section: '3. COMPANY RESPONSIBILITIES & AUTHORITIES', subsection: '3. Responsibilities', item: 'Is Company indicated on DOC identical with entity reported and responsibilities defined?', ismCode: '3', defaultResult: 'Yes', remark: 'PT. Pelayaran Baharimas Kalimantan', isStrikethrough: false },
+
+  // 4. DESIGNATED PERSON(S) ASHORE (DPA)
+  { id: 'chk-4.1', no: '4.1', section: '4. DESIGNATED PERSON(S) ASHORE', subsection: '4. DPA', item: 'Are monitoring activities by DPA on safety and pollution aspect sufficient and role known by Master?', ismCode: '4', defaultResult: 'Yes', remark: 'DPA: CAPT. EKHSAN', isStrikethrough: false },
+
+  // 5. MASTERâ€™S RESPONSIBILITIES AND AUTHORITY
+  { id: 'chk-5.1', no: '5.1', section: "5. MASTER'S RESPONSIBILITIES AND AUTHORITY", subsection: '5. Responsibilities', item: 'Is the Master familiar with responsibilities and overriding authority required by ISM Code Section 5?', ismCode: '5.2', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+  { id: 'chk-5.6', no: '5.6', section: "5. MASTER'S RESPONSIBILITIES AND AUTHORITY", subsection: '5. SMS Review', item: 'Has the Master reviewed the SMS and reported its deficiencies to the company?', ismCode: '5.1.5', defaultResult: 'No', remark: 'As sufficient period has not been passed yet as per company\'s procedure, result was subject to "NO". NC 1/4', isStrikethrough: false },
+  { id: 'chk-5.8', no: '5.8', section: "5. MASTER'S RESPONSIBILITIES AND AUTHORITY", subsection: '5. Risk Assessment', item: 'Has the Master carried out Risk Assessment according to SMS procedure established by Company?', ismCode: '1.2.2.2', defaultResult: 'Yes', remark: 'Verified for deck and engine tasks', isStrikethrough: false },
+
+  // 6. RESOURCES AND PERSONNEL
+  { id: 'chk-6.1', no: '6.1', section: '6. RESOURCES AND PERSONNEL', subsection: '6. Crewing', item: 'Is the working language specified by company recorded in ship\'s log-book? (Bahasa Indonesia)', ismCode: '6.6', defaultResult: 'Yes', remark: 'Working Language: Indonesia', isStrikethrough: false },
+
+  // 7. SHIPBOARD OPERATIONS
+  { id: 'chk-7.1', no: '7.1', section: '7. SHIPBOARD OPERATIONS', subsection: '7. Operations', item: 'Have shipboard operations been carried out as per SMS? Cargo Type: Towing oil barge', ismCode: '7', defaultResult: 'Yes', remark: 'Towing oil barge operation', isStrikethrough: false },
+  { id: 'chk-7.10', no: '7.10', section: '7. SHIPBOARD OPERATIONS', subsection: '7. Watchkeeping', item: 'Have Watchkeeping operations been performed as per procedures? (Rest hours, alcohol limit <0.05% BAC, voyage planning)', ismCode: '7', defaultResult: 'Yes', remark: 'STCW A-VIII', isStrikethrough: false },
+
+  // 8. EMERGENCY PREPAREDNESS
+  { id: 'chk-8.1', no: '8.1', section: '8. EMERGENCY PREPAREDNESS', subsection: '8. Drills', item: 'Has the ship been ready for Emergency Situations identified and drills conducted?', ismCode: '8.2', defaultResult: 'Yes', remark: 'Emergency drills observed during audit (Fire & MOB)', isStrikethrough: false },
+
+  // 9. REPORTS AND ANALYSIS OF NON-CONFORMITIES
+  { id: 'chk-9.1', no: '9.1', section: '9. REPORTS AND ANALYSIS OF NON-CONFORMITIES', subsection: '9. Deficiencies', item: 'Have all deficiencies and NCs been dealt with in accordance with Company SMS?', ismCode: '9.1', defaultResult: 'Yes', remark: '', isStrikethrough: false },
+
+  // 10. MAINTENANCE OF THE SHIP AND EQUIPMENT
+  { id: 'chk-10.1', no: '10.1', section: '10. MAINTENANCE OF THE SHIP AND EQUIPMENT', subsection: '10. Maintenance', item: 'Is the Ship maintained sufficiently in accordance with relevant rules and Company PMS requirements?', ismCode: '10.2.1', defaultResult: 'Yes', remark: 'PMS routine active', isStrikethrough: false },
+
+  // 11. DOCUMENTATION
+  { id: 'chk-11.1', no: '11.1', section: '11. DOCUMENTATION', subsection: '11. Documentation', item: 'Are all documents and SMS manuals controlled properly and updated?', ismCode: '11.1', defaultResult: 'Yes', remark: 'SMS Manual Rev 05', isStrikethrough: false },
+
+  // 12. COMPANY VERIFICATION, REVIEW AND EVALUATION
+  { id: 'chk-12.1', no: '12.1', section: '12. COMPANY VERIFICATION, REVIEW AND EVALUATION', subsection: '12. Internal Audit', item: 'Are Internal Audits carried out at interval not exceeding 12 months? (Previous: 05 Aug 2025, Latest: 06 Jul 2026)', ismCode: '12.1', defaultResult: 'Yes', remark: 'Interval compliant', isStrikethrough: false },
+
+  // ADDITIONAL CHECK ITEM BY SHIP TYPES (Yang Dicoret di Formulir Tetap Diikutkan Sesuai Permintaan)
+  // A. OIL TANKER
+  { id: 'chk-add-A.1', no: 'A.1', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'A. OIL TANKER', item: 'Has the instrument for measuring flammable gas concentration been properly calibrated?', ismCode: 'SOLAS II-2/4-5.7', defaultResult: 'N/A', remark: 'Bukan Kapal Tanker Minyak (Tugboat Towing)', isStrikethrough: false },
+  { id: 'chk-add-A.2', no: 'A.2', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'A. OIL TANKER', item: 'Are the records of discharging of slop, valve closing operations in Oil Record Book Part II?', ismCode: 'MARPOL I/31', defaultResult: 'N/A', remark: 'Dicoret (Non-applicable for Tugboat)', isStrikethrough: false },
+  { id: 'chk-add-A.3', no: 'A.3', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'A. OIL TANKER', item: 'Are there records of COW operations in Oil Record Book Part II?', ismCode: 'MARPOL I/35', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+
+  // B. GAS CARRIER
+  { id: 'chk-add-B.1', no: 'B.1', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'B. GAS CARRIER', item: 'Have portable and fixed gas concentration measurement instruments been properly calibrated?', ismCode: 'IGC Code 13.6.6', defaultResult: 'N/A', remark: 'Dicoret (Bukan Kapal Gas Carrier)', isStrikethrough: false },
+  { id: 'chk-add-B.2', no: 'B.2', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'B. GAS CARRIER', item: 'Is crew in charge of cargo operation adequately trained for safe handling including emergency procedures?', ismCode: 'IGC Code 18.3', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+  { id: 'chk-add-B.3', no: 'B.3', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'B. GAS CARRIER', item: 'Does crew understand Company procedure for entering into cargo holds, tanks and enclosed spaces?', ismCode: 'IGC Code 18.4', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+  { id: 'chk-add-B.4', no: 'B.4', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'B. GAS CARRIER', item: 'Has ship been loaded with cargo gas listed in Annex of Gas Fitness Certificate?', ismCode: 'IGC Code 18.2', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+
+  // C. CHEMICAL TANKER
+  { id: 'chk-add-C.1', no: 'C.1', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'C. CHEMICAL TANKER', item: 'Is crew in charge of cargo operation adequately trained for safe chemical handling?', ismCode: 'IBC Code 16.3', defaultResult: 'N/A', remark: 'Dicoret (Bukan Chemical Tanker)', isStrikethrough: false },
+  { id: 'chk-add-C.2', no: 'C.2', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'C. CHEMICAL TANKER', item: 'Are MARPOL Annex II cargo handling operations properly recorded in Cargo Record Book?', ismCode: 'MARPOL II/14', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+
+  // D. BULK CARRIER
+  { id: 'chk-add-D.1', no: 'D.1', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'D. BULK CARRIER', item: 'Did crew training and drills carried out according to evacuation procedure for cargo hold flooding?', ismCode: 'SOLAS XII/9', defaultResult: 'N/A', remark: 'Dicoret (Bukan Bulk Carrier)', isStrikethrough: false },
+  { id: 'chk-add-D.2', no: 'D.2', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'D. BULK CARRIER', item: 'Are "Hatch Cover Maintenance Plans" in accordance with MSC 169 (79) incorporated into SMS?', ismCode: 'SOLAS XII/7.2', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false },
+
+  // E. SELF-UNLOADING BULK CARRIERS
+  { id: 'chk-add-E.1', no: 'E.1', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'E. SELF-UNLOADING BULK CARRIERS', item: 'Have you procedures for fire safety risk assessment in SMS? (IMSBC Code 3.1.2)', ismCode: 'IMSBC 3.1.2', defaultResult: 'N/A', remark: 'Dicoret (Non-conveyor tugboat)', isStrikethrough: false },
+  { id: 'chk-add-E.2', no: 'E.2', section: 'ADDITIONAL CHECK ITEM BY SHIP TYPES', subsection: 'E. SELF-UNLOADING BULK CARRIERS', item: 'Who has responsibility for implementation of fire safety risk assessment?', ismCode: 'IMSBC 3.1.2', defaultResult: 'N/A', remark: 'Dicoret', isStrikethrough: false }
+];
+
+// Alias ekspor untuk kompatibilitas master data SMC
+export const SMS_SHIPBOARD_CHECKLIST_TEMPLATE = BKI_SMC_CHECKLIST_TEMPLATE;
+export const ISM_SMC_ELEMENTS = BKI_SMC_CHECKLIST_TEMPLATE;
+
+// =============================================================================
+// REGISTRY CHECKLIST PER LEMBAGA AUDIT EKSTERNAL
+// =============================================================================
+// Checklist bersifat SPESIFIK PER LEMBAGA karena format, penomoran klausul, dan
+// cakupan pemeriksaan setiap lembaga berbeda-beda.
+//
+// - BKI            : TERISI lengkap dari dokumen F23.14.06-2024 Rev 05
+//                    (00954PK26 Rev05 SMS SHIPBOARD CHECKLIST), termasuk
+//                    item yang dicoret (isStrikethrough: false).
+// - Hubla / KSOP / LR / BV / ClassNK / RINA / Lainnya : DIKOSONGKAN (array kosong)
+//                    Silakan isi checklist tersendiri melalui menu
+//                    "Tambah Item Manual" pada modul Audit sesuai lembaga.
+//
+// Skema tiap butir checklist:
+//   { id, no, section, subsection, item, ismCode, defaultResult,
+//     remark, isStrikethrough }
+//
+// Catatan: metadata dokumen ini hanya dipakai internal modul (lihat
+// getOrganizationChecklistInfo), sehingga tidak diekspor ke luar.
+const CHECKLIST_SOURCE_DOCUMENT = {
+  bki: {
+    docNumber: 'F23.14.06-2024 Rev 05',
+    docTitle: 'Checklist for Shipboard Safety Management System',
+    revision: 'Rev 05 / Document Revision 00',
+    reference: '00954PK26 â€” SOLAS 1974 Chapter IX dan ISM Code',
+    issuedBy: 'Biro Klasifikasi Indonesia (BKI)'
+  }
+};
+
+const ORG_CHECKLIST_NOTE = 'Format checklist lembaga ini berbeda dari BKI. Silakan tambahkan butir pemeriksaan melalui menu "Tambah Item Manual" pada modul Audit.';
+
+// Registry checklist per lembaga audit eksternal (internal module scope).
+//
+// BKI memakai template resmi F23.14.06-2024 Rev 05, lembaga lain dikosongkan.
+const AUDIT_CHECKLIST_REGISTRY = {
+  bki: {
+    organizationId: 'bki',
+    organizationName: 'Biro Klasifikasi Indonesia (BKI)',
+    checked: true,
+    items: [] // diisi dari SMS_SHIPBOARD_CHECKLIST_TEMPLATE di bawah
+  },
+  hubla: {
+    organizationId: 'hubla',
+    organizationName: 'Direktorat Jenderal Perhubungan Laut (Ditjen Hubla)',
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  ksop: {
+    organizationId: 'ksop',
+    organizationName: 'Kantor Kesyahbandaran & Otoritas Pelabuhan (KSOP)',
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  lr: {
+    organizationId: 'lr',
+    organizationName: "Lloyd's Register (LR)",
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  bv: {
+    organizationId: 'bv',
+    organizationName: 'Bureau Veritas (BV)',
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  classnk: {
+    organizationId: 'classnk',
+    organizationName: 'Nippon Kaiji Kyokai (ClassNK)',
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  rina: {
+    organizationId: 'rina',
+    organizationName: 'RINA Services Marine',
+    checked: false,
+    note: ORG_CHECKLIST_NOTE,
+    items: []
+  },
+  custom: {
+    organizationId: 'custom',
+    organizationName: 'Lembaga Audit Eksternal Lainnya',
+    checked: false,
+    note: 'Lembaga belum terdaftar pada template. Silakan susun checklist manual sesuai regulasi lembaga terkait.',
+    items: []
+  }
+};
+
+// Isi registry BKI dengan template checklist resmi F23.14.06-2024 Rev 05
+AUDIT_CHECKLIST_REGISTRY.bki.items = SMS_SHIPBOARD_CHECKLIST_TEMPLATE;
+
+/**
+ * Ambil daftar checklist sesuai lembaga audit eksternal.
+ *
+ * Lembaga yang belum disiapkan (checked: false) mengembalikan array KOSONG
+ * sehingga pengguna dapat menyusun butir pemeriksaan sendiri karena isi
+ * checklist antar lembaga berbeda-beda.
+ *
+ * @param {string} organizationId - ID lembaga (mis. 'bki', 'hubla', 'custom')
+ * @returns {Array} daftar butir checklist milik lembaga tersebut
+ */
+const getChecklistForOrganization = (organizationId) => {
+  const normalized = String(organizationId || '').toLowerCase();
+  const entry = AUDIT_CHECKLIST_REGISTRY[normalized];
+  return entry && Array.isArray(entry.items) ? entry.items : [];
+};
+
+/**
+ * Ubah nama / kode lembaga audit eksternal menjadi organizationId registry.
+ *
+ * Nilai `externalOrganization` pada sesi audit dapat berupa objek (rekaman
+ * masterData) maupun string nama/kode, sehingga perlu dinormalisasi agar dapat
+ * dipetakan ke AUDIT_CHECKLIST_REGISTRY.
+ *
+ * @param {string|object} organization - nama, kode, shortName, atau objek lembaga
+ * @param {string} [fallback='custom'] - ID cadangan bila lembaga tidak dikenali
+ * @returns {string} organizationId registry (mis. 'bki', 'hubla', 'custom')
+ */
+const resolveOrganizationId = (organization, fallback = 'custom') => {
+  if (organization && typeof organization === 'object') {
+    // Rekaman lembaga dapat datang dalam beberapa bentuk: master data
+    // (id/code), konfigurasi checklist (organizationId), atau ringkasan sesi
+    // (organizationName/shortName). Ambil kandidat pertama yang terisi lalu
+    // tetap lewatkan pencocokan alias di bawah agar konsisten.
+    const candidate =
+      organization.id ||
+      organization.code ||
+      organization.organizationId ||
+      organization.organizationCode ||
+      organization.shortName ||
+      organization.name ||
+      organization.organizationName ||
+      organization.label;
+    if (!candidate) return String(fallback).toLowerCase();
+    return resolveOrganizationId(candidate, fallback);
+  }
+
+  const raw = String(organization ?? '').trim();
+  if (!raw) return String(fallback).toLowerCase();
+  const lowered = raw.toLowerCase();
+
+  // Cocokkan langsung terhadap id / code / shortName master lembaga
+  const matched = EXTERNAL_AUDIT_ORGANIZATIONS.find(org =>
+    org.id.toLowerCase() === lowered ||
+    org.code.toLowerCase() === lowered
+  );
+  if (matched) return matched.id;
+
+  // Lembaga internal perusahaan (DPA/QHSE) & audit internal tidak memakai lembaga eksternal
+  if (/internal|dpa|qhse|pelayaran baharimas/i.test(raw)) return 'bki';
+
+  // Cocokkan nama resmi di dalam string panjang (mis. "BKI Cabang Pontianak")
+  const aliasMap = [
+    { id: 'bki', keywords: ['bki', 'biro klasifikasi indonesia'] },
+    { id: 'hubla', keywords: ['hubla', 'perhubungan laut', 'kemenhub'] },
+    { id: 'ksop', keywords: ['ksop', 'kesyahbandaran', 'otoritas pelabuhan'] },
+    { id: 'lr', keywords: ['lloyd', 'lloyds register', 'lr '] },
+    { id: 'bv', keywords: ['bureau veritas', 'bv '] },
+    { id: 'classnk', keywords: ['classnk', 'class nk', 'nippon kaiji'] },
+    { id: 'rina', keywords: ['rina'] }
+  ];
+  const aliasHit = aliasMap.find(a => a.keywords.some(k => lowered.includes(k)));
+  if (aliasHit) return aliasHit.id;
+
+  return String(fallback).toLowerCase();
+};
+
+/**
+ * Ambil konfigurasi checklist siap pakai untuk sebuah sesi audit.
+ *
+ * Menggabungkan resolusi lembaga + pengambilan butir checklist sehingga seluruh
+ * komponen audit memakai sumber tunggal yang konsisten.
+ *
+ * @param {string|object} organization - lembaga audit eksternal pada sesi
+ * @returns {{organizationId: string, organizationName: string, checked: boolean,
+ *   total: number, core: number, strikethrough: number, items: Array,
+ *   note: string, docNumber: string, docTitle: string}}
+ */
+export const getChecklistConfigForSession = (organization) => {
+  const organizationId = resolveOrganizationId(organization);
+  return {
+    ...getOrganizationChecklistInfo(organizationId),
+    items: getChecklistForOrganization(organizationId)
+  };
+};
+
+/**
+ * Normalisasi butir checklist menjadi bentuk seragam untuk tabel UI AuditManager.
+ *
+ * Dua sumber butir memiliki bentuk berbeda:
+ *   - AUDIT_CHECKLIST_REGISTRY (mis. BKI) : { no, item, remark, ismCode, isStrikethrough }
+ *   - ISM_DOC_ELEMENTS                    : { code, name, checkPoints, ... }
+ * Fungsi ini memetakannya ke bentuk { code, name, checkPoint, isStrikethrough }
+ * sehingga satu tabel dapat merender kedua sumber tanpa percabangan di JSX.
+ *
+ * @param {object} el - butir checklist dari salah satu sumber
+ * @returns {{id: string, code: string, name: string, checkPoint: string,
+ *   isStrikethrough: boolean, source: object}}
+ */
+export const normalizeChecklistItem = (el) => {
+  const source = el || {};
+  const code = source.code || source.no || source.id || '-';
+
+  // Bedakan sumber BKI registry (memiliki `item` = pertanyaan, `subsection` = area)
+  // vs ISM_DOC_ELEMENTS (memiliki `name` = nama elemen, `checkPoints` = daftar kriteria).
+  const isBKIRegistry = Boolean(source.item);
+
+  // Kolom "Area Pemeriksaan ISM Code" = subsection (BKI) atau name (DOC)
+  const name = isBKIRegistry
+    ? (source.subsection || source.section || source.name || '')
+    : (source.name || source.clauseName || '');
+
+  // Kolom "Kriteria / Check Point" = pertanyaan audit (BKI) atau gabungan checkPoints (DOC)
+  let checkPoint = source.checkPoint || '';
+  if (!checkPoint && isBKIRegistry) {
+    // BKI: gunakan field `item` (pertanyaan audit) sebagai check point utama
+    checkPoint = source.item || '';
+  }
+  if (!checkPoint && Array.isArray(source.checkPoints)) {
+    checkPoint = source.checkPoints.join(' â€¢ ');
+  }
+
+  // Catatan/referensi: remark (BKI) atau description (DOC)
+  const remark = source.remark || source.description || '';
+
+  // Kolom pendukung PDF: ISM Code, referensi, jawaban standar hasil audit.
+  const ismCode = source.ismCode || source.ism || '';
+  const reference = source.reference || source.ref || remark;
+  const defaultResult = source.defaultResult || '';
+  return {
+    id: source.id || code,
+    code,
+    name,
+    checkPoint,
+    remark,
+    ismCode,
+    reference,
+    defaultResult,
+    isStrikethrough: Boolean(source.isStrikethrough),
+    source
+  };
+};
+
+/**
+ * Ambil keterangan lembaga (nama, status, jumlah butir, catatan).
+ * @param {string} organizationId
+ * @returns {object}
+ */
+const getOrganizationChecklistInfo = (organizationId) => {
+  const key = String(organizationId || '').toLowerCase();
+  const entry = AUDIT_CHECKLIST_REGISTRY[key];
+  const source = CHECKLIST_SOURCE_DOCUMENT[key];
+  return {
+    organizationId: key,
+    organizationName: entry?.organizationName || key || 'Tanpa Lembaga',
+    checked: Boolean(entry?.checked),
+    total: entry?.items?.length || 0,
+    core: (entry?.items || []).filter(i => !i.isStrikethrough).length,
+    strikethrough: (entry?.items || []).filter(i => i.isStrikethrough).length,
+    note: entry?.note || '',
+    docNumber: source?.docNumber || '',
+    docTitle: source?.docTitle || ''
+  };
+};
 
 // Seed Data Demo Audit Cadangan PT. Pelayaran Baharimas Kalimantan
 export const DEMO_AUDITS = [
+  // Sesi Audit Kapal RP 2004 sesuai Dokumen PDF: 0859-PK/ISM-SMC/2026
+  {
+    "id": "aud-smc-rp2004",
+    "auditNo": "0859-PK/ISM-SMC/2026",
+    "reportId": "PT. PELAYARAN BAHARIMAS KALIMANTAN - RP 2004 - 0859-PK/ISM-SMC/2026",
+    "docRevision": "F23.14.06-2024 Rev 05",
+    "auditType": "External",
+    "externalOrganization": "Biro Klasifikasi Indonesia (BKI)",
+    "standard": "SMC",
+    "targetType": "Vessel",
+    "targetName": "RP 2004",
+    "vesselId": "v-rp2004",
+    "leadAuditor": "MUHSON NURROCHMAT S",
+    "auditTeam": ["Tim Surveyor Badan Klasifikasi / Ditjen Hubla"],
+    "auditee": "CAPT. EKHSAN (DPA / Nakhoda TB. RP 2004)",
+    "auditLocation": "PULANG PISAU",
+    "auditDate": "2026-08-18",
+    "targetCloseDate": "2026-11-17",
+    "scope": "Audit Pembaruan berdasarkan ketentuan INTERNATIONAL CONVENTION FOR THE SAFETY OF LIFE AT SEA, 1974 Chapter IX dan ISM Code.",
+    "status": "In Progress",
+    "totalItemsChecked": 52,
+    "itemsComplied": 50,
+    "findingsSummary": {
+      "majorNC": 0,
+      "minorNC": 1,
+      "observation": 1,
+      "totalOpen": 1,
+      "totalClosed": 0
+    },
+    "auditConclusion": "Pemeriksaan SMS Shipboard Checklist pada kapal RP 2004 di Pelabuhan Pulang Pisau menunjukkan operasional keselamatan kapal secara umum memadai. Terdapat 1 temuan ketidaksesuaian (NC 1/4) pada Klausul ISM 5.1.5 yang disepakati untuk diselesaikan sebelum batas waktu 17 November 2026.",
+    "leadAuditorSign": "MUHSON NURROCHMAT S",
+    "auditeeSign": "CAPT. EKHSAN"
+  },
   {
     "id": "aud-doc-001",
     "auditNo": "AUD-INT-DOC-2026/01",
+    "reportId": "PT. PELAYARAN BAHARIMAS KALIMANTAN - DOC-INT-2026/01",
     "auditType": "Internal",
+    "externalOrganization": null,
     "standard": "DOC",
     "targetType": "Office",
     "targetName": "Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)",
@@ -209,6 +613,7 @@ export const DEMO_AUDITS = [
       "Dian Anggraini (Safety Officer)"
     ],
     "auditee": "Direktur Operasional & Seluruh Manager Darat (DPA, Logistik, HRD, Teknik)",
+    "auditLocation": "Komp. Pontianak Mall Blok D No. 8-9, Jl. Tanjungpura, Kota Pontianak",
     "auditDate": "2026-08-15",
     "targetCloseDate": "2026-09-30",
     "scope": "Audit Internal Tahunan Sistem Manajemen Keselamatan Kantor Pusat mencakup Elemen ISM 1 sampai 12.",
@@ -226,7 +631,9 @@ export const DEMO_AUDITS = [
   {
     "id": "aud-smc-001",
     "auditNo": "AUD-EXT-SMC-BKI-2026/04",
+    "reportId": "PT. PELAYARAN BAHARIMAS KALIMANTAN - RP 2020 - AUD-EXT-SMC-2026/04",
     "auditType": "External",
+    "externalOrganization": "Biro Klasifikasi Indonesia (BKI)",
     "standard": "SMC",
     "targetType": "Vessel",
     "targetName": "RP 2020",
@@ -236,6 +643,7 @@ export const DEMO_AUDITS = [
       "Marine Inspector KSOP Pontianak"
     ],
     "auditee": "Capt. Hendra Gunawan, M.Mar & Ir. Bambang Wijaya (KKM RP 2020)",
+    "auditLocation": "Pelabuhan Pontianak, Kalimantan Barat",
     "auditDate": "2026-07-20",
     "targetCloseDate": "2026-09-10",
     "scope": "Audit Eksternal Antara (Intermediate Audit) Safety Management Certificate (SMC) di atas kapal RP 2020.",
@@ -249,37 +657,57 @@ export const DEMO_AUDITS = [
       "totalOpen": 0,
       "totalClosed": 2
     }
-  },
-  {
-    "id": "aud-doc-002",
-    "auditNo": "AUD-EXT-DOC-HUBLA-2026/02",
-    "auditType": "External",
-    "standard": "DOC",
-    "targetType": "Office",
-    "targetName": "Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)",
-    "vesselId": null,
-    "leadAuditor": "Auditor Ditjen Perhubungan Laut RI (Subdit ISM Code)",
-    "auditTeam": [
-      "Auditor BKI Pusat Jakarta"
-    ],
-    "auditee": "Direktur Utama & DPA PT. Pelayaran Baharimas Kalimantan",
-    "auditDate": "2026-05-12",
-    "targetCloseDate": "2026-06-25",
-    "scope": "Survei Pembaruan / Renewal Audit Dokumen Kepatuhan Perusahaan (DOC) Ditjen Hubla.",
-    "status": "Completed",
-    "totalItemsChecked": 36,
-    "itemsComplied": 35,
-    "findingsSummary": {
-      "majorNC": 0,
-      "minorNC": 1,
-      "observation": 0,
-      "totalOpen": 0,
-      "totalClosed": 1
-    }
   }
 ];
 
 export const DEMO_AUDIT_FINDINGS = [
+  // Temuan NC Resmi RP 2004 sesuai Dokumen Laporan PNG (Klausul 5.1.5)
+  {
+    "id": "nc-rp2004-01",
+    "auditId": "aud-smc-rp2004",
+    "auditNo": "0859-PK/ISM-SMC/2026",
+    "reportId": "0859 - PK/ISM- SMC /2026",
+    "findingNo": "1/4 - 0859 - PK/ISM- SMC /2026",
+    "auditType": "External",
+    "externalOrganization": "Biro Klasifikasi Indonesia (BKI)",
+    "standard": "SMC",
+    "areaUnderAudit": "RP 2004",
+    "targetName": "RP 2004",
+    "vesselId": "v-rp2004",
+    "elementNumberOfCode": "5.1.5",
+    "clauseCode": "5.1.5",
+    "clauseName": "Tanggung Jawab & Wewenang Nakhoda (Peninjauan Kembali SMK)",
+    "category": "Non-Conformity",
+    "status": "NC Open",
+    "description": "Nakhoda belum memahami semua tanggung jawab dan wewenangnya yang telah didokumentasikan menyangkut hal peninjauan kembali SMK dan melaporkan kekurangannya kepada manajemen didarat secara berkala",
+    "objectiveEvidence": "- Master review tahun 2025 tidak ditemukan saat audit\n- Tidak ditemukan master night order, analisa risiko untuk pekerjaan deck maupun permesinan dan penilaian crew periode semester I tahun 2026 pada saat diaudit",
+    "dateIdentified": "2026-08-18",
+    "dueDate": "2026-11-17",
+    "agreedDate": "2026-11-17",
+    "assignedTo": "Nakhoda / Master TB. RP 2004",
+    "auditor": "MUHSON NURROCHMAT S",
+    "auditee": "CAPT. EKHSAN",
+    "correction": "Melakukan penyusunan formulir Master Review 2025/2026, menerbitkan Master Night Order dan Analisa Risiko (Risk Assessment) pekerjaan deck maupun permesinan serta form penilaian crew semester I tahun 2026.",
+    "rootCause": "Nakhoda belum sepenuhnya memahami prosedur peninjauan berkala sistem manajemen keselamatan dan pergantian dokumen master di atas kapal.",
+    "correctiveAction": "Pihak manajemen darat memberikan penyegaran prosedur ISM Code klausul 5 serta melengkapi template baku Master Review dan checklist verifikasi berkala.",
+    "verifiedUpgradeDowngrade": "NC",
+    "verifiedSatisfactory": true,
+    "auditorSignatureDate": "2026-11-17",
+    "auditeeSignatureDate": "2026-11-17",
+    "evidence": {
+      "hasSubmitted": true,
+      "submissionDate": "2026-09-05",
+      "submittedBy": "CAPT. EKHSAN (Nakhoda TB. RP 2004)",
+      "rootCause": "Kurangnya pemahaman alur administrasi pelaporan berkala SMK dan dokumentasi peninjauan berkala di kapal.",
+      "correctiveAction": "Telah diterbitkan Master Night Order, Analisa Risiko Deck & Engine, dan Laporan Master Review tahun berjalan.",
+      "preventiveAction": "Jadwal evaluasi peninjauan SMK kapal ditetapkan tiap semester dan dimonitor oleh DPA.",
+      "fileName": "Eviden_Perbaikan_Master_Review_RP2004.pdf",
+      "fileSize": "1.4 MB",
+      "fileUrl": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22600%22%20height%3D%22400%22%20viewBox%3D%220%200%20600%20400%22%3E%3Crect%20width%3D%22600%22%20height%3D%22400%22%20fill%3D%22%23f8fafc%22%2F%3E%3Crect%20x%3D%2220%22%20y%3D%2220%22%20width%3D%22560%22%20height%3D%22360%22%20fill%3D%22none%22%20stroke%3D%22%230284c7%22%20stroke-width%3D%222%22%2F%3E%3Ctext%20x%3D%22300%22%20y%3D%2260%22%20font-family%3D%22Arial%22%20font-size%3D%2216%22%20font-weight%3D%22bold%22%20fill%3D%22%230369a1%22%20text-anchor%3D%22middle%22%3EDOKUMEN%20BUKTI%20PERBAIKAN%20ISM%20CODE%3C%2Ftext%3E%3Ctext%20x%3D%22300%22%20y%3D%2290%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%2364748b%22%20text-anchor%3D%22middle%22%3EMASTER%20REVIEW%20%26%20RISK%20ASSESSMENT%20RP%202004%3C%2Ftext%3E%3Cline%20x1%3D%2250%22%20y1%3D%22110%22%20x2%3D%22550%22%20y2%3D%22110%22%20stroke%3D%22%23cbd5e1%22%2F%3E%3Ctext%20x%3D%2260%22%20y%3D%22150%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%230f172a%22%3ENomor%20NCR%3A%201%2F4%20-%200859%20-%20PK%2FISM-%20SMC%20%2F2026%3C%2Ftext%3E%3Ctext%20x%3D%2260%22%20y%3D%22180%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%230f172a%22%3EKlausul%20ISM%3A%205.1.5%20(Tanggung%20Jawab%20Nakhoda)%3C%2Ftext%3E%3Ctext%20x%3D%2260%22%20y%3D%22210%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%230f172a%22%3EKapal%3A%20TB.%20RP%202004%20%7C%20Lokasi%3A%20Pulang%20Pisau%3C%2Ftext%3E%3Ctext%20x%3D%22300%22%20y%3D%22330%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20font-weight%3D%22bold%22%20fill%3D%22%2310b981%22%20text-anchor%3D%22middle%22%3EBERKAS%20EVIDEN%20RESMI%20TERSIMPAN%20DI%20SISTEM%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "auditorReviewNotes": "Dokumen Master Review dan form Analisa Risiko telah diperiksa. Pelaksanaan tindakan korektif memuaskan.",
+      "closedDate": null
+    }
+  },
   {
     "id": "nc-001",
     "auditId": "aud-doc-001",
@@ -391,3 +819,4 @@ export const DEMO_AUDIT_FINDINGS = [
 // Clean state default: Kosong untuk diinput manual oleh pengguna
 export const INITIAL_AUDITS = [];
 export const INITIAL_AUDIT_FINDINGS = [];
+

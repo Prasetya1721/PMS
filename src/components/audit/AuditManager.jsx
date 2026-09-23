@@ -19,7 +19,14 @@ import {
   ChevronRight,
   ArrowLeft,
   MessageSquare,
-  Printer
+  Printer,
+  Eye,
+  Sparkles,
+  FileSpreadsheet,
+  FileText,
+  X,
+  Strikethrough,
+  Undo2
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
@@ -27,6 +34,7 @@ import { SubmitEvidenceModal } from './SubmitEvidenceModal';
 import { AuditNotificationModal } from './AuditNotificationModal';
 import { AuditReportModal } from './AuditReportModal';
 import { calculateNCRange, calculateFleetTargetTimeStats, formatIndoDate } from '../../utils/auditTimeUtils';
+import { getChecklistConfigForSession, normalizeChecklistItem } from '../../data/auditMasterData';
 
 export const AuditManager = () => {
   const {
@@ -43,7 +51,6 @@ export const AuditManager = () => {
     shipDocuments,
     requisitions,
     ISM_DOC_ELEMENTS,
-    ISM_SMC_ELEMENTS,
     openNCCount,
     closedNCCount,
     currentUser,
@@ -81,11 +88,14 @@ export const AuditManager = () => {
 
   const [notificationModalFinding, setNotificationModalFinding] = useState(null);
 
+  // In-app Action Confirmation Modal State for deletion (avoiding blocked window.confirm)
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
+
   // Official Audit Report Print Modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportModalSession, setReportModalSession] = useState(null);
   const [reportModalFinding, setReportModalFinding] = useState(null);
-  const [reportModalMode, setReportModalMode] = useState('session'); // 'session' | 'ncr'
+  const [reportModalMode, setReportModalMode] = useState('session'); // 'session' | 'ncr' | 'checklist'
 
   // Manual checklist state per vessel
   const [customChecklistItems, setCustomChecklistItems] = useState([]);
@@ -95,6 +105,93 @@ export const AuditManager = () => {
   const [manualCriteria, setManualCriteria] = useState('');
   const [manualStatus, setManualStatus] = useState('Complied');
   const [manualNotes, setManualNotes] = useState('');
+
+  // Checklist Evidence & Evaluation state per vessel
+  const [checklistEvidenceMap, setChecklistEvidenceMap] = useState({});
+  const [vesselChecklistResults, setVesselChecklistResults] = useState({});
+  const [vesselChecklistFilter, setVesselChecklistFilter] = useState('ALL'); // ALL | CORE | STRIKETHROUGH | HAS_EVIDENCE
+  const [previewChecklistEvidence, setPreviewChecklistEvidence] = useState(null);
+
+
+  // Override status coret/lepas coret pada checklist kapal
+  const [vesselStrikethroughOverrides, setVesselStrikethroughOverrides] = useState({});
+
+  // Handler toggle coret / lepas coret pada checklist audit kapal
+  const handleToggleVesselStrikethrough = (code) => {
+    const item = activeChecklistItems.find(i => i.code === code) || customChecklistItems.find(i => i.code === code);
+    const currentlyStriked = vesselStrikethroughOverrides[code] !== undefined
+      ? vesselStrikethroughOverrides[code]
+      : Boolean(item?.isStrikethrough);
+    const nextStriked = !currentlyStriked;
+
+    setVesselStrikethroughOverrides(prev => ({
+      ...prev,
+      [code]: nextStriked
+    }));
+
+    setVesselChecklistResults(prev => ({
+      ...prev,
+      [code]: nextStriked ? 'N/A' : (prev[code] === 'N/A' ? 'Complied' : (prev[code] || 'Complied'))
+    }));
+
+    showToast(
+      nextStriked
+        ? `✂️ Klausul ${code} berhasil dicoret (status diset N/A)`
+        : `✓ Klausul ${code} dilepas coret (status aktif)`,
+      nextStriked ? 'info' : 'success'
+    );
+  };
+
+  // Evidence Handlers for Vessel Checklist
+  const handleUploadVesselChecklistEvidence = (itemCode, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const evidenceObj = {
+        fileName: file.name,
+        fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+        fileUrl: e.target.result,
+        uploadedAt: new Date().toISOString()
+      };
+      setChecklistEvidenceMap(prev => ({ ...prev, [itemCode]: evidenceObj }));
+      showToast(`✓ Bukti audit untuk klausul ${itemCode} berhasil diunggah!`, 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleGenerateMockVesselChecklistEvidence = (itemCode, itemName, vesselName) => {
+    const targetName = vesselName || 'Kapal Armada PBK';
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+      <rect width="100%" height="100%" fill="#0f172a"/>
+      <rect x="20" y="20" width="560" height="360" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
+      <circle cx="300" cy="100" r="40" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="3"/>
+      <path d="M282 100 L295 113 L325 85" stroke="#10b981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <text x="300" y="175" font-family="sans-serif" font-size="18" font-weight="bold" fill="#f8fafc" text-anchor="middle">BUKTI AUDIT CHECKLIST ONBOARD</text>
+      <text x="300" y="205" font-family="sans-serif" font-size="13" font-weight="bold" fill="#38bdf8" text-anchor="middle">PT. PELAYARAN BAHARIMAS KALIMANTAN</text>
+      <text x="300" y="240" font-family="monospace" font-size="13" fill="#e2e8f0" text-anchor="middle">Klausul: ${itemCode} - ${itemName?.substring(0, 35)}</text>
+      <text x="300" y="270" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Lokasi Onboard: ${targetName}</text>
+      <rect x="180" y="315" width="240" height="35" rx="6" fill="#047857"/>
+      <text x="300" y="338" font-family="sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">VERIFIED AUDIT EVIDENCE</text>
+    </svg>`;
+    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
+    const evidenceObj = {
+      fileName: `BUKTI_${itemCode.replace(/[^a-zA-Z0-9]/g, '_')}_${targetName.replace(/\s+/g, '_')}.svg`,
+      fileSize: '16.2 KB',
+      fileUrl: dataUrl,
+      uploadedAt: new Date().toISOString()
+    };
+    setChecklistEvidenceMap(prev => ({ ...prev, [itemCode]: evidenceObj }));
+    showToast(`✓ Simulasi bukti audit ${itemCode} berhasil dilampirkan!`, 'info');
+  };
+
+  const handleRemoveVesselChecklistEvidence = (itemCode) => {
+    setChecklistEvidenceMap(prev => {
+      const next = { ...prev };
+      delete next[itemCode];
+      return next;
+    });
+    showToast(`Bukti audit ${itemCode} dilepas`, 'info');
+  };
 
   // =========================================================================
   // TARGET DATA PREPARATION (PER VESSEL & OFFICE)
@@ -184,6 +281,36 @@ export const AuditManager = () => {
     if (!activeTargetId) return null;
     return allFleetTargets.find(t => t.id === activeTargetId) || allFleetTargets[0];
   }, [activeTargetId, allFleetTargets]);
+
+  // Checklist aktif pada halaman "Formulir Checklist" target terpilih.
+  //
+  // Sumber butir ditentukan oleh LEMBAGA AUDIT EKSTERNAL pada sesi audit:
+  //   - BKI  -> template resmi F23.14.06-2024 Rev 05 (termasuk butir bercoret)
+  //   - lembaga lain -> array kosong, karena isi checklist antar lembaga berbeda
+  //     dan harus disusun manual lewat "Tambah Item Manual".
+  // Untuk standar DOC (audit kantor) tetap memakai elemen ISM_DOC_ELEMENTS.
+  const activeChecklistConfig = useMemo(() => {
+    if (!currentTarget) return getChecklistConfigForSession(null);
+    if (currentTarget.standard === 'DOC') {
+      return {
+        organizationId: 'dpa',
+        organizationName: 'Audit Internal Kantor (DOC Standar ISM)',
+        checked: true,
+        items: ISM_DOC_ELEMENTS,
+        note: ''
+      };
+    }
+    const session = currentTarget.lastAudit || currentTarget.audits?.[0] || null;
+    return getChecklistConfigForSession(session?.externalOrganization ?? null);
+  }, [currentTarget, ISM_DOC_ELEMENTS]);
+
+  // Butir checklist siap render untuk tabel UI.
+  // Dinormalisasi dari activeChecklistConfig agar tabel cukup memakai
+  // properti seragam (code / name / checkPoint / isStrikethrough).
+  const activeChecklistItems = useMemo(
+    () => (activeChecklistConfig.items || []).map(normalizeChecklistItem),
+    [activeChecklistConfig]
+  );
 
   // Global fleet KPI stats
   const fleetStats = useMemo(() => {
@@ -1406,13 +1533,24 @@ export const AuditManager = () => {
                             </button>
 
                             <button
-                              onClick={() => {
-                                if (window.confirm(`Hapus catatan temuan ${f.findingNo}?`)) {
-                                  deleteAuditFinding(f.id);
-                                }
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmModal({
+                                  type: 'finding',
+                                  id: f.id || f.findingNo,
+                                  code: f.findingNo,
+                                  title: 'Hapus Catatan Temuan (NCR)',
+                                  targetName: currentTarget?.name,
+                                  details: `Catatan temuan ketidaksesuaian "${f.findingNo}" (${f.category}) akan dihapus permanen dari sistem beserta dokumen eviden yang terlampir.`,
+                                  onConfirm: () => {
+                                    deleteAuditFinding(f.id || f.findingNo);
+                                    setDeleteConfirmModal(null);
+                                  }
+                                });
                               }}
                               className="btn btn-secondary btn-sm"
-                              title="Hapus Temuan"
+                              title="Hapus Temuan Ini"
                               style={{ padding: '0.35rem 0.5rem', color: '#ef4444' }}
                             >
                               <Trash2 size={14} />
@@ -1669,13 +1807,25 @@ export const AuditManager = () => {
                             Edit Formulir (5 Tab)
                           </button>
                           <button
-                            onClick={() => {
-                              if (window.confirm(`Hapus sesi audit ${s.auditNo}?`)) {
-                                deleteAuditSession(s.id);
-                              }
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmModal({
+                                type: 'session',
+                                id: s.id || s.auditNo,
+                                code: s.auditNo,
+                                title: 'Hapus Sesi Audit Resmi',
+                                targetName: currentTarget?.name,
+                                details: `Sesi audit "${s.auditNo}" (${s.standard} - ${s.auditType}) akan dihapus dari data sistem armada kapal ${currentTarget?.name}. Seluruh ringkasan checklist dan temuan terkait sesi ini akan dibersihkan.`,
+                                onConfirm: () => {
+                                  deleteAuditSession(s.id || s.auditNo);
+                                  setDeleteConfirmModal(null);
+                                }
+                              });
                             }}
                             className="btn btn-secondary btn-sm"
                             style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
+                            title="Hapus Sesi Audit Ini"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1711,22 +1861,79 @@ export const AuditManager = () => {
           {/* ===================================================================== */}
           {vesselTab === 'checklist' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800 }}>Checklist Standar ISM Code & Item Manual</h4>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <span>Checklist Resmi SMS Shipboard Checklist (Rev 05)</span>
+                    <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>10 Halaman Lengkap</span>
+                  </h4>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Pemeriksaan klausul standar permesinan, keselamatan, navigasi, serta penambahan item checklist manual dengan kode kustom.
+                    Pemeriksaan komprehensif seluruh area operasional kapal {currentTarget.name}. Klausul khusus tipe kapal (A s/d E yang dicoret di PDF) diikutsertakan dan setiap butir dapat dilampirkan bukti audit.
                   </p>
                 </div>
 
-                <button
-                  onClick={() => setShowManualCodeForm(!showManualCodeForm)}
-                  className="btn btn-primary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                >
-                  <Plus size={14} />
-                  <span>{showManualCodeForm ? 'Tutup Form Manual' : '+ Tambah Item Checklist Manual'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      setReportModalSession(currentTarget.lastAudit || {
+                        id: 'checklist-print',
+                        auditNo: `AUD-SMC-${currentTarget.name.replace(/\s+/g, '')}-2026`,
+                        auditType: 'Internal',
+                        standard: currentTarget.standard,
+                        targetName: currentTarget.name,
+                        vesselId: currentTarget.id,
+                        leadAuditor: 'Capt. Ahmad Fauzi (Marine Safety Inspector)',
+                        auditDate: new Date().toISOString().split('T')[0]
+                      });
+                      setReportModalFinding(null);
+                      setReportModalMode('checklist');
+                      setReportModalOpen(true);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, color: '#0284c7' }}
+                    title="Cetak Formulir Resmi SMS Shipboard Checklist Rev 05 format A4 / PDF"
+                  >
+                    <Printer size={14} />
+                    <span>Cetak Checklist (PDF / Cetak)</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowManualCodeForm(!showManualCodeForm)}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                  >
+                    <Plus size={14} />
+                    <span>{showManualCodeForm ? 'Tutup Form' : '+ Tambah Item Manual'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Checklist Filter Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {(() => {
+                  const struckCount = activeChecklistItems.filter(el =>
+                    vesselStrikethroughOverrides[el.code] !== undefined
+                      ? vesselStrikethroughOverrides[el.code]
+                      : Boolean(el.isStrikethrough)
+                  ).length;
+                  const activeCount = activeChecklistItems.length - struckCount;
+                  return [
+                    { id: 'ALL', label: `Semua Elemen (${activeChecklistItems.length + customChecklistItems.length})` },
+                    { id: 'CORE', label: `Klausul Aktif (${activeCount})` },
+                    { id: 'STRIKETHROUGH', label: `Klausul Dicoret (${struckCount})` },
+                    { id: 'HAS_EVIDENCE', label: `Memiliki Bukti (${Object.keys(checklistEvidenceMap).length})` }
+                  ].map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setVesselChecklistFilter(f.id)}
+                      className={`btn btn-sm ${vesselChecklistFilter === f.id ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem' }}
+                    >
+                      {f.label}
+                    </button>
+                  ));
+                })()}
               </div>
 
               {/* Form Input Item Audit Manual */}
@@ -1778,6 +1985,7 @@ export const AuditManager = () => {
                         <option value="Observation">Observasi</option>
                         <option value="Minor NC">Minor NC</option>
                         <option value="Major NC">Major NC</option>
+                        <option value="N/A">N/A (Tidak Berlaku)</option>
                       </select>
                     </div>
                   </div>
@@ -1820,94 +2028,418 @@ export const AuditManager = () => {
                 </form>
               )}
 
-              {/* Standard + Custom Elements Table */}
+              {/* Standard + Template Elements Table */}
               <div className="glass-card" style={{ padding: '0.75rem', overflowX: 'auto' }}>
                 <table className="pms-table" style={{ width: '100%', fontSize: '0.78rem' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '120px' }}>Kode Klausul</th>
+                      <th style={{ width: '130px' }}>Kode Klausul</th>
                       <th>Area Pemeriksaan ISM Code</th>
                       <th>Kriteria / Check Point</th>
-                      <th style={{ width: '130px' }}>Status Evaluasi</th>
-                      <th style={{ width: '100px' }}>Aksi</th>
+                      <th style={{ width: '140px' }}>Status Evaluasi</th>
+                      <th style={{ width: '220px' }}>Upload Bukti Audit</th>
+                      <th style={{ width: '160px', textAlign: 'center' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
                     {/* Custom items */}
-                    {customChecklistItems.map(item => (
-                      <tr key={item.id} style={{ background: 'rgba(2, 132, 199, 0.04)' }}>
-                        <td>
-                          <span className="badge badge-info mono" style={{ fontWeight: 800 }}>
-                            {item.code}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{item.name}</strong>
-                          <span className="badge badge-neutral" style={{ marginLeft: '0.4rem', fontSize: '0.62rem' }}>Manual</span>
-                        </td>
-                        <td style={{ color: 'var(--text-muted)' }}>{item.checkPoint}</td>
-                        <td>
-                          <span className={`badge ${
-                            item.result === 'Complied' ? 'badge-success' : item.result === 'Major NC' ? 'badge-danger' : 'badge-warning'
-                          }`}>
-                            {item.result}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => {
-                              setCustomChecklistItems(prev => prev.filter(i => i.id !== item.id));
-                              showToast('Item manual dihapus', 'info');
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.2rem 0.4rem', color: '#ef4444' }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {customChecklistItems.map(item => {
+                      const isStrikethrough = vesselStrikethroughOverrides[item.code] !== undefined
+                        ? vesselStrikethroughOverrides[item.code]
+                        : Boolean(item.isStrikethrough);
 
-                    {/* Master Elements */}
-                    {(currentTarget.standard === 'DOC' ? ISM_DOC_ELEMENTS : ISM_SMC_ELEMENTS).map(el => (
-                      <tr key={el.code}>
-                        <td>
-                          <span className="badge badge-neutral mono" style={{ fontWeight: 800 }}>
-                            {el.code}
-                          </span>
-                        </td>
-                        <td>
-                          <strong>{el.name}</strong>
-                        </td>
-                        <td style={{ color: 'var(--text-muted)' }}>
-                          {el.checkPoints?.[0] || el.description}
-                        </td>
-                        <td>
-                          <span className="badge badge-success">
-                            Complied
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => {
-                              setEditingFinding({
-                                standard: currentTarget.standard,
-                                clauseCode: el.code,
-                                clauseName: el.name,
-                                description: `Catatan pemeriksaan pada ${el.name} (${currentTarget.name})`,
-                                category: 'Minor NC'
-                              });
-                              setFindingDefaultAuditId(currentTarget.lastAudit?.id || null);
-                              setFindingModalOpen(true);
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
-                          >
-                            + Jadikan NC
-                          </button>
+                      return (
+                        <tr key={item.id} style={{ background: isStrikethrough ? 'rgba(239, 68, 68, 0.03)' : 'rgba(2, 132, 199, 0.04)' }}>
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <span className="badge badge-info mono" style={{ fontWeight: 800 }}>
+                                  {item.code}
+                                </span>
+                                <span className="badge badge-neutral" style={{ fontSize: '0.62rem' }}>Manual</span>
+                              </div>
+                              {isStrikethrough ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVesselStrikethrough(item.code)}
+                                  className="badge badge-warning"
+                                  style={{ fontSize: '0.58rem', padding: '0.08rem 0.35rem', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                  title="Klik untuk lepas coret klausul"
+                                >
+                                  <Undo2 size={9} />
+                                  <span>Dicoret (N/A)</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVesselStrikethrough(item.code)}
+                                  style={{ fontSize: '0.58rem', padding: '0.05rem 0.3rem', border: '1px dashed var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', borderRadius: '3px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                  title="Coret klausul ini jika tidak digunakan pada kapal"
+                                >
+                                  <Strikethrough size={9} />
+                                  <span>Coret</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ textDecoration: isStrikethrough ? 'line-through' : 'none', color: isStrikethrough ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                              <strong>{item.name}</strong>
+                            </div>
+                          </td>
+                          <td style={{ color: 'var(--text-muted)' }}>{item.checkPoint}</td>
+                          <td>
+                            <span className={`badge ${
+                              item.result === 'Complied' ? 'badge-success' : item.result === 'Major NC' ? 'badge-danger' : 'badge-warning'
+                            }`}>
+                              {item.result}
+                            </span>
+                          </td>
+                          <td>
+                            {/* Custom item evidence */}
+                            {checklistEvidenceMap[item.code] ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.3rem 0.5rem', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.12)', border: '1px solid rgba(2, 132, 199, 0.3)' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0284c7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>
+                                  📎 {checklistEvidenceMap[item.code].fileName}
+                                </span>
+                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewChecklistEvidence(checklistEvidenceMap[item.code])}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}
+                                  >
+                                    <Eye size={11} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveVesselChecklistEvidence(item.code)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: '0.15rem 0.35rem', color: '#ef4444' }}
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', fontSize: '0.68rem', padding: '0.2rem 0.45rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                  <Upload size={11} />
+                                  <span>Upload</span>
+                                  <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={(e) => handleUploadVesselChecklistEvidence(item.code, e.target.files?.[0])} />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleGenerateMockVesselChecklistEvidence(item.code, item.name, currentTarget.name)}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.68rem', padding: '0.2rem 0.4rem', color: '#0284c7' }}
+                                >
+                                  <Sparkles size={11} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleVesselStrikethrough(item.code)}
+                                className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
+                                style={{
+                                  fontSize: '0.68rem',
+                                  padding: '0.2rem 0.45rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  fontWeight: 600
+                                }}
+                                title={isStrikethrough ? 'Lepas coret klausul' : 'Coret klausul (Tandai N/A)'}
+                              >
+                                {isStrikethrough ? (
+                                  <>
+                                    <Undo2 size={11} />
+                                    <span>Lepas Coret</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Strikethrough size={11} />
+                                    <span>Coret</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setCustomChecklistItems(prev => prev.filter(i => i.id !== item.id));
+                                  showToast('Item manual dihapus', 'info');
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.2rem 0.4rem', color: '#ef4444' }}
+                                title="Hapus item manual"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Butir checklist mengikuti LEMBAGA AUDIT EKSTERNAL sesi terkait.
+                        BKI  -> template resmi F23.14.06-2024 Rev 05 (termasuk butir bercoret).
+                        Lain -> kosong, karena isi checklist antar lembaga berbeda
+                                dan disusun manual lewat "Tambah Item Manual". */}
+                    {activeChecklistItems
+                      .filter(el => {
+                        const isStriked = vesselStrikethroughOverrides[el.code] !== undefined
+                          ? vesselStrikethroughOverrides[el.code]
+                          : Boolean(el.isStrikethrough);
+                        if (vesselChecklistFilter === 'CORE') return !isStriked;
+                        if (vesselChecklistFilter === 'STRIKETHROUGH') return isStriked;
+                        if (vesselChecklistFilter === 'HAS_EVIDENCE') return Boolean(checklistEvidenceMap[el.code]);
+                        return true;
+                      })
+                      .map(el => {
+                        const isStrikethrough = vesselStrikethroughOverrides[el.code] !== undefined
+                          ? vesselStrikethroughOverrides[el.code]
+                          : Boolean(el.isStrikethrough);
+                        const currentVal = vesselChecklistResults[el.code] || (isStrikethrough ? 'N/A' : 'Complied');
+                        const evidence = checklistEvidenceMap[el.code];
+
+                        return (
+                          <tr key={el.code} style={{ background: isStrikethrough ? 'rgba(239, 68, 68, 0.03)' : undefined }}>
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                <span className="badge badge-neutral mono" style={{ fontWeight: 800, color: isStrikethrough ? '#94a3b8' : '#10b981' }}>
+                                  {el.code}
+                                </span>
+                                {isStrikethrough ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                    className="badge badge-warning"
+                                    style={{ fontSize: '0.58rem', padding: '0.08rem 0.35rem', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                    title="Klik untuk melepas coret klausul"
+                                  >
+                                    <Undo2 size={9} />
+                                    <span>Dicoret (N/A)</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                    style={{ fontSize: '0.58rem', padding: '0.05rem 0.3rem', border: '1px dashed var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', borderRadius: '3px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                    title="Coret klausul ini (Tandai N/A jika tidak digunakan pada kapal)"
+                                  >
+                                    <Strikethrough size={9} />
+                                    <span>Coret</span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ textDecoration: isStrikethrough ? 'line-through' : 'none', color: isStrikethrough ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                                <strong style={{ display: 'block' }}>{el.name}</strong>
+                              </div>
+                              {isStrikethrough && (
+                                <span style={{ fontSize: '0.67rem', color: '#f59e0b', fontWeight: 600 }}>
+                                  ⚠️ Klausul tidak digunakan / dicoret oleh auditor (N/A)
+                                </span>
+                              )}
+                            </td>
+                            <td style={{ color: 'var(--text-muted)' }}>
+                              <span style={{ display: 'block', lineHeight: 1.5 }}>
+                                {el.checkPoint || el.checkPoints?.[0] || el.description || '-'}
+                              </span>
+                              {(el.remark || el.ismCode) && (
+                                <span style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                  {el.ismCode && (
+                                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#0284c7', background: 'rgba(2,132,199,0.1)', borderRadius: '4px', padding: '0.05rem 0.3rem' }}>
+                                      ISM §{el.ismCode}
+                                    </span>
+                                  )}
+                                  {el.remark && el.remark !== el.checkPoint && (
+                                    <span style={{ fontSize: '0.62rem', color: '#64748b', fontStyle: 'italic' }}>
+                                      {el.remark}
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <select
+                                value={currentVal}
+                                onChange={(e) => setVesselChecklistResults(prev => ({ ...prev, [el.code]: e.target.value }))}
+                                className="select-control"
+                                style={{
+                                  fontSize: '0.72rem',
+                                  padding: '0.25rem 1.6rem 0.25rem 0.45rem',
+                                  fontWeight: 700,
+                                  color: currentVal === 'Complied' ? '#10b981' : currentVal === 'Major NC' ? '#ef4444' : currentVal === 'N/A' ? 'var(--text-muted)' : '#f59e0b'
+                                }}
+                              >
+                                <option value="Complied">🟢 Complied</option>
+                                <option value="Observation">🔵 Observasi</option>
+                                <option value="Minor NC">🟡 Minor NC</option>
+                                <option value="Major NC">🔴 Major NC</option>
+                                <option value="N/A">⚪ N/A</option>
+                              </select>
+                            </td>
+                            <td>
+                              {/* Upload Bukti Audit Field */}
+                              {evidence ? (
+                                <div style={{
+                                  padding: '0.3rem 0.5rem',
+                                  borderRadius: '6px',
+                                  background: 'rgba(2, 132, 199, 0.12)',
+                                  border: '1px solid rgba(2, 132, 199, 0.3)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '0.3rem'
+                                }}>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0284c7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }} title={evidence.fileName}>
+                                    📎 {evidence.fileName}
+                                  </span>
+                                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewChecklistEvidence(evidence)}
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ padding: '0.15rem 0.35rem', fontSize: '0.65rem' }}
+                                      title="Lihat Bukti"
+                                    >
+                                      <Eye size={11} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveVesselChecklistEvidence(el.code)}
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ padding: '0.15rem 0.35rem', color: '#ef4444' }}
+                                      title="Hapus Bukti"
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                  <label
+                                    className="btn btn-secondary btn-sm"
+                                    style={{
+                                      cursor: 'pointer',
+                                      fontSize: '0.68rem',
+                                      padding: '0.2rem 0.45rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem',
+                                      color: 'var(--text-main)'
+                                    }}
+                                    title="Unggah Foto/Dokumen Bukti Audit"
+                                  >
+                                    <Upload size={11} />
+                                    <span>Upload</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      style={{ display: 'none' }}
+                                      onChange={(e) => handleUploadVesselChecklistEvidence(el.code, e.target.files?.[0])}
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleGenerateMockVesselChecklistEvidence(el.code, el.name, currentTarget.name)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{
+                                      fontSize: '0.68rem',
+                                      padding: '0.2rem 0.4rem',
+                                      color: '#0284c7',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem'
+                                    }}
+                                    title="Lampirkan Dokumen Bukti Simulasi Cepat"
+                                  >
+                                    <Sparkles size={11} />
+                                    <span>Simulasi</span>
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                  className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    padding: '0.2rem 0.45rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    fontWeight: 600
+                                  }}
+                                  title={isStrikethrough ? 'Lepas coret klausul (aktifkan kembali)' : 'Coret klausul (Tandai N/A jika tidak dipakai)'}
+                                >
+                                  {isStrikethrough ? (
+                                    <>
+                                      <Undo2 size={11} />
+                                      <span>Lepas Coret</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Strikethrough size={11} />
+                                      <span>Coret</span>
+                                    </>
+                                  )}
+                                </button>
+                                {!isStrikethrough && (
+                                  <button
+                                    onClick={() => {
+                                      setEditingFinding({
+                                        standard: currentTarget.standard,
+                                        clauseCode: el.code,
+                                        clauseName: el.name,
+                                        description: `Catatan pemeriksaan pada ${el.name} (${currentTarget.name})`,
+                                        category: 'Minor NC',
+                                        vesselId: currentTarget.id,
+                                        targetName: currentTarget.name
+                                      });
+                                      setFindingDefaultAuditId(currentTarget.lastAudit?.id || null);
+                                      setFindingModalOpen(true);
+                                    }}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.7rem', padding: '0.25rem 0.5rem' }}
+                                  >
+                                    + Jadikan NC
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                    {/* Empty state: lembaga belum punya template checklist */}
+                    {activeChecklistItems.length === 0 && customChecklistItems.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                            <FileText size={32} color="#94a3b8" />
+                            <strong style={{ fontSize: '0.85rem' }}>
+                              Belum ada butir checklist untuk {activeChecklistConfig.organizationName || 'lembaga ini'}
+                            </strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '460px', lineHeight: 1.6 }}>
+                              {activeChecklistConfig.note || 'Isi checklist setiap lembaga audit berbeda-beda, sehingga butir pemeriksaan perlu disusun sesuai regulasi lembaga terkait.'}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              Gunakan panel <strong>Input Item Audit Manual</strong> di atas untuk menambahkan butir pemeriksaan.
+                            </span>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -2087,7 +2619,7 @@ export const AuditManager = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL CETAK LAPORAN AUDIT RESMI (DOC/SMC & NCR CLOSEOUT)                  */}
+      {/* MODAL CETAK LAPORAN AUDIT RESMI (DOC/SMC, NCR CLOSEOUT & CHECKLIST)       */}
       {/* ========================================================================= */}
       {reportModalOpen && (
         <AuditReportModal
@@ -2100,6 +2632,210 @@ export const AuditManager = () => {
             setReportModalFinding(null);
           }}
         />
+      )}
+
+      {/* Modal Preview Bukti Audit Checklist Onboard */}
+      {previewChecklistEvidence && (
+        <div
+          className="modal-overlay"
+          style={{ zIndex: 12000, background: 'rgba(0,0,0,0.75)' }}
+          onClick={() => setPreviewChecklistEvidence(null)}
+        >
+          <div
+            className="modal-dialog"
+            style={{ maxWidth: '720px', width: '90%', background: 'var(--bg-surface)', borderRadius: '12px', overflow: 'hidden' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Eye size={18} color="#0284c7" />
+                <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>Pratinjau Bukti Audit: {previewChecklistEvidence.fileName}</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewChecklistEvidence(null)}
+                className="btn btn-secondary btn-sm"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div style={{ padding: '1.25rem', textAlign: 'center', background: 'var(--bg-input)' }}>
+              {previewChecklistEvidence.fileUrl?.startsWith('data:image') || previewChecklistEvidence.fileName?.endsWith('.svg') || previewChecklistEvidence.fileName?.endsWith('.png') || previewChecklistEvidence.fileName?.endsWith('.jpg') ? (
+                <img
+                  src={previewChecklistEvidence.fileUrl}
+                  alt="Bukti Audit"
+                  style={{ maxWidth: '100%', maxHeight: '480px', borderRadius: '8px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+                />
+              ) : (
+                <div style={{ padding: '2rem', background: 'var(--bg-surface)', borderRadius: '8px' }}>
+                  <FileText size={48} color="#0284c7" style={{ margin: '0 auto 1rem' }} />
+                  <p style={{ fontWeight: 700 }}>{previewChecklistEvidence.fileName}</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ukuran Berkas: {previewChecklistEvidence.fileSize}</p>
+                  <a
+                    href={previewChecklistEvidence.fileUrl}
+                    download={previewChecklistEvidence.fileName}
+                    className="btn btn-primary btn-sm"
+                    style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <span>Unduh Dokumen Berkas</span>
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer" style={{ padding: '0.65rem 1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setPreviewChecklistEvidence(null)}
+                className="btn btn-secondary btn-sm"
+              >
+                Tutup Pratinjau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* IN-APP CONFIRMATION MODAL FOR DELETION (NO BLOCKED WINDOW.CONFIRM)        */}
+      {/* ========================================================================= */}
+      {deleteConfirmModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 15000,
+            background: 'rgba(3, 7, 18, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setDeleteConfirmModal(null)}
+        >
+          <div
+            className="glass-card"
+            style={{
+              maxWidth: '480px',
+              width: '100%',
+              background: 'var(--bg-surface-card)',
+              backgroundColor: 'var(--bg-surface-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '14px',
+              boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.75)',
+              overflow: 'hidden',
+              opacity: 1
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              background: 'var(--bg-surface-elevated)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem'
+            }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ef4444',
+                flexShrink: 0
+              }}>
+                <Trash2 size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
+                  {deleteConfirmModal.title}
+                </h3>
+                <p style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700, margin: '0.15rem 0 0 0' }}>
+                  Tindakan ini permanen & tidak dapat dibatalkan
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal(null)}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.3rem 0.5rem' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '8px',
+                background: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                  {deleteConfirmModal.type === 'session' ? 'Nomor Sesi Audit:' : 'Nomor Temuan:'}
+                </div>
+                <div className="mono" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ef4444' }}>
+                  {deleteConfirmModal.code}
+                </div>
+                {deleteConfirmModal.targetName && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Target Armada: <strong style={{ color: 'var(--text-main)' }}>{deleteConfirmModal.targetName}</strong>
+                  </div>
+                )}
+              </div>
+
+              <p style={{ fontSize: '0.82rem', lineHeight: '1.55', color: 'var(--text-muted)', margin: 0 }}>
+                {deleteConfirmModal.details}
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '1rem 1.5rem',
+              background: 'var(--bg-surface-elevated)',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.75rem'
+            }}>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmModal(null)}
+                className="btn btn-secondary"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.82rem' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={deleteConfirmModal.onConfirm}
+                className="btn"
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Trash2 size={14} />
+                <span>Ya, Hapus Permanen</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -12,7 +12,9 @@ import {
   Trash2,
   Printer,
   Cpu,
-  Activity
+  Activity,
+  CheckSquare,
+  Edit3
 } from 'lucide-react';
 
 export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose }) => {

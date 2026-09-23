@@ -107,7 +107,7 @@ const AppContent = () => {
               Akses Modul Dibatasi Sesuai Peran
             </h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.25rem' }}>
-              Peran aktif Anda sebagai <strong style={{ color: roleDef.badgeColor || '#38bdf8' }}>{roleDef.label || currentRole}</strong> tidak memiliki otorisasi untuk mengakses modul ini (<span className="mono">{activeTab}</span>).
+              Peran aktif Anda sebagai <strong style={{ color: roleDef.color || '#38bdf8' }}>{roleDef.label || currentRole}</strong> tidak memiliki otorisasi untuk mengakses modul ini (<span className="mono">{activeTab}</span>).
             </p>
             <div style={{
               padding: '0.85rem 1.1rem',

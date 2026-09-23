@@ -32,7 +32,9 @@ import {
   INITIAL_AUDITS,
   INITIAL_AUDIT_FINDINGS,
   ISM_DOC_ELEMENTS,
-  ISM_SMC_ELEMENTS
+  BKI_SMC_CHECKLIST_TEMPLATE,
+  ISM_SMC_ELEMENTS,
+  EXTERNAL_AUDIT_ORGANIZATIONS
 } from '../data/auditMasterData';
 import * as DEMO_DATA from '../data/sampleSeedData';
 import { calculateNCRange } from '../utils/auditTimeUtils';
@@ -147,7 +149,14 @@ export const PMSProvider = ({ children }) => {
     }
   };
 
-  const [vessels, setVessels] = useState(() => loadStored('vessels', INITIAL_VESSELS));
+  const [vessels, setVessels] = useState(() => {
+    const loaded = loadStored('vessels', INITIAL_VESSELS);
+    if (Array.isArray(loaded) && !loaded.some(v => v.name?.includes('RP 2004'))) {
+      const rp2004 = DEMO_DATA.INITIAL_VESSELS?.find(v => v.name?.includes('RP 2004'));
+      if (rp2004) return [...loaded, rp2004];
+    }
+    return loaded;
+  });
   const [equipment, setEquipment] = useState(() => loadStored('equipment', INITIAL_EQUIPMENT));
   const [schedules, setSchedules] = useState(() => loadStored('schedules', INITIAL_MAINTENANCE_SCHEDULES));
   const [workOrders, setWorkOrders] = useState(() => loadStored('workOrders', INITIAL_WORK_ORDERS));
@@ -212,8 +221,30 @@ export const PMSProvider = ({ children }) => {
   const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
-  const [audits, setAudits] = useState(() => loadStored('audits', INITIAL_AUDITS));
-  const [auditFindings, setAuditFindings] = useState(() => loadStored('auditFindings', INITIAL_AUDIT_FINDINGS));
+  const [audits, setAudits] = useState(() => {
+    const loaded = loadStored('audits', INITIAL_AUDITS);
+    if (Array.isArray(loaded)) {
+      return loaded.map(a => ({
+        ...a,
+        externalOrganization: typeof a.externalOrganization === 'object' && a.externalOrganization !== null
+          ? (a.externalOrganization.name || a.externalOrganization.shortName || 'Biro Klasifikasi Indonesia (BKI)')
+          : a.externalOrganization
+      }));
+    }
+    return INITIAL_AUDITS;
+  });
+  const [auditFindings, setAuditFindings] = useState(() => {
+    const loaded = loadStored('auditFindings', INITIAL_AUDIT_FINDINGS);
+    if (Array.isArray(loaded)) {
+      return loaded.map(f => ({
+        ...f,
+        externalOrganization: typeof f.externalOrganization === 'object' && f.externalOrganization !== null
+          ? (f.externalOrganization.name || f.externalOrganization.shortName || 'Biro Klasifikasi Indonesia (BKI)')
+          : f.externalOrganization
+      }));
+    }
+    return INITIAL_AUDIT_FINDINGS;
+  });
 
   // CMS Site Configuration (login page content, branding, backgrounds)
   // CMS Site Configuration (login page content, branding, backgrounds)
@@ -1877,20 +1908,26 @@ export const PMSProvider = ({ children }) => {
       ...auditData,
       id: `aud-${Date.now()}`,
       auditNo,
+      reportId: auditData.reportId || `PT. PELAYARAN BAHARIMAS KALIMANTAN - ${auditData.targetName || 'RP'} - ${auditNo}`,
+      docRevision: auditData.docRevision || 'F23.14.06-2024 Rev 05',
       auditType: auditData.auditType || 'Internal',
+      externalOrganization: auditData.externalOrganization || (auditData.auditType === 'External' ? 'Biro Klasifikasi Indonesia (BKI)' : null),
       standard: std,
       targetType: auditData.targetType || (std === 'DOC' ? 'Office' : 'Vessel'),
       targetName: auditData.targetName || (auditData.vesselId ? (vessels.find(v => v.id === auditData.vesselId)?.name || 'Kapal Armada') : 'Kantor Pusat PT. Pelayaran Baharimas Kalimantan (Pontianak)'),
+      areaUnderAudit: auditData.areaUnderAudit || auditData.targetName || '',
       vesselId: auditData.vesselId || null,
-      leadAuditor: auditData.leadAuditor || (isInt ? 'DPA / Lead Auditor Internal PT. PBK' : 'Surveyor BKI / Ditjen Hubla'),
+      leadAuditor: auditData.leadAuditor || (isInt ? 'DPA / Lead Auditor Internal PT. PBK' : 'MUHSON NURROCHMAT S'),
       auditTeam: Array.isArray(auditData.auditTeam) ? auditData.auditTeam : (auditData.auditTeam ? [auditData.auditTeam] : ['Tim Inspektor Keselamatan']),
-      auditee: auditData.auditee || (std === 'DOC' ? 'Direktur Operasional & DPA' : 'Nakhoda & KKM'),
+      auditee: auditData.auditee || (std === 'DOC' ? 'Direktur Operasional & DPA' : 'CAPT. EKHSAN (Nakhoda)'),
+      auditLocation: auditData.auditLocation || 'PULANG PISAU',
       auditDate: auditData.auditDate || new Date().toISOString().split('T')[0],
       targetCloseDate: auditData.targetCloseDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       scope: auditData.scope || `Audit ${auditData.auditType || 'Internal'} Kepatuhan ISM Code Standar ${std}.`,
       status: auditData.status || 'In Progress',
       totalItemsChecked: Number(auditData.totalItemsChecked) || 20,
       itemsComplied: Number(auditData.itemsComplied) || 18,
+      checklist: auditData.checklist || [],
       findingsSummary: auditData.findingsSummary || {
         majorNC: 0,
         minorNC: 0,
@@ -1920,22 +1957,58 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteAuditSession = (auditId) => {
-    const target = audits.find(a => a.id === auditId);
+    if (!auditId) return;
+    const cleanId = String(auditId).trim().toLowerCase();
+    let deletedLabel = String(auditId).trim();
+
     setAudits(prev => {
-      const next = prev.filter(a => a.id !== auditId);
-      localStorage.setItem('pms_audits', JSON.stringify(next));
+      const target = prev.find(a =>
+        String(a.id || '').trim().toLowerCase() === cleanId ||
+        String(a.auditNo || '').trim().toLowerCase() === cleanId
+      );
+      const targetId = target?.id ? String(target.id).trim().toLowerCase() : cleanId;
+      const targetNo = target?.auditNo ? String(target.auditNo).trim().toLowerCase() : cleanId;
+      if (target?.auditNo) deletedLabel = target.auditNo;
+
+      const next = prev.filter(a => {
+        const aId = String(a.id || '').trim().toLowerCase();
+        const aNo = String(a.auditNo || '').trim().toLowerCase();
+        if (aId === targetId || aId === cleanId) return false;
+        if (aNo === targetNo || aNo === cleanId) return false;
+        return true;
+      });
+
+      try {
+        localStorage.setItem('pms_audits', JSON.stringify(next));
+      } catch (err) {
+        console.error('Failed saving pms_audits:', err);
+      }
       return next;
     });
+
     setAuditFindings(prev => {
-      const next = prev.filter(f => f.auditId !== auditId);
-      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      const next = prev.filter(f => {
+        const fAuditId = String(f.auditId || '').trim().toLowerCase();
+        const fAuditNo = String(f.auditNo || '').trim().toLowerCase();
+        if (fAuditId === cleanId) return false;
+        if (deletedLabel && fAuditNo === deletedLabel.toLowerCase()) return false;
+        return true;
+      });
+
+      try {
+        localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      } catch (err) {
+        console.error('Failed saving pms_auditFindings:', err);
+      }
       return next;
     });
-    showToast(`Sesi audit ${target?.auditNo || auditId} berhasil dihapus.`, 'info');
+
+    showToast(`✓ Sesi audit "${deletedLabel}" berhasil dihapus.`, 'info');
   };
 
   const addAuditFinding = (findingData) => {
     const std = findingData.standard || 'DOC';
+    const year = new Date().getFullYear();
     const randomNum = Math.floor(Math.random() * 9000 + 1000);
     const findingNo = findingData.findingNo?.trim() || `NC-${std}-${randomNum}`;
 
@@ -1943,37 +2016,53 @@ export const PMSProvider = ({ children }) => {
       ...findingData,
       id: `nc-${Date.now()}`,
       findingNo,
+      reportId: findingData.reportId || `0859 - PK/ISM- SMC /${year}`,
+      areaUnderAudit: findingData.areaUnderAudit || findingData.targetName || (findingData.vesselId ? (vessels.find(v => v.id === findingData.vesselId)?.name) : 'Kantor Pusat'),
+      elementNumberOfCode: findingData.elementNumberOfCode || findingData.clauseCode || '5.1.5',
       auditId: findingData.auditId || (audits[0]?.id || 'aud-doc-001'),
       auditNo: findingData.auditNo || (audits.find(a => a.id === findingData.auditId)?.auditNo || 'AUD-ISM'),
       auditType: findingData.auditType || 'Internal',
+      externalOrganization: findingData.externalOrganization || null,
       standard: std,
       targetName: findingData.targetName || (findingData.vesselId ? (vessels.find(v => v.id === findingData.vesselId)?.name) : 'Kantor Pusat'),
       vesselId: findingData.vesselId || null,
-      clauseCode: findingData.clauseCode || 'ISM-10',
-      clauseName: findingData.clauseName || 'Pemeliharaan Kapal & Perlengkapan',
-      category: findingData.category || 'Minor NC',
-      status: 'NC Open',
+      clauseCode: findingData.clauseCode || '5.1.5',
+      clauseName: findingData.clauseName || 'Tanggung Jawab & Wewenang Nakhoda',
+      category: findingData.category || 'Non-Conformity',
+      status: findingData.status || 'NC Open',
       description: findingData.description || '',
       objectiveEvidence: findingData.objectiveEvidence || '',
       dateIdentified: findingData.dateIdentified || new Date().toISOString().split('T')[0],
       dueDate: findingData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      assignedTo: findingData.assignedTo || 'PIC Terkait',
-      auditor: findingData.auditor || 'Lead Auditor',
+      agreedDate: findingData.agreedDate || findingData.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      assignedTo: findingData.assignedTo || 'Nakhoda / Master',
+      auditor: findingData.auditor || 'MUHSON NURROCHMAT S',
+      auditee: findingData.auditee || 'CAPT. EKHSAN',
+      correction: findingData.correction || '',
+      rootCause: findingData.rootCause || '',
+      correctiveAction: findingData.correctiveAction || '',
+      verifiedUpgradeDowngrade: findingData.verifiedUpgradeDowngrade || null,
+      verifiedSatisfactory: findingData.verifiedSatisfactory ?? null,
+      auditorSignatureDate: findingData.auditorSignatureDate || null,
+      auditeeSignatureDate: findingData.auditeeSignatureDate || null,
       linkedRequisitionId: findingData.linkedRequisitionId || null,
       linkedRequisitionTitle: findingData.linkedRequisitionTitle || null,
       linkedCertificateId: findingData.linkedCertificateId || null,
       evidence: {
-        hasSubmitted: false,
-        submissionDate: null,
-        submittedBy: null,
-        rootCause: null,
-        correctiveAction: null,
-        preventiveAction: null,
-        fileUrl: null,
-        fileName: null,
-        fileSize: null,
-        auditorReviewNotes: null,
-        closedDate: null
+        hasSubmitted: findingData.evidence?.hasSubmitted || false,
+        submissionDate: findingData.evidence?.submissionDate || null,
+        submittedBy: findingData.evidence?.submittedBy || null,
+        correction: findingData.evidence?.correction || findingData.correction || null,
+        rootCause: findingData.evidence?.rootCause || findingData.rootCause || null,
+        correctiveAction: findingData.evidence?.correctiveAction || findingData.correctiveAction || null,
+        preventiveAction: findingData.evidence?.preventiveAction || null,
+        fileUrl: findingData.evidence?.fileUrl || null,
+        fileName: findingData.evidence?.fileName || null,
+        fileSize: findingData.evidence?.fileSize || null,
+        auditorReviewNotes: findingData.evidence?.auditorReviewNotes || null,
+        closedDate: findingData.evidence?.closedDate || null,
+        verifiedUpgradeDowngrade: findingData.evidence?.verifiedUpgradeDowngrade || null,
+        verifiedSatisfactory: findingData.evidence?.verifiedSatisfactory ?? null
       }
     };
 
@@ -2016,13 +2105,36 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteAuditFinding = (findingId) => {
-    const target = auditFindings.find(f => f.id === findingId);
+    if (!findingId) return;
+    const cleanId = String(findingId).trim().toLowerCase();
+    let deletedLabel = String(findingId).trim();
+
     setAuditFindings(prev => {
-      const next = prev.filter(f => f.id !== findingId);
-      localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      const target = prev.find(f =>
+        String(f.id || '').trim().toLowerCase() === cleanId ||
+        String(f.findingNo || '').trim().toLowerCase() === cleanId
+      );
+      const targetId = target?.id ? String(target.id).trim().toLowerCase() : cleanId;
+      const targetNo = target?.findingNo ? String(target.findingNo).trim().toLowerCase() : cleanId;
+      if (target?.findingNo) deletedLabel = target.findingNo;
+
+      const next = prev.filter(f => {
+        const fId = String(f.id || '').trim().toLowerCase();
+        const fNo = String(f.findingNo || '').trim().toLowerCase();
+        if (fId === targetId || fId === cleanId) return false;
+        if (fNo === targetNo || fNo === cleanId) return false;
+        return true;
+      });
+
+      try {
+        localStorage.setItem('pms_auditFindings', JSON.stringify(next));
+      } catch (err) {
+        console.error('Failed saving pms_auditFindings:', err);
+      }
       return next;
     });
-    showToast(`Temuan ${target?.findingNo || findingId} berhasil dihapus.`, 'info');
+
+    showToast(`✓ Temuan "${deletedLabel}" berhasil dihapus.`, 'info');
   };
 
   const submitAuditEvidence = (findingId, evidenceData) => {
@@ -3140,8 +3252,6 @@ export const PMSProvider = ({ children }) => {
         allAudits: audits,
         auditFindings: filteredAuditFindings,
         allAuditFindings: auditFindings,
-        ISM_DOC_ELEMENTS,
-        ISM_SMC_ELEMENTS,
         notificationSettings,
         notificationLogs,
         users,
@@ -3309,7 +3419,13 @@ export const PMSProvider = ({ children }) => {
         deleteAuditFinding,
         submitAuditEvidence,
         closeAuditFinding,
-        reopenAuditFinding
+        reopenAuditFinding,
+
+        // Audit Masters
+        ISM_DOC_ELEMENTS,
+        BKI_SMC_CHECKLIST_TEMPLATE,
+        ISM_SMC_ELEMENTS,
+        EXTERNAL_AUDIT_ORGANIZATIONS
       }}
     >
       {children}

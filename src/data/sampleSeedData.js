@@ -30,6 +30,28 @@ const RAW_INITIAL_VESSELS = [
     "photo": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80",
     "ownershipStatus": "As Owner",
     "ownershipCategory": "Owner"
+  },
+  {
+    "id": "v-rp2004",
+    "name": "RP 2004",
+    "regNo": "YD 4180",
+    "imo": "1672810",
+    "callSign": "YD 4180",
+    "type": "Other cargo ship (Tugboat Towing Oil Barge)",
+    "flag": "Indonesia (IDN)",
+    "portOfRegistry": "PONTIANAK",
+    "gt": 174,
+    "dwt": 260,
+    "yearBuilt": 2018,
+    "builder": "PT Dok & Perkapalan Baharimas Pontianak",
+    "status": "Operasional (Berlayar)",
+    "currentLocation": "PULANG PISAU",
+    "speedKnots": 8.0,
+    "chiefEngineer": "Ir. Syaiful (KKM)",
+    "masterCaptain": "CAPT. EKHSAN (DPA / Master)",
+    "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "ownershipStatus": "As Owner",
+    "ownershipCategory": "Owner"
   }
 ];
 
