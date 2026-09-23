@@ -632,15 +632,31 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
   // Stats Calculation
   const checklistStats = useMemo(() => {
     const total = checklist.length;
-    const answered = checklist.filter(c => c.result && c.result !== '').length;
-    const complied = checklist.filter(c => c.result === 'Complied' || c.result === 'Yes').length;
-    const obs = checklist.filter(c => c.result === 'Observation').length;
-    const minorNC = checklist.filter(c => c.result === 'Minor NC' || c.result === 'No').length;
-    const majorNC = checklist.filter(c => c.result === 'Major NC').length;
+    const answered = checklist.filter(c => (c.result && c.result !== '') || c.isStrikethrough).length;
+    const yes = checklist.filter(c => !c.isStrikethrough && (c.result === 'Complied' || c.result === 'Yes')).length;
+    const no = checklist.filter(c => !c.isStrikethrough && ['No', 'Major NC', 'Minor NC', 'Observation'].includes(c.result)).length;
+    const obs = checklist.filter(c => !c.isStrikethrough && c.result === 'Observation').length;
+    const minorNC = checklist.filter(c => !c.isStrikethrough && (c.result === 'Minor NC' || c.result === 'No')).length;
+    const majorNC = checklist.filter(c => !c.isStrikethrough && c.result === 'Major NC').length;
     const na = checklist.filter(c => c.result === 'N/A' || c.isStrikethrough).length;
+    const unanswered = Math.max(0, total - answered);
+    const evidenceCount = checklist.filter(c => Boolean(c.evidence)).length;
     const effectiveTotal = total - na > 0 ? total - na : total;
-    const score = effectiveTotal > 0 && answered > 0 ? Math.round((complied / effectiveTotal) * 100) : 0;
-    return { total, answered, complied, obs, minorNC, majorNC, na, score };
+    const score = effectiveTotal > 0 && answered > 0 ? Math.round((yes / effectiveTotal) * 100) : 0;
+    return {
+      total,
+      answered,
+      unanswered,
+      yes,
+      complied: yes,
+      no,
+      obs,
+      minorNC,
+      majorNC,
+      na,
+      evidenceCount,
+      score
+    };
   }, [checklist]);
 
   // Submit complete session
@@ -2023,19 +2039,23 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                     )}
 
                     {/* Filter Bar */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                       {[
-                        { id: 'ALL', label: `Semua Butir (${checklist.length})` },
+                        { id: 'ALL', label: `Semua (${checklist.length})` },
+                        { id: 'YES', label: `Yes (${checklistStats.yes})` },
+                        { id: 'NO', label: `No (${checklistStats.no})` },
+                        { id: 'NA', label: `N/A (${checklistStats.na})` },
+                        { id: 'UNANSWERED', label: `Belum Diisi (${checklistStats.unanswered})` },
                         { id: 'CORE', label: `Klausul Aktif (${checklist.filter(c => !c.isStrikethrough).length})` },
-                        { id: 'STRIKETHROUGH', label: `Klausul Dicoret (${checklist.filter(c => c.isStrikethrough).length})` },
-                        { id: 'HAS_EVIDENCE', label: `Memiliki Bukti Audit (${checklist.filter(c => Boolean(c.evidence)).length})` }
+                        { id: 'STRIKETHROUGH', label: `Dicoret (${checklist.filter(c => c.isStrikethrough).length})` },
+                        { id: 'HAS_EVIDENCE', label: `Ada Bukti (${checklistStats.evidenceCount})` }
                       ].map(f => (
                         <button
                           key={f.id}
                           type="button"
                           onClick={() => setChecklistFilter(f.id)}
                           className={`btn btn-sm ${checklistFilter === f.id ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontSize: '0.72rem', padding: '0.25rem 0.65rem' }}
+                          style={{ fontSize: '0.72rem', padding: '0.22rem 0.55rem' }}
                         >
                           {f.label}
                         </button>
@@ -2220,20 +2240,35 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                     )}
 
                     {/* Scorecard Bar */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.78rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-subtle)', flexWrap: 'wrap', gap: '0.65rem', fontSize: '0.78rem' }}>
                       <span style={{ color: 'var(--text-muted)' }}>
                         Total Item Ditampilkan: <strong style={{ color: 'var(--text-main)' }}>{checklist.length}</strong>
                       </span>
-                      <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-                        <span style={{ color: '#10b981', fontWeight: 700 }}>{checklistStats.complied} Complied</span>
+                      <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.28rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+                          <span>{checklistStats.yes} Yes (Sesuai)</span>
+                        </span>
                         <span>•</span>
-                        <span style={{ color: '#60a5fa', fontWeight: 700 }}>{checklistStats.obs} Observasi</span>
+                        <span style={{ color: '#dc2626', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.28rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', display: 'inline-block' }}></span>
+                          <span>{checklistStats.no} No (Temuan NC)</span>
+                        </span>
                         <span>•</span>
-                        <span style={{ color: '#f59e0b', fontWeight: 700 }}>{checklistStats.minorNC} Minor NC</span>
+                        <span style={{ color: '#64748b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.28rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748b', display: 'inline-block' }}></span>
+                          <span>{checklistStats.na} N/A (Tidak Berlaku)</span>
+                        </span>
                         <span>•</span>
-                        <span style={{ color: '#f87171', fontWeight: 700 }}>{checklistStats.majorNC} Major NC</span>
+                        <span style={{ color: '#f59e0b', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.28rem' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}></span>
+                          <span>{checklistStats.unanswered} Belum Diisi</span>
+                        </span>
                         <span>•</span>
-                        <span style={{ color: '#0284c7', fontWeight: 700 }}>{checklist.filter(c => Boolean(c.evidence)).length} Bukti Terunggah</span>
+                        <span style={{ color: '#0284c7', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.28rem' }}>
+                          <Paperclip size={13} />
+                          <span>{checklistStats.evidenceCount} Bukti Terunggah</span>
+                        </span>
                       </div>
                       <span className="badge badge-info" style={{ fontWeight: 800 }}>
                         Skor: {checklistStats.score}%
@@ -2276,6 +2311,10 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                               if (checklistFilter === 'CORE') return !item.isStrikethrough;
                               if (checklistFilter === 'STRIKETHROUGH') return item.isStrikethrough;
                               if (checklistFilter === 'HAS_EVIDENCE') return Boolean(item.evidence);
+                              if (checklistFilter === 'YES') return !item.isStrikethrough && (item.result === 'Complied' || item.result === 'Yes');
+                              if (checklistFilter === 'NO') return !item.isStrikethrough && ['No', 'Major NC', 'Minor NC', 'Observation'].includes(item.result);
+                              if (checklistFilter === 'NA') return item.isStrikethrough || item.result === 'N/A';
+                              if (checklistFilter === 'UNANSWERED') return !item.isStrikethrough && (!item.result || item.result === '');
                               return true;
                             })
                             .map((item, idx) => {
@@ -2759,7 +2798,7 @@ export const AuditSessionModal = ({ session, onClose, defaultVesselId, defaultSt
                     Standar: {standard} ({auditType})
                   </span>
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {checklistStats.complied}/{checklistStats.total} Patuh ({checklistStats.score}%)
+                    {checklistStats.yes}/{checklistStats.total} Yes (Sesuai) • {checklistStats.no} No • {checklistStats.na} N/A ({checklistStats.score}% Skor)
                   </span>
                 </div>
 
