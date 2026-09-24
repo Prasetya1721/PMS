@@ -380,18 +380,27 @@ export const AuditManager = ({ initialStandard = null }) => {
       const resultsMap = {};
       const notesMap = {};
       const evidenceMap = {};
+      const strikedMap = {};
       activeSession.checklist.forEach(item => {
         if (item.code) {
           if (item.result) resultsMap[item.code] = item.result;
           if (item.notes) notesMap[item.code] = item.notes;
           if (item.evidence) evidenceMap[item.code] = item.evidence;
+          if (item.isStrikethrough !== undefined) strikedMap[item.code] = Boolean(item.isStrikethrough);
         }
       });
-      setVesselChecklistResults(prev => ({ ...prev, ...resultsMap }));
-      setVesselChecklistNotes(prev => ({ ...prev, ...notesMap }));
-      setChecklistEvidenceMap(prev => ({ ...prev, ...evidenceMap }));
+      setVesselChecklistResults(resultsMap);
+      setVesselChecklistNotes(notesMap);
+      setChecklistEvidenceMap(evidenceMap);
+      setVesselStrikethroughOverrides(strikedMap);
+    } else {
+      // Default kosongkan jika belum ada audit atau belum ada checklist tersimpan
+      setVesselChecklistResults({});
+      setVesselChecklistNotes({});
+      setChecklistEvidenceMap({});
+      setVesselStrikethroughOverrides({});
     }
-  }, [activeSession?.id]);
+  }, [activeSession?.id, activeTargetId]);
 
   // Hitung progres checklist real-time untuk lifecycle stepper
   const checklistProgress = useMemo(() => {
@@ -881,7 +890,7 @@ export const AuditManager = ({ initialStandard = null }) => {
       [code]: nextStriked
     }));
 
-    const nextRes = nextStriked ? 'N/A' : (vesselChecklistResults[code] === 'N/A' ? 'Complied' : (vesselChecklistResults[code] || 'Complied'));
+    const nextRes = nextStriked ? 'N/A' : (vesselChecklistResults[code] === 'N/A' ? '' : (vesselChecklistResults[code] || ''));
     setVesselChecklistResults(prev => ({
       ...prev,
       [code]: nextRes
@@ -3041,7 +3050,7 @@ export const AuditManager = ({ initialStandard = null }) => {
 
                       <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ fontSize: '0.75rem' }}>
-                          Kepatuhan: <strong style={{ color: '#10b981' }}>{s.totalItemsChecked ? Math.round((s.itemsComplied / s.totalItemsChecked) * 100) : 100}%</strong>
+                          Kepatuhan: <strong style={{ color: '#10b981' }}>{s.totalItemsChecked ? Math.round((s.itemsComplied / s.totalItemsChecked) * 100) : 0}%</strong>
                         </div>
                         <div style={{ display: 'flex', gap: '0.35rem' }}>
                           <button
@@ -3194,7 +3203,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                       : Boolean(el.isStrikethrough);
                     const res = vesselChecklistResults[el.code] !== undefined
                       ? vesselChecklistResults[el.code]
-                      : (isStriked ? 'N/A' : (el.result || 'Complied'));
+                      : (isStriked ? 'N/A' : (el.result || ''));
                     return !isStriked && (res === 'Complied' || res === 'Yes');
                   }).length;
 
@@ -3204,7 +3213,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                       : Boolean(el.isStrikethrough);
                     const res = vesselChecklistResults[el.code] !== undefined
                       ? vesselChecklistResults[el.code]
-                      : (isStriked ? 'N/A' : (el.result || 'Complied'));
+                      : (isStriked ? 'N/A' : (el.result || ''));
                     return !isStriked && ['Minor NC', 'Major NC', 'Observation', 'No'].includes(res);
                   }).length;
 
@@ -3214,7 +3223,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                       : Boolean(el.isStrikethrough);
                     const res = vesselChecklistResults[el.code] !== undefined
                       ? vesselChecklistResults[el.code]
-                      : (isStriked ? 'N/A' : (el.result || 'Complied'));
+                      : (isStriked ? 'N/A' : (el.result || ''));
                     return isStriked || res === 'N/A';
                   }).length;
 
@@ -3616,7 +3625,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                         const itemOverride = vesselItemOverrides[el.code] || {};
                         const effectiveResult = vesselChecklistResults[el.code] !== undefined
                           ? vesselChecklistResults[el.code]
-                          : (isStriked ? 'N/A' : (itemOverride.result || el.result || 'Complied'));
+                          : (isStriked ? 'N/A' : (itemOverride.result || el.result || ''));
                         const isYes = !isStriked && (effectiveResult === 'Complied' || effectiveResult === 'Yes');
                         const isNo = !isStriked && ['Minor NC', 'Major NC', 'Observation', 'No'].includes(effectiveResult);
                         const isNA = isStriked || effectiveResult === 'N/A';
@@ -3637,9 +3646,9 @@ export const AuditManager = ({ initialStandard = null }) => {
                         const effectiveItem = { ...el, ...itemOverride };
                         const effectiveResult = vesselChecklistResults[el.code] !== undefined
                           ? vesselChecklistResults[el.code]
-                          : (isStrikethrough ? 'N/A' : (itemOverride.result || el.result || 'Complied'));
-                        const isYes = !isStriked(effectiveResult) && (effectiveResult === 'Complied' || effectiveResult === 'Yes');
-                        const isNo = !isStriked(effectiveResult) && ['Minor NC', 'Major NC', 'Observation', 'No'].includes(effectiveResult);
+                          : (isStrikethrough ? 'N/A' : (itemOverride.result || el.result || ''));
+                        const isYes = !isStrikethrough && (effectiveResult === 'Complied' || effectiveResult === 'Yes');
+                        const isNo = !isStrikethrough && ['Minor NC', 'Major NC', 'Observation', 'No'].includes(effectiveResult);
                         const isNA = isStrikethrough || effectiveResult === 'N/A';
                         const currentNotes = vesselChecklistNotes[el.code] !== undefined
                           ? vesselChecklistNotes[el.code]
