@@ -153,37 +153,75 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   const [showRoleFlowModal, setShowRoleFlowModal] = useState(false);
 
-  // Helper deskripsi tanggung jawab peran sesuai tahap aktif
-  const getRoleGuidance = (tab, role) => {
-    if (role === 'dpa') {
-      switch (tab) {
-        case 'sessions':
-          return 'DPA merencanakan jadwal audit periodik, menunjuk Lead Auditor & tim independen, menetapkan tanggal pelaksanaan, dan mengirimkan surat tugas resmi ke kapal.';
-        case 'checklist':
-          return 'DPA / Auditor memantau evaluasi 74 butir klausul SMC kapal / 13 seksi DOC kantor, memverifikasi kesesuaian SOP darat dengan kapal, dan mencoret klausul N/A.';
-        case 'findings':
-          return 'DPA / Auditor meninjau daftar temuan, menetapkan derajat ketidaksesuaian (Major/Minor/Obs), menentukan target batas waktu (Due Date), dan menerbitkan form NCR.';
-        case 'capa':
-          return 'DPA memeriksa bukti fisik perbaikan yang dikirimkan oleh Nakhoda, mengevaluasi efektivitas tindakan perbaikan (CAPA), dan mengesahkan penutupan temuan (Close NC).';
-        case 'reporting':
-          return 'DPA menetapkan Deklarasi Kelaiklautan (Fit to Sail / Full Compliance), mengunci sesi audit menjadi Completed, dan menandatangani Laporan Eksekutif.';
-        default:
-          return 'DPA memantau kepatuhan sertifikat statutory kapal dan ketersediaan suku cadang kritis.';
+  // Helper deskripsi tanggung jawab peran sesuai tahap aktif terpisah untuk SMC dan DOC
+  const getRoleGuidance = (tab, role, standard = 'SMC') => {
+    const isDoc = standard === 'DOC';
+
+    if (isDoc) {
+      // PANDUAN DEDIKASI AUDIT DOC (KANTOR PUSAT PERUSAHAAN PT. PBK)
+      if (role === 'dpa') {
+        switch (tab) {
+          case 'sessions':
+            return 'DPA & Lead Auditor merencanakan audit Sistem Manajemen Keselamatan (SMS) Kantor Pusat PT. PBK, menyusun Audit Plan tiap departemen darat (Direksi, HR/Crewing, Teknis, Logistik, HSSE), dan menetapkan jadwal Opening Meeting.';
+          case 'checklist':
+            return 'Auditor mengevaluasi pemenuhan 13 Seksi ISM Code Standar BKI F23.14.05 Rev 06 untuk Kantor Pusat: memverifikasi manual SMS darat, komitmen direksi, kualifikasi personel, kesiapsiagaan ERT darat, dan pengadaan logistik kapal.';
+          case 'findings':
+            return 'Auditor merumuskan temuan audit kantor (Major NC, Minor NC, atau Observation) terhadap kesenjangan prosedur darat dengan implementasi nyata pada berkas administrasi dan dukungan armada.';
+          case 'capa':
+            return 'DPA mengevaluasi usulan CAPA dari Kepala Departemen darat, memastikan akar masalah (RCA) prosedural tertangani, memverifikasi revisi SOP/rekaman darat, dan mengesahkan penutupan temuan (Close NC).';
+          case 'reporting':
+            return 'Lead Auditor & DPA menerbitkan Laporan Resmi Audit DOC Kantor Pusat, mempresentasikan evaluasi SMS pada Rapat Tinjauan Manajemen (Management Review), dan merekomendasikan penerbitan/pembaruan sertifikat DOC ke BKI / Ditjen Hubla.';
+          default:
+            return 'DPA memantau kepatuhan tata kelola SMS darat, pemenuhan audit internal departemen, dan sertifikasi DOC perusahaan.';
+        }
+      } else {
+        switch (tab) {
+          case 'sessions':
+            return 'Kepala Departemen Darat & Manajemen menghadiri Opening Meeting, menyiapkan rekaman kerja (HR/Crewing, Logistik, Teknis, HSSE), dan menugaskan PIC pendamping auditor di kantor pusat.';
+          case 'checklist':
+            return 'Kepala Departemen Darat menyajikan bukti objektif implementasi SMS kantor: berkas rekrutmen/evaluasi kru, rekaman drill darat (ERT), approval purchase order kapal, dan laporan supervisi superintendent.';
+          case 'findings':
+            return 'Kepala Departemen Darat menerima dan membahas temuan ketidaksesuaian prosedur operasional kantor bersama auditor, mengklarifikasi fakta, dan menandatangani lembar konfirmasi temuan NCR.';
+          case 'capa':
+            return 'Kepala Departemen Darat menganalisis akar masalah (Root Cause Analysis), memperbarui instruksi kerja/SOP kantor, mengunggah bukti perbaikan rekaman darat, dan menyerahkan berkas CAPA kepada DPA.';
+          case 'reporting':
+            return 'Manajemen Darat & Direksi menghadiri Closing Meeting, menyetujui hasil evaluasi efektivitas SMS, menindaklanjuti rekomendasi pada Rapat Tinjauan Manajemen, serta mengarsipkan laporan audit DOC.';
+          default:
+            return 'Manajemen Darat memastikan seluruh departemen kantor pusat mematuhi regulasi ISM Code dan memberikan dukungan penuh bagi keselamatan kapal di laut.';
+        }
       }
     } else {
-      switch (tab) {
-        case 'sessions':
-          return 'Nakhoda bertindak selaku Auditee Resmi, menghadiri Opening Meeting bersama tim auditor, mengonfirmasi kesiapan kru kapal, dan menyiapkan dokumen SMS di anjungan.';
-        case 'checklist':
-          return 'Nakhoda mendampingi auditor saat inspeksi fisik geladak, kamar mesin, pengujian alat keselamatan (LSA/FFA), serta verifikasi logbook navigasi dan perawatan PMS.';
-        case 'findings':
-          return 'Nakhoda menerima daftar ketidaksesuaian yang ditemukan auditor di kapal, memahami butir klausul yang terlanggar, dan menandatangani pengakuan temuan lapangan.';
-        case 'capa':
-          return 'Nakhoda memimpin perbaikan fisik onboard (Correction), menganalisis akar masalah (RCA), menyusun langkah pencegahan, melampirkan foto bukti, dan mengirimkan eviden ke DPA.';
-        case 'reporting':
-          return 'Nakhoda menghadiri Closing Meeting, menandatangani lembar penerimaan laporan audit, mengonfirmasi status Fit to Sail, dan mengarsipkan dokumen di anjungan kapal.';
-        default:
-          return 'Nakhoda memastikan masa berlaku sertifikat kapal aktif dan permintaan logistik suku cadang telah diajukan ke kantor darat.';
+      // PANDUAN DEDIKASI AUDIT SMC (KAPAL ARMADA ONBOARD)
+      if (role === 'dpa') {
+        switch (tab) {
+          case 'sessions':
+            return 'DPA merencanakan audit internal SMC kapal armada, menetapkan Lead Auditor independen, menentukan tanggal kedatangan di pelabuhan/galangan, dan mengirimkan notifikasi resmi ke Nakhoda.';
+          case 'checklist':
+            return 'DPA / Auditor memverifikasi pemenuhan 74 Butir Klausul SMC Kapal Standar BKI F23.14.06 Rev 05: uji fungsi fisik navigasi anjungan, mesin, LSA/FFA, drill darurat awak kapal, dan kesesuaian logbook dengan PMS.';
+          case 'findings':
+            return 'DPA / Auditor meninjau daftar temuan fisik maupun operasional kapal, menetapkan derajat ketidaksesuaian (Major/Minor/Obs), menentukan target batas waktu (Due Date), dan menerbitkan form NCR ke Nakhoda.';
+          case 'capa':
+            return 'DPA memeriksa bukti foto/video fisik perbaikan yang dikirimkan oleh Nakhoda dari kapal, mengevaluasi efektivitas tindakan perbaikan (CAPA), dan mengesahkan penutupan temuan (Close NC).';
+          case 'reporting':
+            return 'DPA menetapkan Deklarasi Kelaiklautan (Fit to Sail / SMC Full Compliance), mengunci sesi audit kapal menjadi Completed, dan menandatangani Laporan Eksekutif SMC.';
+          default:
+            return 'DPA memantau kepatuhan sertifikat statutory kapal dan ketersediaan suku cadang kritis armada.';
+        }
+      } else {
+        switch (tab) {
+          case 'sessions':
+            return 'Nakhoda bertindak selaku Auditee Resmi Onboard, menyelenggarakan Opening Meeting di kapal, mengonfirmasi kesiapan kru kapal, dan menyiapkan dokumen SMS di anjungan.';
+          case 'checklist':
+            return 'Nakhoda mendampingi auditor saat inspeksi fisik geladak, kamar mesin, pengujian alat keselamatan (LSA/FFA), peragaan drill darurat, serta verifikasi logbook navigasi dan perawatan PMS.';
+          case 'findings':
+            return 'Nakhoda menerima daftar ketidaksesuaian yang ditemukan auditor di kapal, memahami butir klausul yang terlanggar, dan menandatangani Berita Acara Temuan Lapangan.';
+          case 'capa':
+            return 'Nakhoda memimpin perbaikan fisik onboard (Correction), menganalisis akar masalah (RCA), menyusun langkah pencegahan, melampirkan foto bukti pengerjaan, dan mengirimkan eviden ke DPA.';
+          case 'reporting':
+            return 'Nakhoda menghadiri Closing Meeting di anjungan, menandatangani lembar penerimaan laporan audit, mengonfirmasi status Fit to Sail, dan mengarsipkan dokumen di anjungan kapal.';
+          default:
+            return 'Nakhoda memastikan masa berlaku sertifikat kapal aktif dan permintaan logistik suku cadang telah diajukan ke kantor darat.';
+        }
       }
     }
   };
@@ -2136,7 +2174,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                     onClick={() => setAuditRolePerspective('dpa')}
                     style={{
                       border: 'none',
-                      background: auditRolePerspective === 'dpa' ? '#0284c7' : 'transparent',
+                      background: auditRolePerspective === 'dpa' ? (currentTarget.standard === 'DOC' ? '#d97706' : '#0284c7') : 'transparent',
                       color: auditRolePerspective === 'dpa' ? '#ffffff' : 'var(--text-muted)',
                       fontSize: '0.72rem',
                       fontWeight: 800,
@@ -2148,10 +2186,12 @@ export const AuditManager = ({ initialStandard = null }) => {
                       gap: '0.3rem',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Aktifkan sudut pandang DPA (Kantor Darat): Perencanaan, Evaluasi Temuan, Otorisasi CAPA, dan Deklarasi Kelaiklautan"
+                    title={currentTarget.standard === 'DOC'
+                      ? "Aktifkan sudut pandang Auditor & DPA (Kantor Darat): Perencanaan Audit DOC, Evaluasi 13 Seksi, dan Otorisasi CAPA"
+                      : "Aktifkan sudut pandang DPA (Kantor Darat): Perencanaan, Evaluasi Temuan, Otorisasi CAPA, dan Deklarasi Kelaiklautan"}
                   >
                     <Building2 size={12} />
-                    <span>DPA (Darat)</span>
+                    <span>{currentTarget.standard === 'DOC' ? 'Auditor & DPA' : 'DPA (Darat)'}</span>
                   </button>
                   <button
                     type="button"
@@ -2170,10 +2210,12 @@ export const AuditManager = ({ initialStandard = null }) => {
                       gap: '0.3rem',
                       transition: 'all 0.15s ease'
                     }}
-                    title="Aktifkan sudut pandang Nakhoda (Kapal Onboard): Auditee Resmi, Pendampingan Checklist, Eksekusi Perbaikan & Kirim Eviden Foto"
+                    title={currentTarget.standard === 'DOC'
+                      ? "Aktifkan sudut pandang Divisi Darat & Direksi (Auditee DOC): HR/Crewing, Superintendent Teknis, Logistik, HSSE"
+                      : "Aktifkan sudut pandang Nakhoda (Kapal Onboard): Auditee Resmi, Pendampingan Checklist 74 Butir, Eksekusi Perbaikan & Kirim Eviden Foto"}
                   >
-                    <Ship size={12} />
-                    <span>Nakhoda (Kapal)</span>
+                    {currentTarget.standard === 'DOC' ? <Users size={12} /> : <Ship size={12} />}
+                    <span>{currentTarget.standard === 'DOC' ? 'Divisi Darat (Auditee)' : 'Nakhoda (Kapal)'}</span>
                   </button>
                 </div>
 
@@ -2187,14 +2229,16 @@ export const AuditManager = ({ initialStandard = null }) => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    color: '#8b5cf6',
-                    borderColor: 'rgba(139, 92, 246, 0.35)',
-                    background: 'rgba(139, 92, 246, 0.08)'
+                    color: currentTarget.standard === 'DOC' ? '#d97706' : '#8b5cf6',
+                    borderColor: currentTarget.standard === 'DOC' ? 'rgba(217, 119, 6, 0.35)' : 'rgba(139, 92, 246, 0.35)',
+                    background: currentTarget.standard === 'DOC' ? 'rgba(217, 119, 6, 0.08)' : 'rgba(139, 92, 246, 0.08)'
                   }}
-                  title="Lihat bagan perbandingan alur kerja DPA vs Nakhoda dan Matriks RACI"
+                  title={currentTarget.standard === 'DOC'
+                    ? "Lihat petunjuk dan alur kerja audit DOC Kantor Pusat (Auditor/DPA vs Divisi Darat) dan Matriks RACI"
+                    : "Lihat petunjuk dan alur kerja audit SMC Kapal Armada (DPA vs Nakhoda) dan Matriks RACI"}
                 >
                   <Compass size={13} />
-                  <span>Alur DPA & Nakhoda</span>
+                  <span>{currentTarget.standard === 'DOC' ? 'Petunjuk & Alur DOC' : 'Petunjuk & Alur SMC'}</span>
                 </button>
 
                 {!activeSession && (
@@ -2258,7 +2302,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                 {
                   id: 'checklist',
                   step: 2,
-                  title: '2. Checklist Klausul',
+                  title: currentTarget.standard === 'DOC' ? '2. Checklist 13 Seksi' : '2. Checklist 74 Klausul',
                   desc: `${checklistProgress.answered}/${checklistProgress.total} Butir (${checklistProgress.percent}%)`,
                   icon: FileCheck,
                   badge: checklistProgress.percent === 100 ? '100% Selesai' : `${checklistProgress.percent}%`
@@ -2283,8 +2327,8 @@ export const AuditManager = ({ initialStandard = null }) => {
                 {
                   id: 'reporting',
                   step: 5,
-                  title: '5. Penutupan & Cetak',
-                  desc: 'Signoff & Hub Laporan PDF',
+                  title: currentTarget.standard === 'DOC' ? '5. Tinjauan & Cetak' : '5. Penutupan & Cetak',
+                  desc: currentTarget.standard === 'DOC' ? 'Signoff & Rekomendasi DOC' : 'Fit to Sail & Hub Laporan',
                   icon: Printer,
                   badge: 'Cetak Dokumen'
                 }
@@ -2305,8 +2349,8 @@ export const AuditManager = ({ initialStandard = null }) => {
                       gap: '0.65rem',
                       padding: '0.65rem 0.85rem',
                       borderRadius: '10px',
-                      border: isActive ? '2px solid #0284c7' : '1px solid var(--border-subtle)',
-                      background: isActive ? 'rgba(2, 132, 199, 0.12)' : 'var(--bg-surface-elevated)',
+                      border: isActive ? (currentTarget.standard === 'DOC' ? '2px solid #d97706' : '2px solid #0284c7') : '1px solid var(--border-subtle)',
+                      background: isActive ? (currentTarget.standard === 'DOC' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(2, 132, 199, 0.12)') : 'var(--bg-surface-elevated)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.2s ease',
@@ -2318,7 +2362,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                       width: '32px',
                       height: '32px',
                       borderRadius: '8px',
-                      background: isActive ? '#0284c7' : 'var(--bg-surface)',
+                      background: isActive ? (currentTarget.standard === 'DOC' ? '#d97706' : '#0284c7') : 'var(--bg-surface)',
                       color: isActive ? '#fff' : 'var(--text-subtle)',
                       display: 'flex',
                       alignItems: 'center',
@@ -2331,7 +2375,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.3rem' }}>
-                        <strong style={{ fontSize: '0.8rem', color: isActive ? '#38bdf8' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <strong style={{ fontSize: '0.8rem', color: isActive ? (currentTarget.standard === 'DOC' ? '#f59e0b' : '#38bdf8') : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {st.title}
                         </strong>
                         {st.badge && (
@@ -2355,10 +2399,14 @@ export const AuditManager = ({ initialStandard = null }) => {
               padding: '0.65rem 0.95rem',
               borderRadius: '8px',
               background: auditRolePerspective === 'dpa'
-                ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.09), rgba(2, 132, 199, 0.02))'
+                ? (currentTarget.standard === 'DOC'
+                    ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.09), rgba(245, 158, 11, 0.02))'
+                    : 'linear-gradient(135deg, rgba(2, 132, 199, 0.09), rgba(2, 132, 199, 0.02))')
                 : 'linear-gradient(135deg, rgba(16, 185, 129, 0.09), rgba(16, 185, 129, 0.02))',
               border: auditRolePerspective === 'dpa'
-                ? '1px solid rgba(2, 132, 199, 0.3)'
+                ? (currentTarget.standard === 'DOC'
+                    ? '1px solid rgba(245, 158, 11, 0.35)'
+                    : '1px solid rgba(2, 132, 199, 0.3)')
                 : '1px solid rgba(16, 185, 129, 0.3)',
               display: 'flex',
               alignItems: 'center',
@@ -2372,18 +2420,28 @@ export const AuditManager = ({ initialStandard = null }) => {
                   borderRadius: '6px',
                   fontSize: '0.72rem',
                   fontWeight: 800,
-                  background: auditRolePerspective === 'dpa' ? '#0284c7' : '#10b981',
+                  background: auditRolePerspective === 'dpa'
+                    ? (currentTarget.standard === 'DOC' ? '#d97706' : '#0284c7')
+                    : '#10b981',
                   color: '#ffffff',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
                   flexShrink: 0
                 }}>
-                  {auditRolePerspective === 'dpa' ? <Building2 size={13} /> : <Ship size={13} />}
-                  <span>{auditRolePerspective === 'dpa' ? 'FOKUS TUGAS DPA' : 'TANGGUNG JAWAB NAKHODA'}</span>
+                  {auditRolePerspective === 'dpa' ? (
+                    <Building2 size={13} />
+                  ) : (
+                    currentTarget.standard === 'DOC' ? <Users size={13} /> : <Ship size={13} />
+                  )}
+                  <span>
+                    {auditRolePerspective === 'dpa'
+                      ? (currentTarget.standard === 'DOC' ? 'PETUNJUK AUDITOR / DPA (DOC)' : 'FOKUS TUGAS DPA (SMC)')
+                      : (currentTarget.standard === 'DOC' ? 'TANGGUNG JAWAB DIVISI DARAT (DOC)' : 'TANGGUNG JAWAB NAKHODA (SMC)')}
+                  </span>
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-main)', lineHeight: '1.45' }}>
-                  {getRoleGuidance(vesselTab, auditRolePerspective)}
+                  {getRoleGuidance(vesselTab, auditRolePerspective, currentTarget.standard)}
                 </div>
               </div>
 
@@ -2400,10 +2458,12 @@ export const AuditManager = ({ initialStandard = null }) => {
                     gap: '0.3rem',
                     padding: '0.3rem 0.65rem'
                   }}
-                  title="Buka panduan lengkap alur DPA, Nakhoda, dan matriks RACI"
+                  title={currentTarget.standard === 'DOC'
+                    ? "Buka panduan lengkap alur audit DOC kantor pusat, peran divisi, dan matriks RACI"
+                    : "Buka panduan lengkap alur audit SMC kapal, peran DPA vs Nakhoda, dan matriks RACI"}
                 >
                   <BookOpen size={12} />
-                  <span>Pelajari Alur Lengkap</span>
+                  <span>{currentTarget.standard === 'DOC' ? 'Pelajari Petunjuk DOC' : 'Pelajari Petunjuk SMC'}</span>
                 </button>
               </div>
             </div>
@@ -4810,6 +4870,7 @@ export const AuditManager = ({ initialStandard = null }) => {
         onClose={() => setShowRoleFlowModal(false)}
         currentPerspective={auditRolePerspective}
         onSelectPerspective={(p) => setAuditRolePerspective(p)}
+        initialStandard={currentTarget?.standard || activeStandard || 'SMC'}
       />
 
       {/* Modal Preview Bukti Audit Checklist Onboard */}
