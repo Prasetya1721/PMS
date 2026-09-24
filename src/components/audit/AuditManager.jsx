@@ -35,7 +35,10 @@ import {
   CheckSquare,
   Compass,
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Lock,
+  Unlock,
+  ShieldAlert
 } from 'lucide-react';
 import { AuditSessionModal } from './AuditSessionModal';
 import { AuditFindingModal } from './AuditFindingModal';
@@ -50,6 +53,7 @@ import {
   isBKIOrganization,
   BKI_AUDIT_MASTER
 } from '../../data/auditMasterData';
+import { hasAccess } from '../../utils/rbac';
 
 export const AuditManager = ({ initialStandard = null }) => {
   const {
@@ -78,23 +82,45 @@ export const AuditManager = ({ initialStandard = null }) => {
     docOpenNCCount,
     currentUser,
     currentRole,
+    canAction,
+    hasPermission,
+    setActiveTab,
     showToast
   } = usePMS();
 
+  // Role & Permission Determination (ISM Code RBAC & Boundaries)
+  const userRole = currentUser?.role || currentRole || '';
+  const isAuditorOrDPA = userRole === 'Super Admin' || userRole === 'Fleet Manager' || (canAction && canAction('create_audit_session'));
+  const isNakhoda = userRole.toLowerCase().includes('nakhoda') || userRole.toLowerCase().includes('master');
+  const isChiefEngineer = userRole.toLowerCase().includes('chief') || userRole.toLowerCase().includes('kkm') || userRole.toLowerCase().includes('teknisi');
+  const isShipCrew = isNakhoda || isChiefEngineer;
+  const assignedVesselId = currentUser?.shipAccess && currentUser?.shipAccess !== 'All' ? currentUser?.shipAccess : null;
+  const isModuleAllowed = hasAccess(currentRole, 'audit');
+
   // Active Standard: 'SMC' (Kapal Armada) | 'DOC' (Kantor Perusahaan)
-  const [activeStandard, setActiveStandard] = useState(() => initialStandard === 'DOC' ? 'DOC' : 'SMC');
+  // Awak kapal dibatasi hanya untuk SMC dan kapal tugasnya
+  const [activeStandard, setActiveStandard] = useState(() => {
+    if (assignedVesselId) return 'SMC';
+    return initialStandard === 'DOC' ? 'DOC' : 'SMC';
+  });
 
   // Selected Target in Audit Gateway:
   // null = Layar Pemilihan Kapal (Gateway SMC)
   // 'office' = Kantor Pusat PT. PBK (Audit DOC)
   // 'v-xxx' = Kapal Armada tertentu (Audit SMC)
   const [activeTargetId, setActiveTargetId] = useState(() => {
+    if (assignedVesselId) return assignedVesselId;
     if (initialStandard === 'DOC') return 'office';
     return null;
   });
 
-  // Keep state synchronized if initialStandard changes (e.g. from Sidebar sub-menu navigation)
+  // Keep state synchronized if initialStandard changes or if restricted by assigned vessel
   useEffect(() => {
+    if (assignedVesselId) {
+      setActiveStandard('SMC');
+      setActiveTargetId(assignedVesselId);
+      return;
+    }
     if (initialStandard === 'DOC') {
       setActiveStandard('DOC');
       setActiveTargetId('office');
@@ -104,7 +130,7 @@ export const AuditManager = ({ initialStandard = null }) => {
         setActiveTargetId(null);
       }
     }
-  }, [initialStandard]);
+  }, [initialStandard, assignedVesselId]);
 
   // Gateway filters
   const [gatewaySearch, setGatewaySearch] = useState('');
@@ -519,6 +545,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handler Inisiasi Cepat Sesi Audit (1-Click Launch)
   const handleQuickLaunchSession = () => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang DPA: Sesi audit kapal hanya dapat diinisiasi oleh Lead Auditor atau DPA dari kantor darat.', 'warning');
+      return;
+    }
     if (!currentTarget) return;
     const isDoc = currentTarget.standard === 'DOC';
     const rand = Math.floor(Math.random() * 900 + 100);
@@ -568,6 +598,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handler Memuat Contoh Audit SMC Lengkap & Realistis (5 Tahap Lifecycle)
   const handleLoadSampleSMCAudit = () => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang DPA: Pemuatan simulasi data audit hanya diizinkan untuk DPA / Lead Auditor.', 'warning');
+      return;
+    }
     if (!currentTarget) return;
     const isDoc = currentTarget.standard === 'DOC';
     const vesselName = isDoc ? 'TB. RP 2004' : currentTarget.name;
@@ -734,6 +768,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handler 1-Click NC Creation dari Butir Checklist
   const handleQuickLogNC = (item, preferredCategory = 'Minor NC') => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Pencatatan temuan NC resmi merupakan wewenang Lead Auditor saat inspeksi.', 'warning');
+      return;
+    }
     if (!currentTarget) return;
     const assignedPIC = currentTarget.type === 'vessel'
       ? `${currentTarget.kkm || 'KKM'} / ${currentTarget.nakhoda || 'Nakhoda'}`
@@ -766,6 +804,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handler toggle evaluasi Yes / No / NA dengan auto-sync ke activeSession
   const handleToggleManagerResult = (code, targetResult) => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Evaluasi checklist (Yes / No / N/A) hanya dapat diubah oleh Lead Auditor saat inspeksi.', 'warning');
+      return;
+    }
     const current = vesselChecklistResults[code];
     const isAlreadyTarget = current === targetResult || (targetResult === 'Complied' && current === 'Yes') || (targetResult === 'Minor NC' && (current === 'No' || current === 'Observation' || current === 'Major NC'));
     const nextVal = isAlreadyTarget ? '' : targetResult;
@@ -791,6 +833,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handlers for Checklist Item Edit & Delete in AuditManager
   const handleOpenEditManagerItem = (item) => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Pengubahan butir klausul hanya dapat dilakukan oleh Lead Auditor.', 'warning');
+      return;
+    }
     setEditingManagerItem(item);
     setEditManagerCode(item.code || '');
     setEditManagerName(item.name || '');
@@ -808,6 +854,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   const handleSaveEditManagerItem = (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Pengubahan butir klausul hanya dapat dilakukan oleh Lead Auditor.', 'warning');
+      return;
+    }
     if (!editManagerCode.trim() || !editManagerName.trim()) {
       showToast('Kode klausul dan Area Pemeriksaan wajib diisi!', 'warning');
       return;
@@ -864,6 +914,10 @@ export const AuditManager = ({ initialStandard = null }) => {
   };
 
   const handleConfirmDeleteManagerItem = () => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Penghapusan butir checklist hanya dapat dilakukan oleh Lead Auditor.', 'warning');
+      return;
+    }
     if (!deleteManagerItemTarget) return;
     const targetCode = deleteManagerItemTarget.code;
 
@@ -879,6 +933,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handler toggle coret / lepas coret pada checklist audit kapal
   const handleToggleVesselStrikethrough = (code) => {
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Klausul checklist (N/A) hanya dapat dicoret atau diaktifkan kembali oleh Lead Auditor / DPA.', 'warning');
+      return;
+    }
     const item = activeChecklistItems.find(i => i.code === code) || customChecklistItems.find(i => i.code === code);
     const currentlyStriked = vesselStrikethroughOverrides[code] !== undefined
       ? vesselStrikethroughOverrides[code]
@@ -1016,8 +1074,12 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // SMC Targets (Kapal Armada only - Kantor Pusat DOC dipisahkan khusus di tab Audit DOC)
   const smcTargets = useMemo(() => {
-    return allFleetTargets.filter(t => t.type === 'vessel');
-  }, [allFleetTargets]);
+    const list = allFleetTargets.filter(t => t.type === 'vessel');
+    if (assignedVesselId) {
+      return list.filter(t => t.id === assignedVesselId);
+    }
+    return list;
+  }, [allFleetTargets, assignedVesselId]);
 
   // Global fleet KPI stats (Khusus armada kapal SMC pada layar gateway)
   const fleetStats = useMemo(() => {
@@ -1135,6 +1197,10 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   // Handle select target
   const handleSelectTarget = (targetId) => {
+    if (assignedVesselId && targetId !== assignedVesselId) {
+      showToast(`Akses dibatasi: Anda hanya memiliki izin akses untuk kapal tugas ${currentTarget?.name || assignedVesselId}.`, 'warning');
+      return;
+    }
     setActiveTargetId(targetId);
     setVesselTab('findings');
     setStatusFilter('ALL');
@@ -1146,6 +1212,10 @@ export const AuditManager = ({ initialStandard = null }) => {
   // Handle Add Manual Checklist item for current vessel
   const handleAddManualChecklistItem = (e) => {
     e.preventDefault();
+    if (!isAuditorOrDPA) {
+      showToast('Wewenang Auditor: Penambahan butir checklist manual hanya dapat dilakukan oleh Lead Auditor.', 'warning');
+      return;
+    }
     if (!manualCode.trim() || !manualName.trim()) {
       showToast('Harap masukkan kode klausul dan nama pemeriksaan!', 'warning');
       return;
@@ -1171,8 +1241,133 @@ export const AuditManager = ({ initialStandard = null }) => {
     showToast(`✓ Item audit manual "${newItem.code}" berhasil ditambahkan ke ${currentTarget?.name}!`, 'success');
   };
 
+  // If user role is completely restricted from audit module (e.g. Finance, HR, ABK without ship access)
+  if (!isModuleAllowed) {
+    return (
+      <div className="glass-card" style={{ padding: '3.5rem 2rem', textAlign: 'center', maxWidth: '680px', margin: '2rem auto' }}>
+        <div style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '50%',
+          background: 'rgba(239, 68, 68, 0.1)',
+          color: '#ef4444',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1.25rem'
+        }}>
+          <ShieldAlert size={32} />
+        </div>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+          Akses Terbatas: Modul Audit ISM Code
+        </h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+          Peran Anda saat ini (<strong>{currentUser?.role || currentRole}</strong>) tidak memiliki izin untuk mengelola atau mengakses modul Audit Kepatuhan Maritim (ISM Code). Sesuai regulasi IMO & BKI, modul ini hanya dapat diakses oleh Lead Auditor / DPA dan Perwira Kapal Berwenang.
+        </p>
+        <button
+          onClick={() => setActiveTab && setActiveTab('dashboard')}
+          className="btn btn-primary"
+          style={{ fontWeight: 700 }}
+        >
+          Kembali ke Dashboard Utama
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+
+      {/* ========================================================================= */}
+      {/* ROLE & PERMISSION CONTEXT BAR: ISM CODE RACI STATUS                       */}
+      {/* ========================================================================= */}
+      <div className="glass-card" style={{
+        padding: '0.9rem 1.25rem',
+        borderRadius: '12px',
+        border: '1px solid rgba(2, 132, 199, 0.25)',
+        background: isAuditorOrDPA
+          ? 'linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)'
+          : 'linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: isAuditorOrDPA ? 'rgba(16, 185, 129, 0.15)' : 'rgba(2, 132, 199, 0.15)',
+            color: isAuditorOrDPA ? '#10b981' : '#0284c7',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            {isAuditorOrDPA ? <ShieldCheck size={22} /> : <Ship size={22} />}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                {currentUser?.name || userRole}
+              </strong>
+              <span className={`badge ${isAuditorOrDPA ? 'badge-success' : 'badge-primary'}`} style={{ fontSize: '0.68rem', fontWeight: 800 }}>
+                {isAuditorOrDPA ? '🛡️ DPA / LEAD AUDITOR (OTORITAS PENUH)' : '⚓ AUDITEE LAPANGAN (ONBOARD KAPAL)'}
+              </span>
+              {assignedVesselId && (
+                <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>
+                  🔒 Terkunci Pada Kapal Tugas
+                </span>
+              )}
+            </div>
+
+            <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span>
+                <strong>Cakupan Wewenang:</strong>{' '}
+                {isAuditorOrDPA
+                  ? `🏢 DOC Kantor Pusat + 🚢 Seluruh Armada (${vessels.length} Kapal SMC)`
+                  : `🚢 Terbatas Khusus Kapal Tugas (${currentTarget?.name || 'KM. RP 2020'})`}
+              </span>
+              <span>•</span>
+              <span>
+                <strong>Status Izin:</strong>{' '}
+                {isAuditorOrDPA ? (
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>
+                    ✓ Buka Sesi • ✓ Evaluasi Klausul • ✓ Terbitkan NC • ✓ Otorisasi Close NC • ✓ Fit-to-Sail
+                  </span>
+                ) : (
+                  <span style={{ color: '#0284c7', fontWeight: 700 }}>
+                    ✓ Akses SMC Kapal • ✓ Lihat Checklist BKI • ✓ Ajukan Bukti Eviden (CAPA) | 🚫 Non-Aktif: Buka Sesi, Nilai Klausul, Self-Close NC
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowRoleFlowModal(true)}
+          className="btn btn-secondary btn-sm"
+          style={{
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.45rem 0.85rem',
+            color: '#0284c7',
+            borderColor: 'rgba(2, 132, 199, 0.4)',
+            background: 'var(--bg-surface-elevated)'
+          }}
+          title="Buka panduan lengkap alur audit dan Matriks Wewenang RACI ISM Code"
+        >
+          <Compass size={14} color="#0284c7" />
+          <span>Matriks Wewenang & Alur Audit (RACI)</span>
+        </button>
+      </div>
 
       {/* ========================================================================= */}
       {/* TOP ISM MODULE SELECTOR: SMC KAPAL vs DOC KANTOR                          */}
@@ -1226,7 +1421,7 @@ export const AuditManager = ({ initialStandard = null }) => {
             onClick={() => {
               setActiveStandard('SMC');
               if (activeTargetId === 'office') {
-                setActiveTargetId(null);
+                setActiveTargetId(assignedVesselId || null);
               }
             }}
             style={{
@@ -1258,7 +1453,12 @@ export const AuditManager = ({ initialStandard = null }) => {
 
           <button
             type="button"
+            disabled={!isAuditorOrDPA}
             onClick={() => {
+              if (!isAuditorOrDPA) {
+                showToast('Akses dibatasi: Audit DOC (Document of Compliance Kantor) hanya dapat diakses oleh DPA / Lead Auditor Darat.', 'warning');
+                return;
+              }
               setActiveStandard('DOC');
               setActiveTargetId('office');
               setVesselTab('findings');
@@ -1272,7 +1472,8 @@ export const AuditManager = ({ initialStandard = null }) => {
               border: 'none',
               fontSize: '0.8rem',
               fontWeight: (activeStandard === 'DOC' || activeTargetId === 'office') ? 800 : 500,
-              cursor: 'pointer',
+              cursor: !isAuditorOrDPA ? 'not-allowed' : 'pointer',
+              opacity: !isAuditorOrDPA ? 0.5 : 1,
               background: (activeStandard === 'DOC' || activeTargetId === 'office')
                 ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)'
                 : 'transparent',
@@ -1280,10 +1481,12 @@ export const AuditManager = ({ initialStandard = null }) => {
               boxShadow: (activeStandard === 'DOC' || activeTargetId === 'office') ? '0 2px 8px rgba(2, 132, 199, 0.35)' : 'none',
               transition: 'all 0.15s ease'
             }}
+            title={!isAuditorOrDPA ? "Wewenang terbatas: Audit DOC Kantor hanya dapat diakses oleh DPA / Lead Auditor" : "Beralih ke Audit DOC Kantor Pusat"}
           >
             <Building2 size={15} />
             <span>Audit DOC Kantor</span>
-            {docOpenNCCount > 0 && (
+            {!isAuditorOrDPA && <span style={{ fontSize: '0.65rem' }}>🔒</span>}
+            {docOpenNCCount > 0 && isAuditorOrDPA && (
               <span className="badge badge-info" style={{ fontSize: '0.62rem', padding: '0.1rem 0.38rem' }}>
                 {docOpenNCCount} NC
               </span>
@@ -1328,29 +1531,49 @@ export const AuditManager = ({ initialStandard = null }) => {
 
             {/* Quick Action Buttons */}
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <button
-                onClick={() => {
-                  setEditingSession(null);
-                  setSessionModalOpen(true);
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
-              >
-                <Plus size={15} color="#38bdf8" />
-                <span>+ Sesi Audit SMC Kapal</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEditingFinding(null);
-                  setFindingDefaultAuditId(null);
-                  setFindingModalOpen(true);
-                }}
-                className="btn btn-primary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
-              >
-                <AlertTriangle size={15} />
-                <span>Catat Temuan NC</span>
-              </button>
+              {isAuditorOrDPA ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingSession(null);
+                      setSessionModalOpen(true);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                  >
+                    <Plus size={15} color="#38bdf8" />
+                    <span>+ Sesi Audit SMC Kapal</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingFinding(null);
+                      setFindingDefaultAuditId(null);
+                      setFindingModalOpen(true);
+                    }}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                  >
+                    <AlertTriangle size={15} />
+                    <span>Catat Temuan NC</span>
+                  </button>
+                </>
+              ) : (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '7px',
+                  background: 'rgba(2, 132, 199, 0.08)',
+                  border: '1px solid rgba(2, 132, 199, 0.25)',
+                  fontSize: '0.74rem',
+                  color: '#0284c7',
+                  fontWeight: 600
+                }}>
+                  <ShieldCheck size={14} />
+                  <span>Sesi Audit & Temuan Dikelola Oleh DPA / Lead Auditor</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1769,23 +1992,41 @@ export const AuditManager = ({ initialStandard = null }) => {
             paddingBottom: '0.25rem'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <button
-                onClick={() => {
-                  if (activeStandard === 'DOC') {
-                    setActiveStandard('SMC');
-                    setActiveTargetId(null);
-                  } else {
-                    setActiveTargetId(null);
-                  }
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
-              >
-                <ArrowLeft size={15} />
-                <span>
-                  {activeStandard === 'DOC' ? '← Beralih ke Portal Audit SMC Kapal' : '← Kembali ke Pemilihan Armada'}
-                </span>
-              </button>
+              {!assignedVesselId ? (
+                <button
+                  onClick={() => {
+                    if (activeStandard === 'DOC') {
+                      setActiveStandard('SMC');
+                      setActiveTargetId(null);
+                    } else {
+                      setActiveTargetId(null);
+                    }
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
+                >
+                  <ArrowLeft size={15} />
+                  <span>
+                    {activeStandard === 'DOC' ? '← Beralih ke Portal Audit SMC Kapal' : '← Kembali ke Pemilihan Armada'}
+                  </span>
+                </button>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  color: '#0284c7',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  background: 'rgba(2, 132, 199, 0.08)',
+                  border: '1px solid rgba(2, 132, 199, 0.25)'
+                }}>
+                  <Ship size={14} />
+                  <span>Kapal Tugas Onboard: {currentTarget?.name}</span>
+                </div>
+              )}
               <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
                 Portal Audit ISM <span style={{ opacity: 0.5 }}>/</span>{' '}
                 <span className={`badge ${currentTarget.standard === 'DOC' ? 'badge-info' : 'badge-primary'}`} style={{ fontSize: '0.68rem', marginRight: '0.4rem' }}>
@@ -1819,9 +2060,17 @@ export const AuditManager = ({ initialStandard = null }) => {
               ) : (
                 <select
                   value={activeTargetId}
+                  disabled={Boolean(assignedVesselId)}
                   onChange={(e) => handleSelectTarget(e.target.value)}
                   className="select-control"
-                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', width: '250px' }}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.35rem 0.65rem',
+                    width: '250px',
+                    cursor: assignedVesselId ? 'not-allowed' : 'pointer',
+                    opacity: assignedVesselId ? 0.8 : 1
+                  }}
+                  title={assignedVesselId ? `Akses Anda dikunci khusus untuk kapal tugas: ${currentTarget?.name}` : "Ganti kapal armada"}
                 >
                   {smcTargets.map(t => (
                     <option key={t.id} value={t.id}>
@@ -2251,7 +2500,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                   <span>{currentTarget.standard === 'DOC' ? 'Petunjuk & Alur DOC' : 'Petunjuk & Alur SMC'}</span>
                 </button>
 
-                {!activeSession && (
+                {!activeSession && isAuditorOrDPA && (
                   <button
                     type="button"
                     onClick={handleQuickLaunchSession}
@@ -2262,25 +2511,27 @@ export const AuditManager = ({ initialStandard = null }) => {
                     <span>Mulai Sesi Cepat</span>
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={handleLoadSampleSMCAudit}
-                  className="btn btn-secondary btn-sm"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    color: '#0284c7',
-                    borderColor: 'rgba(2, 132, 199, 0.4)',
-                    background: 'rgba(2, 132, 199, 0.08)'
-                  }}
-                  title="Muat contoh simulasi lengkap audit SMC (Sesi BKI, 74 checklist terisi, temuan NC 10.3, dan CAPA)"
-                >
-                  <Sparkles size={13} />
-                  <span>Contoh SMC</span>
-                </button>
+                {isAuditorOrDPA && (
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleSMCAudit}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: '#0284c7',
+                      borderColor: 'rgba(2, 132, 199, 0.4)',
+                      background: 'rgba(2, 132, 199, 0.08)'
+                    }}
+                    title="Muat contoh simulasi lengkap audit SMC (Sesi BKI, 74 checklist terisi, temuan NC 10.3, dan CAPA)"
+                  >
+                    <Sparkles size={13} />
+                    <span>Contoh SMC</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setVesselTab('integrations')}
@@ -2539,20 +2790,22 @@ export const AuditManager = ({ initialStandard = null }) => {
                     style={{ width: '180px', fontSize: '0.75rem', padding: '0.3rem 0.5rem' }}
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingFinding(null);
-                      setFindingDefaultAuditId(activeSession?.id || currentTarget.lastAudit?.id || null);
-                      setFindingModalOpen(true);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700 }}
-                    title="Catat temuan ketidaksesuaian baru untuk kapal ini"
-                  >
-                    <Plus size={14} />
-                    <span>Catat Temuan NC</span>
-                  </button>
+                  {isAuditorOrDPA && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingFinding(null);
+                        setFindingDefaultAuditId(activeSession?.id || currentTarget.lastAudit?.id || null);
+                        setFindingModalOpen(true);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 700 }}
+                      title="Catat temuan ketidaksesuaian baru untuk kapal ini"
+                    >
+                      <Plus size={14} />
+                      <span>Catat Temuan NC</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -2644,41 +2897,45 @@ export const AuditManager = ({ initialStandard = null }) => {
                               <span>{isClosed ? 'Cetak NCR Close' : 'Cetak NCR'}</span>
                             </button>
 
-                            <button
-                              onClick={() => {
-                                setEditingFinding(f);
-                                setFindingModalOpen(true);
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              title="Edit Temuan"
-                              style={{ padding: '0.35rem 0.5rem' }}
-                            >
-                              <Edit size={14} />
-                            </button>
+                            {isAuditorOrDPA && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditingFinding(f);
+                                    setFindingModalOpen(true);
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  title="Edit Temuan"
+                                  style={{ padding: '0.35rem 0.5rem' }}
+                                >
+                                  <Edit size={14} />
+                                </button>
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteConfirmModal({
-                                  type: 'finding',
-                                  id: f.id || f.findingNo,
-                                  code: f.findingNo,
-                                  title: 'Hapus Catatan Temuan (NCR)',
-                                  targetName: currentTarget?.name,
-                                  details: `Catatan temuan ketidaksesuaian "${f.findingNo}" (${f.category}) akan dihapus permanen dari sistem beserta dokumen eviden yang terlampir.`,
-                                  onConfirm: () => {
-                                    deleteAuditFinding(f.id || f.findingNo);
-                                    setDeleteConfirmModal(null);
-                                  }
-                                });
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              title="Hapus Temuan Ini"
-                              style={{ padding: '0.35rem 0.5rem', color: '#ef4444' }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeleteConfirmModal({
+                                      type: 'finding',
+                                      id: f.id || f.findingNo,
+                                      code: f.findingNo,
+                                      title: 'Hapus Catatan Temuan (NCR)',
+                                      targetName: currentTarget?.name,
+                                      details: `Catatan temuan ketidaksesuaian "${f.findingNo}" (${f.category}) akan dihapus permanen dari sistem beserta dokumen eviden yang terlampir.`,
+                                      onConfirm: () => {
+                                        deleteAuditFinding(f.id || f.findingNo);
+                                        setDeleteConfirmModal(null);
+                                      }
+                                    });
+                                  }}
+                                  className="btn btn-secondary btn-sm"
+                                  title="Hapus Temuan Ini"
+                                  style={{ padding: '0.35rem 0.5rem', color: '#ef4444' }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -3062,41 +3319,45 @@ export const AuditManager = ({ initialStandard = null }) => {
                             <FileCheck size={13} />
                             <span>Buka Checklist</span>
                           </button>
-                          <button
-                            onClick={() => {
-                              setEditingSession(s);
-                              setSessionModalOpen(true);
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                            title="Edit data sesi audit"
-                          >
-                            <Edit size={12} />
-                            <span>Edit</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteConfirmModal({
-                                type: 'session',
-                                id: s.id || s.auditNo,
-                                code: s.auditNo,
-                                title: 'Hapus Sesi Audit Resmi',
-                                targetName: currentTarget?.name,
-                                details: `Sesi audit "${s.auditNo}" (${s.standard} - ${s.auditType}) akan dihapus dari data sistem armada kapal ${currentTarget?.name}. Seluruh ringkasan checklist dan temuan terkait sesi ini akan dibersihkan.`,
-                                onConfirm: () => {
-                                  deleteAuditSession(s.id || s.auditNo);
-                                  setDeleteConfirmModal(null);
-                                }
-                              });
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
-                            title="Hapus Sesi Audit Ini"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {isAuditorOrDPA && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingSession(s);
+                                  setSessionModalOpen(true);
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                title="Edit data sesi audit"
+                              >
+                                <Edit size={12} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmModal({
+                                    type: 'session',
+                                    id: s.id || s.auditNo,
+                                    code: s.auditNo,
+                                    title: 'Hapus Sesi Audit Resmi',
+                                    targetName: currentTarget?.name,
+                                    details: `Sesi audit "${s.auditNo}" (${s.standard} - ${s.auditType}) akan dihapus dari data sistem armada kapal ${currentTarget?.name}. Seluruh ringkasan checklist dan temuan terkait sesi ini akan dibersihkan.`,
+                                    onConfirm: () => {
+                                      deleteAuditSession(s.id || s.auditNo);
+                                      setDeleteConfirmModal(null);
+                                    }
+                                  });
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.3rem 0.5rem', color: '#ef4444' }}
+                                title="Hapus Sesi Audit Ini"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3107,19 +3368,39 @@ export const AuditManager = ({ initialStandard = null }) => {
                   <ShieldCheck size={36} color="var(--text-muted)" style={{ margin: '0 auto 0.65rem' }} />
                   <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Belum ada sesi audit tercatat untuk kapal ini</h4>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                    Klik tombol di bawah untuk membuat sesi audit baru (Tahap 1: Setup Sesi & Tim), kemudian lanjutkan pemeriksaan klausul di Dashboard Tahap 2.
+                    {isAuditorOrDPA
+                      ? 'Klik tombol di bawah untuk membuat sesi audit baru (Tahap 1: Setup Sesi & Tim), kemudian lanjutkan pemeriksaan klausul di Dashboard Tahap 2.'
+                      : 'Sesi audit resmi untuk kapal armada dijadwalkan dan diinisiasi oleh DPA / Lead Auditor dari kantor darat.'}
                   </p>
-                  <button
-                    onClick={() => {
-                      setEditingSession(null);
-                      setSessionModalOpen(true);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ marginTop: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                  >
-                    <Plus size={14} />
-                    <span>Buat Sesi Audit Baru (Tahap 1)</span>
-                  </button>
+                  {isAuditorOrDPA ? (
+                    <button
+                      onClick={() => {
+                        setEditingSession(null);
+                        setSessionModalOpen(true);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ marginTop: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                    >
+                      <Plus size={14} />
+                      <span>Buat Sesi Audit Baru (Tahap 1)</span>
+                    </button>
+                  ) : (
+                    <div style={{
+                      marginTop: '0.85rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.74rem',
+                      color: '#0284c7',
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '6px',
+                      background: 'rgba(2, 132, 199, 0.08)',
+                      border: '1px solid rgba(2, 132, 199, 0.25)'
+                    }}>
+                      <ShieldCheck size={14} />
+                      <span>Sesi audit baru hanya dapat dibuat oleh DPA / Lead Auditor</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -3172,14 +3453,16 @@ export const AuditManager = ({ initialStandard = null }) => {
                     <span>Cetak Checklist (PDF)</span>
                   </button>
 
-                  <button
-                    onClick={() => setShowManualCodeForm(!showManualCodeForm)}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                  >
-                    <Plus size={14} />
-                    <span>{showManualCodeForm ? 'Tutup Form' : 'Tambah Item Manual'}</span>
-                  </button>
+                  {isAuditorOrDPA && (
+                    <button
+                      onClick={() => setShowManualCodeForm(!showManualCodeForm)}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                    >
+                      <Plus size={14} />
+                      <span>{showManualCodeForm ? 'Tutup Form' : 'Tambah Item Manual'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -3551,65 +3834,71 @@ export const AuditManager = ({ initialStandard = null }) => {
 
                             {/* Aksi */}
                             <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditManagerItem(item)}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#0284c7', borderColor: 'rgba(2, 132, 199, 0.3)' }}
-                                  title="Edit butir manual ini"
-                                >
-                                  <Edit2 size={11} />
-                                  <span>Edit</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setDeleteManagerItemTarget(item)}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
-                                  title="Hapus butir manual ini"
-                                >
-                                  <Trash2 size={11} />
-                                  <span>Hapus</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleVesselStrikethrough(item.code)}
-                                  className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
-                                  style={{
-                                    fontSize: '0.68rem',
-                                    padding: '0.2rem 0.45rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                    fontWeight: 600
-                                  }}
-                                  title={isStrikethrough ? 'Lepas coret klausul' : 'Coret klausul (Tandai N/A)'}
-                                >
-                                  {isStrikethrough ? (
-                                    <>
-                                      <Undo2 size={11} />
-                                      <span>Lepas</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Strikethrough size={11} />
-                                      <span>Coret</span>
-                                    </>
-                                  )}
-                                </button>
-                                {!isStrikethrough && (
+                              {isAuditorOrDPA ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
                                   <button
                                     type="button"
-                                    onClick={() => handleQuickLogNC(item, 'Minor NC')}
+                                    onClick={() => handleOpenEditManagerItem(item)}
                                     className="btn btn-secondary btn-sm"
-                                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)', fontWeight: 700 }}
-                                    title="Buat temuan NC untuk klausul manual ini"
+                                    style={{ padding: '0.2rem 0.45rem', fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#0284c7', borderColor: 'rgba(2, 132, 199, 0.3)' }}
+                                    title="Edit butir manual ini"
                                   >
-                                    + NC
+                                    <Edit2 size={11} />
+                                    <span>Edit</span>
                                   </button>
-                                )}
-                              </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteManagerItemTarget(item)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ padding: '0.2rem 0.45rem', fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                                    title="Hapus butir manual ini"
+                                  >
+                                    <Trash2 size={11} />
+                                    <span>Hapus</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleVesselStrikethrough(item.code)}
+                                    className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
+                                    style={{
+                                      fontSize: '0.68rem',
+                                      padding: '0.2rem 0.45rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      fontWeight: 600
+                                    }}
+                                    title={isStrikethrough ? 'Lepas coret klausul' : 'Coret klausul (Tandai N/A)'}
+                                  >
+                                    {isStrikethrough ? (
+                                      <>
+                                        <Undo2 size={11} />
+                                        <span>Lepas</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Strikethrough size={11} />
+                                        <span>Coret</span>
+                                      </>
+                                    )}
+                                  </button>
+                                  {!isStrikethrough && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickLogNC(item, 'Minor NC')}
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)', fontWeight: 700 }}
+                                      title="Buat temuan NC untuk klausul manual ini"
+                                    >
+                                      + NC
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.68rem', color: isStrikethrough ? '#f59e0b' : '#10b981', fontWeight: 700 }}>
+                                  {isStrikethrough ? '✂️ Dicoret (N/A)' : '✓ Butir Manual'}
+                                </div>
+                              )}
                             </td>
                           </tr>
                         );
@@ -3668,26 +3957,34 @@ export const AuditManager = ({ initialStandard = null }) => {
                                   {effectiveItem.code}
                                 </span>
                                 {isStrikethrough ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleVesselStrikethrough(el.code)}
-                                    className="badge badge-warning"
-                                    style={{ fontSize: '0.58rem', padding: '0.08rem 0.35rem', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
-                                    title="Klik untuk melepas coret klausul"
-                                  >
-                                    <Undo2 size={9} />
-                                    <span>Dicoret (N/A)</span>
-                                  </button>
+                                  isAuditorOrDPA ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                      className="badge badge-warning"
+                                      style={{ fontSize: '0.58rem', padding: '0.08rem 0.35rem', whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                      title="Klik untuk melepas coret klausul"
+                                    >
+                                      <Undo2 size={9} />
+                                      <span>Dicoret (N/A)</span>
+                                    </button>
+                                  ) : (
+                                    <span className="badge badge-warning" style={{ fontSize: '0.58rem', padding: '0.08rem 0.35rem', whiteSpace: 'nowrap' }}>
+                                      Dicoret (N/A)
+                                    </span>
+                                  )
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleToggleVesselStrikethrough(el.code)}
-                                    style={{ fontSize: '0.58rem', padding: '0.05rem 0.3rem', border: '1px dashed var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', borderRadius: '3px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
-                                    title="Coret klausul ini (Tandai N/A jika tidak digunakan pada kapal)"
-                                  >
-                                    <Strikethrough size={9} />
-                                    <span>Coret</span>
-                                  </button>
+                                  isAuditorOrDPA && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                      style={{ fontSize: '0.58rem', padding: '0.05rem 0.3rem', border: '1px dashed var(--border-subtle)', background: 'transparent', color: 'var(--text-muted)', borderRadius: '3px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', width: 'fit-content' }}
+                                      title="Coret klausul ini (Tandai N/A jika tidak digunakan pada kapal)"
+                                    >
+                                      <Strikethrough size={9} />
+                                      <span>Coret</span>
+                                    </button>
+                                  )
                                 )}
                               </div>
                             </td>
@@ -3723,7 +4020,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                                   )}
                                 </span>
                               )}
-                              {isNo && (
+                              {isNo && isAuditorOrDPA && (
                                 <div style={{ marginTop: '0.4rem' }}>
                                   <button
                                     type="button"
@@ -3750,9 +4047,9 @@ export const AuditManager = ({ initialStandard = null }) => {
                             <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <div
                                 className={`audit-checkbox-box ${isYes ? 'active-yes' : ''}`}
-                                title={isYes ? 'Batal pilih Yes (Kosongkan)' : 'Tandai: Complied / Yes'}
+                                title={!isAuditorOrDPA ? 'Hanya Auditor / DPA yang berwenang mengevaluasi checklist' : isYes ? 'Batal pilih Yes (Kosongkan)' : 'Tandai: Complied / Yes'}
                                 onClick={() => !isStrikethrough && handleToggleManagerResult(el.code, 'Complied')}
-                                style={{ cursor: isStrikethrough ? 'not-allowed' : 'pointer' }}
+                                style={{ cursor: !isAuditorOrDPA || isStrikethrough ? 'not-allowed' : 'pointer' }}
                               >
                                 {isYes && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
                               </div>
@@ -3762,9 +4059,9 @@ export const AuditManager = ({ initialStandard = null }) => {
                             <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <div
                                 className={`audit-checkbox-box ${isNo ? 'active-no' : ''}`}
-                                title={isNo ? 'Batal pilih No (Kosongkan)' : 'Tandai: Minor NC / No'}
+                                title={!isAuditorOrDPA ? 'Hanya Auditor / DPA yang berwenang mengevaluasi checklist' : isNo ? 'Batal pilih No (Kosongkan)' : 'Tandai: Minor NC / No'}
                                 onClick={() => !isStrikethrough && handleToggleManagerResult(el.code, 'Minor NC')}
-                                style={{ cursor: isStrikethrough ? 'not-allowed' : 'pointer' }}
+                                style={{ cursor: !isAuditorOrDPA || isStrikethrough ? 'not-allowed' : 'pointer' }}
                               >
                                 {isNo && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
                               </div>
@@ -3774,9 +4071,9 @@ export const AuditManager = ({ initialStandard = null }) => {
                             <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                               <div
                                 className={`audit-checkbox-box ${isNA ? 'active-na' : ''}`}
-                                title={isNA ? 'Batal pilih N/A (Kosongkan)' : 'Tandai: N/A (Tidak Berlaku)'}
+                                title={!isAuditorOrDPA ? 'Hanya Auditor / DPA yang berwenang mengevaluasi checklist' : isNA ? 'Batal pilih N/A (Kosongkan)' : 'Tandai: N/A (Tidak Berlaku)'}
                                 onClick={() => !isStrikethrough && handleToggleManagerResult(el.code, 'N/A')}
-                                style={{ cursor: isStrikethrough ? 'not-allowed' : 'pointer' }}
+                                style={{ cursor: !isAuditorOrDPA || isStrikethrough ? 'not-allowed' : 'pointer' }}
                               >
                                 {isNA && <span style={{ fontSize: '13px', fontWeight: 900, lineHeight: 1 }}>✕</span>}
                               </div>
@@ -3787,10 +4084,16 @@ export const AuditManager = ({ initialStandard = null }) => {
                               <input
                                 type="text"
                                 value={currentNotes}
+                                disabled={!isAuditorOrDPA}
                                 onChange={(e) => setVesselChecklistNotes(prev => ({ ...prev, [el.code]: e.target.value }))}
-                                placeholder="Catatan temuan..."
+                                placeholder={isAuditorOrDPA ? "Catatan temuan..." : "Catatan auditor..."}
                                 className="input-control"
-                                style={{ fontSize: '0.74rem', padding: '0.25rem 0.5rem' }}
+                                style={{
+                                  fontSize: '0.74rem',
+                                  padding: '0.25rem 0.5rem',
+                                  background: !isAuditorOrDPA ? 'var(--bg-surface-elevated)' : undefined,
+                                  cursor: !isAuditorOrDPA ? 'not-allowed' : undefined
+                                }}
                               />
                             </td>
 
@@ -3879,83 +4182,90 @@ export const AuditManager = ({ initialStandard = null }) => {
 
                             {/* Aksi */}
                             <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditManagerItem(effectiveItem)}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{
-                                    padding: '0.2rem 0.45rem',
-                                    fontSize: '0.68rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.2rem',
-                                    color: '#0284c7',
-                                    borderColor: 'rgba(2, 132, 199, 0.3)'
-                                  }}
-                                  title="Edit butir klausul ini"
-                                >
-                                  <Edit2 size={11} />
-                                  <span>Edit</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setDeleteManagerItemTarget(effectiveItem)}
-                                  className="btn btn-secondary btn-sm"
-                                  style={{
-                                    padding: '0.2rem 0.45rem',
-                                    fontSize: '0.68rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.2rem',
-                                    color: '#ef4444',
-                                    borderColor: 'rgba(239, 68, 68, 0.3)'
-                                  }}
-                                  title="Hapus butir klausul ini"
-                                >
-                                  <Trash2 size={11} />
-                                  <span>Hapus</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleVesselStrikethrough(el.code)}
-                                  className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
-                                  style={{
-                                    fontSize: '0.68rem',
-                                    padding: '0.2rem 0.45rem',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.25rem',
-                                    fontWeight: 600
-                                  }}
-                                  title={isStrikethrough ? 'Lepas coret klausul (aktifkan kembali)' : 'Coret klausul (Tandai N/A jika tidak dipakai)'}
-                                >
-                                  {isStrikethrough ? (
-                                    <>
-                                      <Undo2 size={11} />
-                                      <span>Lepas</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Strikethrough size={11} />
-                                      <span>Coret</span>
-                                    </>
-                                  )}
-                                </button>
-
-                                {!isStrikethrough && (
+                              {isAuditorOrDPA ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
                                   <button
-                                    onClick={() => handleQuickLogNC(effectiveItem, effectiveResult === 'Major NC' ? 'Major NC' : effectiveResult === 'Observation' ? 'Observation' : 'Minor NC')}
+                                    type="button"
+                                    onClick={() => handleOpenEditManagerItem(effectiveItem)}
                                     className="btn btn-secondary btn-sm"
-                                    style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem', color: '#f59e0b' }}
-                                    title="Buat temuan NC untuk klausul ini"
+                                    style={{
+                                      padding: '0.2rem 0.45rem',
+                                      fontSize: '0.68rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem',
+                                      color: '#0284c7',
+                                      borderColor: 'rgba(2, 132, 199, 0.3)'
+                                    }}
+                                    title="Edit butir klausul ini"
                                   >
-                                    + NC
+                                    <Edit2 size={11} />
+                                    <span>Edit</span>
                                   </button>
-                                )}
-                              </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteManagerItemTarget(effectiveItem)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{
+                                      padding: '0.2rem 0.45rem',
+                                      fontSize: '0.68rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem',
+                                      color: '#ef4444',
+                                      borderColor: 'rgba(239, 68, 68, 0.3)'
+                                    }}
+                                    title="Hapus butir klausul ini"
+                                  >
+                                    <Trash2 size={11} />
+                                    <span>Hapus</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleVesselStrikethrough(el.code)}
+                                    className={`btn btn-sm ${isStrikethrough ? 'btn-warning' : 'btn-secondary'}`}
+                                    style={{
+                                      fontSize: '0.68rem',
+                                      padding: '0.2rem 0.45rem',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      fontWeight: 600
+                                    }}
+                                    title={isStrikethrough ? 'Lepas coret klausul (aktifkan kembali)' : 'Coret klausul (Tandai N/A jika tidak dipakai)'}
+                                  >
+                                    {isStrikethrough ? (
+                                      <>
+                                        <Undo2 size={11} />
+                                        <span>Lepas</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Strikethrough size={11} />
+                                        <span>Coret</span>
+                                      </>
+                                    )}
+                                  </button>
+
+                                  {!isStrikethrough && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleQuickLogNC(effectiveItem, effectiveResult === 'Major NC' ? 'Major NC' : effectiveResult === 'Observation' ? 'Observation' : 'Minor NC')}
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ fontSize: '0.68rem', padding: '0.2rem 0.45rem', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)', fontWeight: 700 }}
+                                      title="Buat temuan NC untuk klausul ini"
+                                    >
+                                      + NC
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.68rem', color: isStrikethrough ? '#f59e0b' : '#10b981', fontWeight: 700 }}>
+                                  {isStrikethrough ? '✂️ Dicoret (N/A)' : '✓ Klausul Standar'}
+                                </div>
+                              )}
                             </td>
                           </tr>
                         );
@@ -4266,7 +4576,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                                   <span>WhatsApp</span>
                                 </button>
 
-                                {auditRolePerspective === 'dpa' ? (
+                                {isAuditorOrDPA && auditRolePerspective === 'dpa' ? (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -4370,22 +4680,29 @@ export const AuditManager = ({ initialStandard = null }) => {
                 </div>
 
                 {activeSession?.status === 'In Progress' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      updateAuditSession(activeSession.id, {
-                        status: 'Completed',
-                        targetCloseDate: new Date().toISOString().split('T')[0],
-                        closeDate: new Date().toISOString().split('T')[0]
-                      });
-                      showToast(`✓ Sesi Audit ${activeSession.auditNo} berhasil diselesaikan dan ditutup!`, 'success');
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, background: '#10b981', borderColor: '#10b981' }}
-                  >
-                    <CheckCircle2 size={15} />
-                    <span>Finalisasi & Tutup Sesi Audit</span>
-                  </button>
+                  isAuditorOrDPA ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateAuditSession(activeSession.id, {
+                          status: 'Completed',
+                          targetCloseDate: new Date().toISOString().split('T')[0],
+                          closeDate: new Date().toISOString().split('T')[0]
+                        });
+                        showToast(`✓ Sesi Audit ${activeSession.auditNo} berhasil diselesaikan dan ditutup!`, 'success');
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 800, background: '#10b981', borderColor: '#10b981' }}
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>Finalisasi & Tutup Sesi Audit</span>
+                    </button>
+                  ) : (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem', borderRadius: '6px', background: 'rgba(2, 132, 199, 0.1)', color: '#0284c7', fontSize: '0.75rem', fontWeight: 600 }}>
+                      <Clock size={14} />
+                      <span>Menunggu Pengesahan Penutupan oleh Auditor / DPA</span>
+                    </div>
+                  )
                 )}
               </div>
 

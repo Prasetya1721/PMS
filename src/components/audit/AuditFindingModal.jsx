@@ -22,9 +22,11 @@ import {
   NON_BKI_AUDIT_ORGANIZATIONS,
   EXTERNAL_AUDIT_ORGANIZATIONS
 } from '../../data/auditMasterData';
+import { canPerformAction } from '../../utils/rbac';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, onClose }) => {
   const {
+    currentUser,
     audits,
     allAudits,
     vessels,
@@ -36,6 +38,9 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
     deleteAuditFinding,
     showToast
   } = usePMS();
+
+  const userRole = currentUser?.role || 'Super Admin';
+  const isAuditorOrDPA = canPerformAction(userRole, 'create_audit_finding');
 
   const isEdit = Boolean(finding && finding.id && !finding.isDraft);
   const [isFullscreen, setIsFullscreen] = useState(true);
@@ -187,6 +192,11 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!isAuditorOrDPA) {
+      showToast('Akses Terbatas: Hanya Auditor dan DPA yang berwenang menerbitkan atau mengubah lembar NCR resmi.', 'warning');
+      return;
+    }
 
     const linkedReqObj = requisitions.find(r => r.id === linkedRequisitionId);
     const linkedDocObj = shipDocuments.find(d => d.id === linkedCertificateId);
@@ -925,12 +935,12 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
           </div>
 
           {/* Footer */}
-          <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', padding: '0.85rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-elevated)', backgroundColor: 'var(--bg-surface-elevated)', opacity: 1 }}>
+          <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', padding: '0.85rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-elevated)', backgroundColor: 'var(--bg-surface-elevated)', opacity: 1, flexWrap: 'wrap', gap: '0.5rem' }}>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button type="button" onClick={onClose} className="btn btn-secondary">
-                Batal
+                {isAuditorOrDPA ? 'Batal' : 'Tutup'}
               </button>
-              {isEdit && (
+              {isEdit && isAuditorOrDPA && (
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
@@ -950,10 +960,18 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
                 </button>
               )}
             </div>
-            <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800 }}>
-              <Save size={16} />
-              <span>{isEdit ? 'Simpan Perubahan Laporan NCR' : 'Simpan Laporan Ketidaksesuaian (NCR)'}</span>
-            </button>
+
+            {isAuditorOrDPA ? (
+              <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800 }}>
+                <Save size={16} />
+                <span>{isEdit ? 'Simpan Perubahan Laporan NCR' : 'Simpan Laporan Ketidaksesuaian (NCR)'}</span>
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
+                <Clock size={14} />
+                <span>Mode Tinjauan: Otorisasi penerbitan NCR wewenang Lead Auditor / DPA</span>
+              </div>
+            )}
           </div>
         </form>
       </div>

@@ -25,6 +25,7 @@ import {
   BKI_DOC_CHECKLIST_TEMPLATE,
   normalizeChecklistItem
 } from '../../data/auditMasterData';
+import { canPerformAction } from '../../utils/rbac';
 
 const getStandardBkiDocChecklist = () => {
   return (BKI_DOC_CHECKLIST_TEMPLATE.items || []).map(normalizeChecklistItem).map(item => {
@@ -51,11 +52,15 @@ const DOC_DEPARTMENT_OPTIONS = [
 
 export const DocSessionModal = ({ session, onClose, onSaved }) => {
   const {
+    currentUser,
     addAuditSession,
     updateAuditSession,
     deleteAuditSession,
     showToast
   } = usePMS();
+
+  const userRole = currentUser?.role || 'Super Admin';
+  const isAuditorOrDPA = canPerformAction(userRole, 'access_doc_audit');
 
   const isEdit = Boolean(session);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -176,6 +181,11 @@ export const DocSessionModal = ({ session, onClose, onSaved }) => {
   // Save handler
   const handleSave = (e) => {
     if (e) e.preventDefault();
+
+    if (!isAuditorOrDPA) {
+      showToast('Akses Terbatas: Audit DOC Kantor Darat adalah hak eksklusif DPA dan Tim Manajemen Darat.', 'warning');
+      return;
+    }
 
     if (!auditNo.trim()) {
       showToast('Nomor registrasi audit wajib diisi!', 'warning');
@@ -759,7 +769,7 @@ export const DocSessionModal = ({ session, onClose, onSaved }) => {
           gap: '0.75rem'
         }}>
           <div>
-            {isEdit && (
+            {isEdit && isAuditorOrDPA && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -772,33 +782,40 @@ export const DocSessionModal = ({ session, onClose, onSaved }) => {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={onClose}
               className="btn btn-secondary btn-sm"
               style={{ fontWeight: 600, padding: '0.5rem 1.15rem' }}
             >
-              Batal
+              {isAuditorOrDPA ? 'Batal' : 'Tutup'}
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="btn btn-primary btn-sm"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontWeight: 800,
-                padding: '0.5rem 1.35rem',
-                background: '#d97706',
-                borderColor: '#b45309',
-                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
-              }}
-            >
-              <Save size={15} />
-              <span>{isEdit ? 'Simpan Perubahan DOC' : 'Simpan & Buka 13 Seksi DOC (Tahap 2)'}</span>
-            </button>
+            {isAuditorOrDPA ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="btn btn-primary btn-sm"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontWeight: 800,
+                  padding: '0.5rem 1.35rem',
+                  background: '#d97706',
+                  borderColor: '#b45309',
+                  boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
+                }}
+              >
+                <Save size={15} />
+                <span>{isEdit ? 'Simpan Perubahan DOC' : 'Simpan & Buka 13 Seksi DOC (Tahap 2)'}</span>
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
+                <Clock size={14} />
+                <span>Akses Khusus DPA: Kru kapal tidak berwenang mengelola DOC kantor</span>
+              </div>
+            )}
           </div>
         </div>
 

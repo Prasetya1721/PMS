@@ -25,6 +25,7 @@ import {
   BKI_SMC_CHECKLIST_TEMPLATE,
   normalizeChecklistItem
 } from '../../data/auditMasterData';
+import { canPerformAction } from '../../utils/rbac';
 
 const getStandardBkiSmcChecklist = () => {
   return (BKI_SMC_CHECKLIST_TEMPLATE.items || []).map(normalizeChecklistItem).map(item => {
@@ -42,6 +43,7 @@ const getStandardBkiSmcChecklist = () => {
 
 export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) => {
   const {
+    currentUser,
     vessels,
     selectedVesselId,
     addAuditSession,
@@ -49,6 +51,9 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
     deleteAuditSession,
     showToast
   } = usePMS();
+
+  const userRole = currentUser?.role || 'Super Admin';
+  const isAuditorOrDPA = canPerformAction(userRole, 'create_audit_session');
 
   const isEdit = Boolean(session);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -193,6 +198,11 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
   // Save handler
   const handleSave = (e) => {
     if (e) e.preventDefault();
+
+    if (!isAuditorOrDPA) {
+      showToast('Akses Terbatas: Pembuatan dan pengubahan sesi audit SMC hanya berhak dilakukan oleh DPA atau Lead Auditor.', 'warning');
+      return;
+    }
 
     if (!auditNo.trim()) {
       showToast('Nomor registrasi audit wajib diisi!', 'warning');
@@ -776,7 +786,7 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
           gap: '0.75rem'
         }}>
           <div>
-            {isEdit && (
+            {isEdit && isAuditorOrDPA && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
@@ -789,31 +799,38 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
             <button
               type="button"
               onClick={onClose}
               className="btn btn-secondary btn-sm"
               style={{ fontWeight: 600, padding: '0.5rem 1.15rem' }}
             >
-              Batal
+              {isAuditorOrDPA ? 'Batal' : 'Tutup'}
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="btn btn-primary btn-sm"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontWeight: 800,
-                padding: '0.5rem 1.35rem',
-                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
-              }}
-            >
-              <Save size={15} />
-              <span>{isEdit ? 'Simpan Perubahan SMC' : 'Simpan & Buka Checklist (Tahap 2)'}</span>
-            </button>
+            {isAuditorOrDPA ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="btn btn-primary btn-sm"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontWeight: 800,
+                  padding: '0.5rem 1.35rem',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                <Save size={15} />
+                <span>{isEdit ? 'Simpan Perubahan SMC' : 'Simpan & Buka Checklist (Tahap 2)'}</span>
+              </button>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
+                <Clock size={14} />
+                <span>Mode Tinjauan: Pembukaan sesi SMC wewenang DPA / Auditor</span>
+              </div>
+            )}
           </div>
         </div>
 

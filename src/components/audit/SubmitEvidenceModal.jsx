@@ -29,6 +29,9 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     currentUser
   } = usePMS();
 
+  const isAuditorOrDPA = currentUser?.role === 'Super Admin' || currentUser?.role === 'Fleet Manager';
+  const isShipCrew = !isAuditorOrDPA;
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showPrintReport, setShowPrintReport] = useState(false);
   const evidence = finding?.evidence || {};
@@ -573,19 +576,20 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
             </div>
 
             {/* Verifikasi Status Upgrade / Downgrade / Tetap */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', opacity: isAuditorOrDPA ? 1 : 0.85 }}>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>
-                  Tindakan perbaikan telah diverifikasi dan:
+                  Tindakan perbaikan telah diverifikasi dan: {!isAuditorOrDPA && <span style={{ color: '#f59e0b' }}>(Wewenang Auditor)</span>}
                 </label>
                 <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                   {['Tetap', 'Ditingkatkan', 'Diturunkan'].map(opt => (
-                    <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+                    <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: isAuditorOrDPA ? 'pointer' : 'not-allowed' }}>
                       <input
                         type="radio"
                         name="upgradeDowngrade"
                         value={opt}
                         checked={verifiedUpgradeDowngrade === opt}
+                        disabled={!isAuditorOrDPA}
                         onChange={() => setVerifiedUpgradeDowngrade(opt)}
                       />
                       <span>{opt === 'Ditingkatkan' ? 'Ditingkatkan ke Mayor NC' : opt === 'Diturunkan' ? 'Diturunkan ke NC' : 'Tetap Sesuai Kategori'}</span>
@@ -596,23 +600,25 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
 
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem' }}>
-                  Memuaskan (Satisfactory):
+                  Memuaskan (Satisfactory): {!isAuditorOrDPA && <span style={{ color: '#f59e0b' }}>(Wewenang Auditor)</span>}
                 </label>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: '#10b981', fontWeight: 700 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: isAuditorOrDPA ? 'pointer' : 'not-allowed', color: '#10b981', fontWeight: 700 }}>
                     <input
                       type="radio"
                       name="satisfactory"
                       checked={verifiedSatisfactory === true}
+                      disabled={!isAuditorOrDPA}
                       onChange={() => setVerifiedSatisfactory(true)}
                     />
                     <span>✅ Ya (Memuaskan)</span>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: 'pointer', color: '#ef4444', fontWeight: 700 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', cursor: isAuditorOrDPA ? 'pointer' : 'not-allowed', color: '#ef4444', fontWeight: 700 }}>
                     <input
                       type="radio"
                       name="satisfactory"
                       checked={verifiedSatisfactory === false}
+                      disabled={!isAuditorOrDPA}
                       onChange={() => setVerifiedSatisfactory(false)}
                     />
                     <span>❌ Tidak (Belum Memuaskan)</span>
@@ -625,15 +631,16 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                  Catatan Evaluasi / Telaah Auditor
+                  Catatan Evaluasi / Telaah Auditor {!isAuditorOrDPA && <span style={{ color: '#f59e0b' }}>(Diisi Auditor / DPA)</span>}
                 </label>
                 <textarea
                   rows={2}
                   value={auditorNotes}
+                  disabled={!isAuditorOrDPA}
                   onChange={(e) => setAuditorNotes(e.target.value)}
-                  placeholder="Evaluasi kecukupan bukti perbaikan..."
+                  placeholder={isAuditorOrDPA ? "Evaluasi kecukupan bukti perbaikan..." : "Belum ada catatan evaluasi dari Auditor / DPA."}
                   className="input-control"
-                  style={{ resize: 'vertical' }}
+                  style={{ resize: 'vertical', background: !isAuditorOrDPA ? 'var(--bg-surface)' : undefined, cursor: !isAuditorOrDPA ? 'not-allowed' : undefined }}
                 />
               </div>
 
@@ -644,8 +651,10 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                 <input
                   type="date"
                   value={verificationDate}
+                  disabled={!isAuditorOrDPA}
                   onChange={(e) => setVerificationDate(e.target.value)}
                   className="input-control mono"
+                  style={{ cursor: !isAuditorOrDPA ? 'not-allowed' : undefined }}
                 />
               </div>
             </div>
@@ -662,7 +671,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 {finding.status === 'NC Close' ? (
                   <>
                     <button
@@ -683,17 +692,19 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                       <Printer size={15} />
                       <span>🖨️ Cetak Laporan NC Close</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleReopenNC}
-                      className="btn btn-danger btn-sm"
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
-                    >
-                      <RotateCcw size={13} />
-                      <span>Buka Kembali Temuan (Reopen NC)</span>
-                    </button>
+                    {isAuditorOrDPA && (
+                      <button
+                        type="button"
+                        onClick={handleReopenNC}
+                        className="btn btn-danger btn-sm"
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                      >
+                        <RotateCcw size={13} />
+                        <span>Buka Kembali Temuan (Reopen NC)</span>
+                      </button>
+                    )}
                   </>
-                ) : (
+                ) : isAuditorOrDPA ? (
                   <button
                     type="button"
                     onClick={handleCloseNC}
@@ -703,6 +714,22 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
                     <CheckCircle2 size={15} />
                     <span>Verifikasi & Tutup Temuan (CLOSE NC)</span>
                   </button>
+                ) : (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '7px',
+                    background: 'rgba(2, 132, 199, 0.08)',
+                    border: '1px solid rgba(2, 132, 199, 0.3)',
+                    fontSize: '0.74rem',
+                    color: '#0284c7',
+                    fontWeight: 600
+                  }}>
+                    <ShieldCheck size={14} />
+                    <span>Otorisasi Close NC Wewenang DPA / Lead Auditor</span>
+                  </div>
                 )}
               </div>
             </div>

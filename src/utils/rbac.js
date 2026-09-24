@@ -202,11 +202,20 @@ export const canPerformAction = (role, action) => {
     case 'manage_bot_gateway':
       return role === 'Super Admin' || role === 'Fleet Manager';
 
+    case 'create_audit_session':
+    case 'delete_audit_session':
     case 'create_audit_finding':
+    case 'delete_audit_finding':
+    case 'evaluate_audit_checklist':
+    case 'strike_audit_clause':
     case 'close_audit_nc':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda';
+    case 'reopen_audit_nc':
+    case 'access_doc_audit':
+      // Wewenang khusus DPA / Lead Auditor / Manajemen Darat
+      return role === 'Super Admin' || role === 'Fleet Manager';
 
     case 'submit_audit_evidence':
+      // Auditee (Nakhoda, KKM, DPA, Admin) berhak mengirimkan bukti perbaikan fisik/dokumen
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
 
     case 'create_work_order':
