@@ -1,5 +1,8 @@
 import React from 'react';
 import { isBKIOrganization } from '../../data/auditMasterData';
+import { BaharimasEmblem, BaharimasReportLogo } from '../common/BaharimasLogo';
+
+export { BaharimasReportLogo };
 
 // =============================================================================
 // LOGO RESMI MASING-MASING LEMBAGA (VEKTOR SVG PRESIFI TINGGI)
@@ -63,21 +66,10 @@ export const HublaLogo = ({ width = 55, height = 55 }) => (
 
 /**
  * Logo Resmi PT. Pelayaran Baharimas Kalimantan (PBK)
- * Kapal Tugboat & Armada Laut dengan Gelombang Samudera
+ * Menggunakan Vector Emblem Resmi Baharimas
  */
-export const PbkLogo = ({ width = 55, height = 55 }) => (
-  <svg width={width} height={height} viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
-    <circle cx="30" cy="30" r="28" fill="#0284c7" stroke="#0369a1" strokeWidth="2" />
-    {/* Badan Kapal Tugboat */}
-    <path d="M13 36l4 8h26l4-8H13z" fill="#ffffff" />
-    {/* Anjungan Kapal */}
-    <path d="M22 24h16v10H22z" fill="#f8fafc" stroke="#0369a1" strokeWidth="1" />
-    <path d="M25 18h10v6H25z" fill="#e2e8f0" />
-    {/* Cerobong Mesin */}
-    <path d="M36 14v4" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" />
-    {/* Ombak Biru Samudera */}
-    <path d="M10 46c5 3 12 3 17 0 6 3 13 3 19 0" stroke="#bae6fd" strokeWidth="2.5" strokeLinecap="round" />
-  </svg>
+export const PbkLogo = ({ width = 52, height = 52, size }) => (
+  <BaharimasEmblem size={size || Math.min(width, height)} />
 );
 
 /**
@@ -130,7 +122,7 @@ export const getInstitutionBranding = (session, finding) => {
       primaryColor: '#003b6f',
       accentColor: '#f97316',
       authorityTag: 'Biro Klasifikasi Indonesia (Recognized Organization)',
-      LogoComponent: BkiLogo
+      LogoComponent: BaharimasReportLogo
     };
   }
 
@@ -232,7 +224,7 @@ export const getInstitutionBranding = (session, finding) => {
     primaryColor: '#0284c7',
     accentColor: '#0369a1',
     authorityTag: 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)',
-    LogoComponent: PbkLogo
+    LogoComponent: BaharimasReportLogo
   };
 };
 
@@ -257,10 +249,10 @@ export const AuditInstitutionHeader = ({ branding, session, vessel }) => {
           Report id: PT. PELAYARAN BAHARIMAS KALIMANTAN - {vessel?.name || session?.targetName || 'Armada Kapal'} – {session?.reportId || '0859-PK/ISM-SMC/2026'}
         </div>
 
-        {/* BKI Header Box: Logo at left, Title table at right */}
+        {/* Header Box: Logo PT Pelayaran Baharimas at left, Title table at right */}
         <div style={{ display: 'flex', alignItems: 'stretch', gap: '10px', border: '1.5px solid #000000', padding: '6px 10px', background: '#ffffff' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '95px', padding: '4px 6px', borderRight: '1px solid #cbd5e1' }}>
-            <LogoComponent width={85} height={40} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '125px', padding: '4px 6px', borderRight: '1px solid #cbd5e1' }}>
+            <BaharimasReportLogo />
           </div>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ fontSize: '9pt', fontWeight: 900, color: '#000000', letterSpacing: '0.2px', textTransform: 'uppercase' }}>

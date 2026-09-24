@@ -87,3 +87,46 @@ export const BaharimasLogo = ({
     </div>
   );
 };
+
+/**
+ * Official Report Header Logo for PT. Pelayaran Baharimas Kalimantan
+ * Tailored for official print documents, audit headers, and certificates.
+ */
+export const BaharimasReportLogo = ({ emblemSize = 34, className = '', style = {} }) => {
+  return (
+    <div
+      className={`baharimas-report-logo ${className}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '8px',
+        lineHeight: 1,
+        userSelect: 'none',
+        ...style
+      }}
+    >
+      <BaharimasEmblem size={emblemSize} />
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left' }}>
+        <span style={{ fontSize: '6.5pt', fontWeight: 700, color: '#334155', letterSpacing: '0.4px', lineHeight: 1.15, fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+          PT. PELAYARAN
+        </span>
+        <span
+          style={{
+            fontSize: '8.5pt',
+            fontWeight: 900,
+            color: '#0f172a',
+            letterSpacing: '0.4px',
+            lineHeight: 1.15,
+            fontFamily: "'Arial Black', 'Impact', sans-serif"
+          }}
+        >
+          BAHARIMAS
+        </span>
+        <span style={{ fontSize: '6pt', fontWeight: 800, color: '#0284c7', letterSpacing: '0.8px', lineHeight: 1.15, fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+          KALIMANTAN
+        </span>
+      </div>
+    </div>
+  );
+};
+

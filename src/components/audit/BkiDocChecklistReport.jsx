@@ -1,5 +1,5 @@
 import React from 'react';
-import { BkiLogo } from './AuditInstitutionHeader';
+import { BaharimasReportLogo } from './AuditInstitutionHeader';
 import { formatIndoDate } from '../../utils/auditTimeUtils';
 
 /**
@@ -160,7 +160,7 @@ export const BkiDocChecklistReport = ({
         <div style={{ marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', borderBottom: '2px solid #1e3a5f', paddingBottom: '8px', marginBottom: '6px' }}>
             <div style={{ flex: '0 0 auto', marginRight: '12px' }}>
-              <BkiLogo size={52} />
+              <BaharimasReportLogo />
             </div>
             <div style={{ flex: 1, textAlign: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: '9pt', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#1e3a5f' }}>

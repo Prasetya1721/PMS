@@ -1,5 +1,5 @@
 import React from 'react';
-import { BkiLogo } from './AuditInstitutionHeader';
+import { BaharimasReportLogo } from './AuditInstitutionHeader';
 import { formatIndoDate } from '../../utils/auditTimeUtils';
 
 /**
@@ -205,10 +205,10 @@ export const BkiShipboardChecklistReport = ({
           {runningHeaderTitle}
         </div>
 
-        {/* HEADER COVER: LOGO BKI & KOTAK JUDUL BILINGUAL RESMI */}
+        {/* HEADER COVER: LOGO PT PELAYARAN BAHARIMAS & KOTAK JUDUL BILINGUAL RESMI */}
         <div style={{ display: 'flex', alignItems: 'stretch', border: '1.5px solid #000000', marginBottom: '8px' }}>
           <div style={{ width: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid #000000', padding: '6px' }}>
-            <BkiLogo width={95} height={42} />
+            <BaharimasReportLogo />
           </div>
           <div style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <div style={{ fontSize: '8.5pt', fontWeight: 900, textTransform: 'uppercase', color: '#000000' }}>

@@ -966,21 +966,26 @@ export const AuditManager = ({ initialStandard = null }) => {
     showToast(`Bukti audit ${itemCode} dilepas`, 'info');
   };
 
-  // Global fleet KPI stats
+  // SMC Targets (Kapal Armada only - Kantor Pusat DOC dipisahkan khusus di tab Audit DOC)
+  const smcTargets = useMemo(() => {
+    return allFleetTargets.filter(t => t.type === 'vessel');
+  }, [allFleetTargets]);
+
+  // Global fleet KPI stats (Khusus armada kapal SMC pada layar gateway)
   const fleetStats = useMemo(() => {
-    const totalTargets = allFleetTargets.length;
-    const totalOpen = allFleetTargets.reduce((acc, t) => acc + t.openNC, 0);
-    const totalSubmitted = allFleetTargets.reduce((acc, t) => acc + t.submittedNC, 0);
-    const totalClosed = allFleetTargets.reduce((acc, t) => acc + t.closedNC, 0);
-    const totalSessions = (allAudits || []).length;
-    const cleanTargets = allFleetTargets.filter(t => t.openNC === 0).length;
+    const totalTargets = smcTargets.length;
+    const totalOpen = smcTargets.reduce((acc, t) => acc + t.openNC, 0);
+    const totalSubmitted = smcTargets.reduce((acc, t) => acc + t.submittedNC, 0);
+    const totalClosed = smcTargets.reduce((acc, t) => acc + t.closedNC, 0);
+    const totalSessions = (allAudits || []).filter(a => a.standard !== 'DOC' && a.vesselId).length;
+    const cleanTargets = smcTargets.filter(t => t.openNC === 0).length;
     const complianceRate = totalTargets > 0 ? Math.round((cleanTargets / totalTargets) * 100) : 100;
-    const totalOverdue = allFleetTargets.reduce((acc, t) => acc + (t.timeStats?.overdueCount || 0), 0);
+    const totalOverdue = smcTargets.reduce((acc, t) => acc + (t.timeStats?.overdueCount || 0), 0);
 
     // Fleet-wide average resolution days for closed NC
     let totalClosedDays = 0;
     let closedCount = 0;
-    (allAuditFindings || []).filter(f => f.status === 'NC Close').forEach(f => {
+    (allAuditFindings || []).filter(f => f.status === 'NC Close' && f.standard !== 'DOC' && f.vesselId).forEach(f => {
       const range = calculateNCRange(f);
       if (range?.resolutionDays) {
         totalClosedDays += range.resolutionDays;
@@ -1000,18 +1005,17 @@ export const AuditManager = ({ initialStandard = null }) => {
       totalOverdue,
       avgCloseDays
     };
-  }, [allFleetTargets, allAudits, allAuditFindings]);
+  }, [smcTargets, allAudits, allAuditFindings]);
 
-  // Filtered targets for the gateway grid
+  // Filtered targets for the gateway grid (Hanya kapal armada SMC)
   const filteredGatewayTargets = useMemo(() => {
-    return allFleetTargets.filter(target => {
+    return smcTargets.filter(target => {
       // Category filter
       if (gatewayFilter === 'HAS_OPEN_NC' && target.openNC === 0) return false;
       if (gatewayFilter === 'HAS_SUBMITTED' && target.submittedNC === 0) return false;
       if (gatewayFilter === 'CLEAN' && target.openNC > 0) return false;
       if (gatewayFilter === 'OWNER' && target.ownership !== 'As Owner') return false;
       if (gatewayFilter === 'OPERATOR' && target.ownership !== 'As Operator') return false;
-      if (gatewayFilter === 'OFFICE' && target.id !== 'office') return false;
 
       // Search query
       if (gatewaySearch.trim()) {
@@ -1026,7 +1030,7 @@ export const AuditManager = ({ initialStandard = null }) => {
 
       return true;
     });
-  }, [allFleetTargets, gatewayFilter, gatewaySearch]);
+  }, [smcTargets, gatewayFilter, gatewaySearch]);
 
   // Filtered findings for the active target view
   const currentTargetFilteredFindings = useMemo(() => {
@@ -1262,14 +1266,14 @@ export const AuditManager = ({ initialStandard = null }) => {
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                  <h2 style={{ fontSize: '1.55rem', fontWeight: 800 }}>Portal Audit ISM Code Per Armada Kapal</h2>
+                  <h2 style={{ fontSize: '1.55rem', fontWeight: 800 }}>Portal Audit ISM Code Per Armada Kapal (SMC)</h2>
                   <span className="badge badge-info" style={{ fontSize: '0.72rem', padding: '0.2rem 0.6rem' }}>
-                    {vessels.length} Kapal Armada
+                    {smcTargets.length} Kapal Armada SMC
                   </span>
                 </div>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.3rem', maxWidth: '780px', lineHeight: '1.5' }}>
-                  Silakan <strong>pilih kapal terlebih dahulu</strong> di bawah ini untuk mengakses ruang audit SMC khusus kapal tersebut.
-                  Untuk audit kantor perusahaan, silakan pilih tab <strong>Audit DOC Kantor</strong> di atas atau melalui sub-menu sidebar.
+                  Silakan <strong>pilih kapal armada</strong> di bawah ini untuk mengakses ruang audit dan evaluasi <strong>SMC (Safety Management Certificate)</strong>.
+                  Untuk audit kantor darat perusahaan, silakan pilih tab <strong>Audit DOC Kantor</strong> di atas.
                 </p>
               </div>
             </div>
@@ -1310,7 +1314,7 @@ export const AuditManager = ({ initialStandard = null }) => {
                 <Ship size={18} color="#38bdf8" />
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.4rem', color: '#38bdf8' }}>
-                {vessels.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal + 1 DOC</span>
+                {smcTargets.length} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>Kapal Armada (SMC)</span>
               </div>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
                 {ownerCount} As Owner • {operatorCount} As Operator PBK
@@ -1388,13 +1392,12 @@ export const AuditManager = ({ initialStandard = null }) => {
             {/* Filter Buttons */}
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
-                { id: 'ALL', label: `Semua Armada (${allFleetTargets.length})`, icon: Ship },
-                { id: 'HAS_OPEN_NC', label: `🚨 Ada NC Open (${allFleetTargets.filter(t => t.openNC > 0).length})`, icon: AlertTriangle, highlight: true },
-                { id: 'HAS_SUBMITTED', label: `⏳ Menunggu Eviden (${allFleetTargets.filter(t => t.submittedNC > 0).length})`, icon: Clock },
-                { id: 'CLEAN', label: `✅ Bebas NC Open (${allFleetTargets.filter(t => t.openNC === 0).length})`, icon: CheckCircle2 },
+                { id: 'ALL', label: `Semua Armada SMC (${smcTargets.length})`, icon: Ship },
+                { id: 'HAS_OPEN_NC', label: `🚨 Ada NC Open (${smcTargets.filter(t => t.openNC > 0).length})`, icon: AlertTriangle, highlight: true },
+                { id: 'HAS_SUBMITTED', label: `⏳ Menunggu Eviden (${smcTargets.filter(t => t.submittedNC > 0).length})`, icon: Clock },
+                { id: 'CLEAN', label: `✅ Bebas NC Open (${smcTargets.filter(t => t.openNC === 0).length})`, icon: CheckCircle2 },
                 { id: 'OWNER', label: `⚓ As Owner (${ownerCount})`, icon: Ship },
-                { id: 'OPERATOR', label: `⚙️ As Operator (${operatorCount})`, icon: Ship },
-                { id: 'OFFICE', label: `🏢 Kantor Pusat DOC`, icon: Building2 }
+                { id: 'OPERATOR', label: `⚙️ As Operator (${operatorCount})`, icon: Ship }
               ].map(f => {
                 const isActive = gatewayFilter === f.id;
                 return (
@@ -1720,38 +1723,66 @@ export const AuditManager = ({ initialStandard = null }) => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 onClick={() => {
-                  setActiveTargetId(null);
                   if (activeStandard === 'DOC') {
                     setActiveStandard('SMC');
+                    setActiveTargetId(null);
+                  } else {
+                    setActiveTargetId(null);
                   }
                 }}
                 className="btn btn-secondary btn-sm"
                 style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
               >
                 <ArrowLeft size={15} />
-                <span>← Kembali ke Pemilihan Armada</span>
+                <span>
+                  {activeStandard === 'DOC' ? '← Beralih ke Portal Audit SMC Kapal' : '← Kembali ke Pemilihan Armada'}
+                </span>
               </button>
               <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Portal Audit ISM <span style={{ opacity: 0.5 }}>/</span> <strong style={{ color: 'var(--text-main)' }}>{currentTarget.name}</strong>
+                Portal Audit ISM <span style={{ opacity: 0.5 }}>/</span>{' '}
+                <span className={`badge ${currentTarget.standard === 'DOC' ? 'badge-info' : 'badge-primary'}`} style={{ fontSize: '0.68rem', marginRight: '0.4rem' }}>
+                  {currentTarget.standard === 'DOC' ? 'DOC KANTOR' : 'SMC KAPAL'}
+                </span>
+                <strong style={{ color: 'var(--text-main)' }}>{currentTarget.name}</strong>
               </div>
             </div>
 
             {/* Quick Switcher Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ganti Kapal:</span>
-              <select
-                value={activeTargetId}
-                onChange={(e) => handleSelectTarget(e.target.value)}
-                className="select-control"
-                style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', width: '250px' }}
-              >
-                {allFleetTargets.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.openNC > 0 ? `🚨 [${t.openNC} NC] ` : t.submittedNC > 0 ? `⏳ [Eviden] ` : `✅ `}
-                    {t.name} ({t.ownership})
-                  </option>
-                ))}
-              </select>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {activeStandard === 'DOC' ? 'Entitas Audit:' : 'Ganti Kapal:'}
+              </span>
+              {activeStandard === 'DOC' ? (
+                <div style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  background: 'var(--bg-surface-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}>
+                  <Building2 size={14} color="#0284c7" />
+                  <span>Kantor Pusat PT. PBK Pontianak</span>
+                </div>
+              ) : (
+                <select
+                  value={activeTargetId}
+                  onChange={(e) => handleSelectTarget(e.target.value)}
+                  className="select-control"
+                  style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', width: '250px' }}
+                >
+                  {smcTargets.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.openNC > 0 ? `🚨 [${t.openNC} NC] ` : t.submittedNC > 0 ? `⏳ [Eviden] ` : `✅ `}
+                      {t.name} ({t.ownership})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
