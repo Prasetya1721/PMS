@@ -16,6 +16,7 @@ import {
   CheckSquare,
   Edit3
 } from 'lucide-react';
+import { makeId } from '../../utils/idUtils';
 
 export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose }) => {
   const {
@@ -132,7 +133,7 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
     if (!newStepText.trim()) return;
     setSopSteps(prev => [
       ...prev,
-      { id: `step-${Date.now()}`, title: newStepText.trim(), done: false }
+      { id: makeId('step'), title: newStepText.trim(), done: false }
     ]);
     setNewStepText('');
   };

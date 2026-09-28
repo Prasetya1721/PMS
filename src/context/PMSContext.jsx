@@ -54,6 +54,7 @@ import {
   ROLE_DEFINITIONS,
   ROLE_PERMISSIONS
 } from '../utils/rbac';
+import { makeId } from '../utils/idUtils';
 
 const PMSContext = createContext();
 
@@ -532,7 +533,7 @@ export const PMSProvider = ({ children }) => {
     }
 
     const newEq = {
-      id: `eq-${Date.now()}`,
+      id: makeId('eq'),
       vesselId: equipmentData.vesselId || (vessels[0]?.id || 'v-001'),
       code: equipmentData.code?.trim() || `EQ-${Math.floor(100 + Math.random() * 900)}`,
       name: equipmentData.name?.trim() || 'Equipment Baru',
@@ -758,7 +759,7 @@ export const PMSProvider = ({ children }) => {
 
     // Record log into dailyMachineryLogs
     const newLog = {
-      id: `dml-${Date.now()}`,
+      id: makeId('dml'),
       vesselId,
       logDate,
       loggedBy: metadata.loggedBy || 'Masinis Jaga',
@@ -780,7 +781,7 @@ export const PMSProvider = ({ children }) => {
   const logCriticalEquipmentTest = (testData) => {
     const newTest = {
       ...testData,
-      id: `cet-${Date.now()}`,
+      id: makeId('cet'),
       recordedAt: new Date().toISOString()
     };
     setCriticalEquipmentTests(prev => [newTest, ...prev]);
@@ -1058,7 +1059,7 @@ export const PMSProvider = ({ children }) => {
     const targetType = itemData.target || (itemData.category?.toLowerCase().includes('crew') || itemData.category?.toLowerCase().includes('bama') || itemData.category?.toLowerCase().includes('apd') ? 'Crew' : 'Kapal');
     const newItem = {
       ...itemData,
-      id: `log-${Date.now()}`,
+      id: makeId('log'),
       code: itemData.code?.trim() || `LOG-${Math.floor(1000 + Math.random() * 9000)}`,
       vesselId: itemData.vesselId || 'v-001',
       target: targetType,
@@ -1177,7 +1178,7 @@ export const PMSProvider = ({ children }) => {
         return [
           {
             ...updatedBudgetData,
-            id: budgetId || `bud-${Date.now()}`,
+            id: budgetId || makeId('bud'),
             lastUpdated: new Date().toISOString().split('T')[0]
           },
           ...prev
@@ -1199,7 +1200,7 @@ export const PMSProvider = ({ children }) => {
   const addExpenseTransaction = (expenseData) => {
     const newCost = {
       ...expenseData,
-      id: expenseData.id || `cost-${Date.now().toString().slice(-4)}`,
+      id: expenseData.id || makeId('cost'),
       date: expenseData.date || new Date().toISOString().split('T')[0],
       amount: Number(expenseData.amount) || 0,
       vesselId: expenseData.vesselId || 'v-001'
@@ -1264,7 +1265,7 @@ export const PMSProvider = ({ children }) => {
   const addCrew = (newCrewMember) => {
     const c = {
       ...newCrewMember,
-      id: `crew-${Date.now()}`,
+      id: makeId('crew'),
       leaveBalanceDays: newCrewMember.leaveBalanceDays || 14,
       status: newCrewMember.status || 'Onboard'
     };
@@ -1299,7 +1300,7 @@ export const PMSProvider = ({ children }) => {
   const submitLeave = (leaveData) => {
     const newLeave = {
       ...leaveData,
-      id: `leave-${Date.now()}`,
+      id: makeId('leave'),
       appliedDate: new Date().toISOString().split('T')[0],
       status: 'Pending Ship Admin'
     };
@@ -1310,7 +1311,7 @@ export const PMSProvider = ({ children }) => {
   const addDrill = (drillData) => {
     const d = {
       ...drillData,
-      id: `drill-${Date.now()}`,
+      id: makeId('drill'),
       conductedDate: drillData.conductedDate || new Date().toISOString().split('T')[0]
     };
     setDrills(prev => [d, ...prev]);
@@ -1319,7 +1320,7 @@ export const PMSProvider = ({ children }) => {
 
   // 4c. User Management Actions
   const addUser = (userData) => {
-    const newId = `u-${Date.now()}`;
+    const newId = makeId('u');
     const newUser = {
       id: newId,
       name: userData.name?.trim() || 'Pengguna Baru',
@@ -1395,7 +1396,7 @@ export const PMSProvider = ({ children }) => {
   // 4b. Vessel & Ship Document Actions
   const addVessel = (vesselData) => {
     try {
-      const newId = `v-${Date.now()}`;
+      const newId = makeId('v');
       const typeStr = String(vesselData?.type || 'Tugboat Twin Screw');
       const isBarge = typeStr.toLowerCase().includes('tongkang') || typeStr.toLowerCase().includes('barge');
       const cleanReg = String(vesselData?.regNo || '').trim();
@@ -1533,7 +1534,7 @@ export const PMSProvider = ({ children }) => {
 
     const newDoc = {
       ...docData,
-      id: `doc-s-${Date.now()}`,
+      id: makeId('doc-s'),
       category: docData.category || 'KSOP',
       issueDate: issue,
       expiryDate: expiry,
@@ -1683,7 +1684,7 @@ export const PMSProvider = ({ children }) => {
     if (!newTmpl || !newTmpl.name) return null;
     const name = newTmpl.name.trim();
     const category = newTmpl.category || 'BKI';
-    const id = newTmpl.id || `cn-${Math.floor(Math.random() * 1000)}-${Date.now()}`;
+    const id = newTmpl.id || makeId(`cn-${Math.floor(Math.random() * 1000)}`);
 
     const created = {
       id,
@@ -1743,7 +1744,7 @@ export const PMSProvider = ({ children }) => {
     const name = newSurvey.name.trim();
     const category = newSurvey.category || 'BKI';
     const intervalYears = newSurvey.intervalYears !== undefined ? Number(newSurvey.intervalYears) : 1;
-    const id = newSurvey.id || `st-${Math.floor(Math.random() * 1000)}-${Date.now()}`;
+    const id = newSurvey.id || makeId(`st-${Math.floor(Math.random() * 1000)}`);
 
     const created = {
       id,
@@ -1806,7 +1807,7 @@ export const PMSProvider = ({ children }) => {
 
     const newAudit = {
       ...auditData,
-      id: `aud-${Date.now()}`,
+      id: makeId('aud'),
       auditNo,
       reportId: auditData.reportId || `PT. PELAYARAN BAHARIMAS KALIMANTAN - ${auditData.targetName || 'RP'} - ${auditNo}`,
       docRevision: auditData.docRevision || 'F23.14.06-2024 Rev 05',
@@ -1914,7 +1915,7 @@ export const PMSProvider = ({ children }) => {
 
     const newFinding = {
       ...findingData,
-      id: `nc-${Date.now()}`,
+      id: makeId('nc'),
       findingNo,
       reportId: findingData.reportId || `0859 - PK/ISM- SMC /${year}`,
       areaUnderAudit: findingData.areaUnderAudit || findingData.targetName || (findingData.vesselId ? (vessels.find(v => v.id === findingData.vesselId)?.name) : 'Kantor Pusat'),
@@ -2132,7 +2133,7 @@ export const PMSProvider = ({ children }) => {
   const addCustomThreshold = (days, label, description, notifyChannels) => {
     const numDays = Math.max(1, parseInt(days, 10) || 1);
     const newTh = {
-      id: `th-custom-${Date.now()}`,
+      id: makeId('th-custom'),
       days: numDays,
       unit: 'custom',
       label: label?.trim() || `H-${numDays} Hari (Kustom)`,
@@ -2398,7 +2399,7 @@ export const PMSProvider = ({ children }) => {
 
     // Log to notification audit
     const newLog = {
-      id: `notif-${Date.now()}`,
+      id: makeId('notif'),
       timestamp: new Date().toLocaleString('id-ID'),
       channel: channelLabel,
       target: `${recipientName} (${phone})`,
@@ -2505,7 +2506,7 @@ export const PMSProvider = ({ children }) => {
     const backendRes = await sendEmailViaBackend(payload, gateway);
     const channelLabel = backendRes.ok ? `Email Auto (${gateway.provider})` : 'Email Auto';
     const newLog = {
-      id: `notif-email-${Date.now()}`,
+      id: makeId('notif-email'),
       timestamp: new Date().toLocaleString('id-ID'),
       channel: channelLabel,
       target: payload.to.join(', '),
@@ -2619,7 +2620,7 @@ export const PMSProvider = ({ children }) => {
     else if (offsetDays === 365) tagLabel = 'H-1 Tahun';
 
     const newLog = {
-      id: `notif-${Date.now()}`,
+      id: makeId('notif'),
       timestamp: new Date().toLocaleString('id-ID'),
       channel: 'Google Calendar Sync',
       target: `Google Calendar (${item.crewName || vesselName})`,
@@ -2765,7 +2766,7 @@ export const PMSProvider = ({ children }) => {
       const wantsEmail = emailEnabled && (m.threshold.notifyChannels || []).includes('Email');
       if (wantsWA) {
         newLogs.push({
-          id: `notif-auto-wa-${Date.now()}-${m.item.id}-${m.threshold.days}`,
+          id: makeId(`notif-auto-wa-${m.item.id}-${m.threshold.days}`),
           timestamp: new Date().toLocaleString('id-ID'),
           channel: `WhatsApp Auto (${m.threshold.label})`,
           target: recipient,
@@ -2795,7 +2796,7 @@ export const PMSProvider = ({ children }) => {
           emailStatus = 'Queued (Menunggu Backend)';
         }
         newLogs.push({
-          id: `notif-auto-email-${Date.now()}-${m.item.id}-${m.threshold.days}`,
+          id: makeId(`notif-auto-email-${m.item.id}-${m.threshold.days}`),
           timestamp: new Date().toLocaleString('id-ID'),
           channel: `Email Auto (${m.threshold.label})`,
           target: (toList.length ? toList.join(', ') : recipient),

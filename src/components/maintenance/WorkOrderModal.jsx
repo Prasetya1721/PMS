@@ -16,6 +16,7 @@ import {
   Users,
   ArrowLeft
 } from 'lucide-react';
+import { makeId } from '../../utils/idUtils';
 
 export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
   const {
@@ -236,7 +237,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
   // Handler: Add item from catalog preset
   const handleAddPresetItem = (preset) => {
     const newItem = {
-      id: `it-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: makeId(`it-${Math.floor(Math.random() * 1000)}`),
       name: preset.name,
       qty: 1,
       unit: preset.unit || 'Pcs',
@@ -255,7 +256,7 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
       return;
     }
     const newItem = {
-      id: `it-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: makeId(`it-${Math.floor(Math.random() * 1000)}`),
       name: manualItem.name.trim(),
       qty: Number(manualItem.qty) || 1,
       unit: manualItem.unit || 'Pcs',

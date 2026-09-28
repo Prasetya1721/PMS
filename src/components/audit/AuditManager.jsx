@@ -78,6 +78,7 @@ import { EvidencePreviewModal } from './modals/EvidencePreviewModal';
 import { EditChecklistItemModal } from './modals/EditChecklistItemModal';
 import { DeleteChecklistItemModal } from './modals/DeleteChecklistItemModal';
 import { DeleteConfirmModal } from './modals/DeleteConfirmModal';
+import { makeId } from '../../utils/idUtils';
 
 export const AuditManager = ({ initialStandard = null }) => {
   const {
@@ -636,7 +637,7 @@ export const AuditManager = ({ initialStandard = null }) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const dueStr = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const sampleSessionId = `aud-smc-sample-${Date.now().toString().slice(-6)}`;
+    const sampleSessionId = makeId('aud-smc-sample');
     const sampleAuditNo = `AUD-SMC-BKI/PBK-${year}/089`;
     const sampleReportId = `0859-PK/ISM-SMC/${year}`;
 
@@ -712,7 +713,7 @@ export const AuditManager = ({ initialStandard = null }) => {
 
     // Temuan 1: Minor NC pada 10.3 (Status: Eviden Submitted / Siap Verifikasi)
     const finding1 = {
-      id: `fnd-smc-${Date.now().toString().slice(-5)}-1`,
+      id: makeId('fnd-smc-1'),
       findingNo: `NC-SMC-${year}-001`,
       auditId: sampleSessionId,
       auditNo: sampleAuditNo,
@@ -748,7 +749,7 @@ export const AuditManager = ({ initialStandard = null }) => {
 
     // Temuan 2: Observation pada 6.5 (Status: NC Close / Sudah Ditutup)
     const finding2 = {
-      id: `fnd-smc-${Date.now().toString().slice(-5)}-2`,
+      id: makeId('fnd-smc-2'),
       findingNo: `OBS-SMC-${year}-002`,
       auditId: sampleSessionId,
       auditNo: sampleAuditNo,
@@ -1246,7 +1247,7 @@ export const AuditManager = ({ initialStandard = null }) => {
     }
 
     const newItem = {
-      id: `custom-${Date.now()}`,
+      id: makeId('custom'),
       code: manualCode.trim().toUpperCase(),
       name: manualName.trim(),
       checkPoint: manualCriteria.trim() || 'Kriteria pemeriksaan keselamatan kapal',

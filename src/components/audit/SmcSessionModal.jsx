@@ -26,6 +26,7 @@ import {
   normalizeChecklistItem
 } from '../../data/auditMasterData';
 import { canPerformAction } from '../../utils/rbac';
+import { makeId } from '../../utils/idUtils';
 
 const getStandardBkiSmcChecklist = () => {
   return (BKI_SMC_CHECKLIST_TEMPLATE.items || []).map(normalizeChecklistItem).map(item => {
@@ -260,7 +261,7 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
       showToast('✓ Sesi audit SMC berhasil diperbarui!', 'success');
     } else {
       const created = addAuditSession(payload);
-      savedSession = created || { id: `aud-smc-${Date.now()}`, ...payload };
+      savedSession = created || { id: makeId('aud-smc'), ...payload };
       showToast(`✓ Sesi audit SMC ${payload.auditNo} siap! Beralih ke Tahap 2: Checklist Klausul.`, 'success');
     }
 

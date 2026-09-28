@@ -10,6 +10,7 @@ import {
   MapPin,
   ChevronRight
 } from 'lucide-react';
+import { makeId } from '../../utils/idUtils';
 
 export const LoginPage = () => {
   const { users, login, siteConfig } = usePMS();
@@ -80,7 +81,7 @@ export const LoginPage = () => {
       } else {
         const namePart = email.includes('@') ? email.split('@')[0] : email;
         const dynamicUser = {
-          id: `u-${Date.now()}`,
+          id: makeId('u'),
           name: namePart.toUpperCase(),
           email: email.includes('@') ? email : `${namePart.toLowerCase()}@baharimas.co.id`,
           role: 'Super Admin',

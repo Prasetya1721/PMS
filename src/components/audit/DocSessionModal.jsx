@@ -26,6 +26,7 @@ import {
   normalizeChecklistItem
 } from '../../data/auditMasterData';
 import { canPerformAction } from '../../utils/rbac';
+import { makeId } from '../../utils/idUtils';
 
 const getStandardBkiDocChecklist = () => {
   return (BKI_DOC_CHECKLIST_TEMPLATE.items || []).map(normalizeChecklistItem).map(item => {
@@ -237,7 +238,7 @@ export const DocSessionModal = ({ session, onClose, onSaved }) => {
       showToast('✓ Sesi audit DOC berhasil diperbarui!', 'success');
     } else {
       const created = addAuditSession(payload);
-      savedSession = created || { id: `aud-doc-${Date.now()}`, ...payload };
+      savedSession = created || { id: makeId('aud-doc'), ...payload };
       showToast(`✓ Sesi audit DOC ${payload.auditNo} siap! Beralih ke Tahap 2: 13 Seksi BKI DOC.`, 'success');
     }
 
