@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { PMS_STORAGE_VERSION, initStorageVersion, loadStored, persistAllState } from '../utils/pmsStorage';
 import {
   INITIAL_VESSELS,
   INITIAL_EQUIPMENT,
@@ -56,148 +57,62 @@ import {
 
 const PMSContext = createContext();
 
-const PMS_STORAGE_VERSION = 'v15-clean-audit-bki';
-
-// Auto-purge stale localStorage if version mismatch occurs
-if (typeof window !== 'undefined') {
-  try {
-    const currentVersion = localStorage.getItem('pms_fleet_version');
-    if (currentVersion !== PMS_STORAGE_VERSION) {
-      console.log(`[PMS] Purging stale localStorage version (${currentVersion}) -> ${PMS_STORAGE_VERSION}`);
-      const preservedUser = localStorage.getItem('pms_current_user');
-      localStorage.clear();
-      if (preservedUser) {
-        localStorage.setItem('pms_current_user', preservedUser);
-      }
-      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-    }
-
-    // Bersihkan data master template agar kosong default sesuai permintaan user
-    const isMasterCleaned = localStorage.getItem('pms_master_templates_cleaned_v3');
-    if (!isMasterCleaned) {
-      localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
-      localStorage.setItem('pms_master_templates_cleaned_v3', 'true');
-    }
-  } catch (err) {
-    console.error('[PMS] Storage purge check error:', err);
-  }
-}
+// Inisialisasi versi storage — purge otomatis jika versi berubah
+initStorageVersion();
 
 export const PMSProvider = ({ children }) => {
   // Load state from localStorage or fallback to initial data
-  const loadStored = (key, fallback) => {
-    try {
-      const version = localStorage.getItem('pms_fleet_version');
-      if (version !== PMS_STORAGE_VERSION) {
-        return fallback;
-      }
-      const saved = localStorage.getItem(`pms_${key}`);
-      if (!saved) return fallback;
-      const sanitized = saved
-        .replace(/Samarinda/gi, 'Pontianak')
-        .replace(/Balikpapan/gi, 'Ketapang')
-        .replace(/Muara Berau/gi, 'Muara Jungkat')
-        .replace(/Kalimantan Timur/gi, 'Kalimantan Barat')
-        .replace(/Sungai Mahakam/gi, 'Sungai Kapuas');
-      const parsed = JSON.parse(sanitized);
-
-      if (key === 'vessels') {
-        if (!Array.isArray(parsed)) return fallback;
-        return parsed.map(v => {
-          let photo = v.photo;
-          if (!photo || photo.includes('photo-1544620347-c4fd4a3d5957')) {
-            photo = 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80';
-          }
-          return {
-            ...v,
-            photo,
-            particulars: v.particulars || createDefaultShipParticulars(v)
-          };
-        });
-      }
-
-      if (key === 'notificationSettings') {
-        if (!parsed || !parsed.thresholds || !parsed.autoSend || !parsed.thresholds.some(t => t.id === 'th-1d')) {
-          return fallback;
-        }
-        const ensureEmailChannel = (list) => (list || []).map(t => ({
-          ...t,
-          notifyChannels: Array.from(new Set([...(t.notifyChannels || []), 'Email'])),
-        }));
-        return {
-          ...fallback,
-          ...parsed,
-          thresholds: ensureEmailChannel(parsed.thresholds || fallback.thresholds),
-          customThresholds: ensureEmailChannel(parsed.customThresholds || fallback.customThresholds),
-          autoSend: {
-            ...fallback.autoSend,
-            ...(parsed.autoSend || {}),
-            channels: {
-              ...(fallback.autoSend?.channels || {}),
-              ...((parsed.autoSend || {}).channels || {}),
-            },
-            emailGateway: {
-              ...(fallback.autoSend?.emailGateway || {}),
-              ...((parsed.autoSend || {}).emailGateway || {}),
-            },
-          }
-        };
-      }
-      return parsed;
-    } catch {
-      return fallback;
-    }
-  };
+  const load = (key, fallback) => loadStored(key, fallback, INITIAL_NOTIFICATION_SETTINGS);
 
   const [vessels, setVessels] = useState(() => {
-    const loaded = loadStored('vessels', INITIAL_VESSELS);
+    const loaded = load('vessels', INITIAL_VESSELS);
     if (Array.isArray(loaded) && !loaded.some(v => v.name?.includes('RP 2004'))) {
       const rp2004 = DEMO_DATA.INITIAL_VESSELS?.find(v => v.name?.includes('RP 2004'));
       if (rp2004) return [...loaded, rp2004];
     }
     return loaded;
   });
-  const [equipment, setEquipment] = useState(() => loadStored('equipment', INITIAL_EQUIPMENT));
-  const [schedules, setSchedules] = useState(() => loadStored('schedules', INITIAL_MAINTENANCE_SCHEDULES));
-  const [workOrders, setWorkOrders] = useState(() => loadStored('workOrders', INITIAL_WORK_ORDERS));
+  const [equipment, setEquipment] = useState(() => load('equipment', INITIAL_EQUIPMENT));
+  const [schedules, setSchedules] = useState(() => load('schedules', INITIAL_MAINTENANCE_SCHEDULES));
+  const [workOrders, setWorkOrders] = useState(() => load('workOrders', INITIAL_WORK_ORDERS));
   const [technicalWorkOrders, setTechnicalWorkOrders] = useState(() => {
-    const stored = loadStored('technicalWorkOrders', null);
+    const stored = load('technicalWorkOrders', null);
     if (Array.isArray(stored)) return stored;
     return DEMO_DATA.INITIAL_TECHNICAL_WORK_ORDERS || INITIAL_TECHNICAL_WORK_ORDERS || [];
   });
   const [dailyMachineryLogs, setDailyMachineryLogs] = useState(() => {
-    const stored = loadStored('dailyMachineryLogs', null);
+    const stored = load('dailyMachineryLogs', null);
     if (Array.isArray(stored)) return stored;
     return DEMO_DATA.INITIAL_DAILY_MACHINERY_LOGS || INITIAL_DAILY_MACHINERY_LOGS || [];
   });
   const [criticalEquipmentTests, setCriticalEquipmentTests] = useState(() => {
-    const stored = loadStored('criticalEquipmentTests', null);
+    const stored = load('criticalEquipmentTests', null);
     if (Array.isArray(stored)) return stored;
     return DEMO_DATA.INITIAL_CRITICAL_EQUIPMENT_TESTS || INITIAL_CRITICAL_EQUIPMENT_TESTS || [];
   });
   const [safeManningStandards, setSafeManningStandards] = useState(() => {
-    const stored = loadStored('safeManningStandards', null);
+    const stored = load('safeManningStandards', null);
     if (Array.isArray(stored)) return stored;
     return DEFAULT_SAFE_MANNING_STANDARDS || [];
   });
-  const [spareparts, setSpareparts] = useState(() => loadStored('spareparts', INITIAL_SPAREPARTS));
-  const [requisitions, setRequisitions] = useState(() => loadStored('requisitions', INITIAL_REQUISITIONS));
-  const [costs, setCosts] = useState(() => loadStored('costs', INITIAL_COSTS));
-  const [vesselBudgets, setVesselBudgets] = useState(() => loadStored('vesselBudgets', INITIAL_VESSEL_BUDGETS));
-  const [crew, setCrew] = useState(() => loadStored('crew', INITIAL_CREW));
-  const [leaves, setLeaves] = useState(() => loadStored('leaves', INITIAL_LEAVES));
-  const [drills, setDrills] = useState(() => loadStored('drills', INITIAL_DRILLS));
-  const [crewCertificates, setCrewCertificates] = useState(() => loadStored('crewCertificates', INITIAL_CREW_CERTIFICATES));
-  const [shipDocuments, setShipDocuments] = useState(() => loadStored('shipDocuments', INITIAL_SHIP_DOCUMENTS));
+  const [spareparts, setSpareparts] = useState(() => load('spareparts', INITIAL_SPAREPARTS));
+  const [requisitions, setRequisitions] = useState(() => load('requisitions', INITIAL_REQUISITIONS));
+  const [costs, setCosts] = useState(() => load('costs', INITIAL_COSTS));
+  const [vesselBudgets, setVesselBudgets] = useState(() => load('vesselBudgets', INITIAL_VESSEL_BUDGETS));
+  const [crew, setCrew] = useState(() => load('crew', INITIAL_CREW));
+  const [leaves, setLeaves] = useState(() => load('leaves', INITIAL_LEAVES));
+  const [drills, setDrills] = useState(() => load('drills', INITIAL_DRILLS));
+  const [crewCertificates, setCrewCertificates] = useState(() => load('crewCertificates', INITIAL_CREW_CERTIFICATES));
+  const [shipDocuments, setShipDocuments] = useState(() => load('shipDocuments', INITIAL_SHIP_DOCUMENTS));
   const [certificateCategories, setCertificateCategories] = useState(() => {
-    const stored = loadStored('certificateCategories', null);
+    const stored = load('certificateCategories', null);
     if (Array.isArray(stored)) {
       return stored;
     }
     return CERTIFICATE_CATEGORIES || [];
   });
   const [documentTemplates, setDocumentTemplates] = useState(() => {
-    const stored = loadStored('documentTemplates', null);
+    const stored = load('documentTemplates', null);
     if (Array.isArray(stored)) {
       return stored;
     }
@@ -212,15 +127,15 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_masterSurveyTypes', JSON.stringify([]));
       return [];
     }
-    const stored = loadStored('masterSurveyTypes', null);
+    const stored = load('masterSurveyTypes', null);
     if (Array.isArray(stored)) {
       return stored;
     }
     return DEFAULT_MASTER_SURVEY_TYPES || [];
   });
-  const [notificationSettings, setNotificationSettings] = useState(() => loadStored('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
-  const [notificationLogs, setNotificationLogs] = useState(() => loadStored('notificationLogs', INITIAL_NOTIFICATION_LOGS));
-  const [users, setUsers] = useState(() => loadStored('users', INITIAL_USERS));
+  const [notificationSettings, setNotificationSettings] = useState(() => load('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
+  const [notificationLogs, setNotificationLogs] = useState(() => load('notificationLogs', INITIAL_NOTIFICATION_LOGS));
+  const [users, setUsers] = useState(() => load('users', INITIAL_USERS));
   const [audits, setAudits] = useState(() => {
     // Migration: user requested default audit session kosong dan bersih
     const migrationKey = 'pms_audits_clean_v4';
@@ -230,7 +145,7 @@ export const PMSProvider = ({ children }) => {
       localStorage.setItem('pms_auditFindings', JSON.stringify([]));
       return [];
     }
-    const loaded = loadStored('audits', INITIAL_AUDITS);
+    const loaded = load('audits', INITIAL_AUDITS);
     if (Array.isArray(loaded)) {
       return loaded.map(a => ({
         ...a,
@@ -242,7 +157,7 @@ export const PMSProvider = ({ children }) => {
     return INITIAL_AUDITS;
   });
   const [auditFindings, setAuditFindings] = useState(() => {
-    const loaded = loadStored('auditFindings', INITIAL_AUDIT_FINDINGS);
+    const loaded = load('auditFindings', INITIAL_AUDIT_FINDINGS);
     if (Array.isArray(loaded)) {
       return loaded.map(f => ({
         ...f,
@@ -306,7 +221,7 @@ export const PMSProvider = ({ children }) => {
   };
 
   const [siteConfig, setSiteConfig] = useState(() => {
-    const stored = loadStored('siteConfig', null);
+    const stored = load('siteConfig', null);
     if (stored && typeof stored === 'object') {
       if (stored.systemTitle?.includes('Nota Debit') || stored.logoMode === 'bki_group') {
         localStorage.setItem('pms_siteConfig', JSON.stringify(DEFAULT_SITE_CONFIG));
@@ -334,7 +249,7 @@ export const PMSProvider = ({ children }) => {
 
   // Sidebar Visibility Overrides (Super Admin controls which modules each role can see)
   const [sidebarOverrides, setSidebarOverrides] = useState(() => {
-    const stored = loadStored('sidebarOverrides', null);
+    const stored = load('sidebarOverrides', null);
     return stored && typeof stored === 'object' ? stored : {};
   });
 
@@ -388,8 +303,8 @@ export const PMSProvider = ({ children }) => {
     'Sampit'
   ];
 
-  const [vesselTypes, setVesselTypes] = useState(() => loadStored('vesselTypes', DEFAULT_VESSEL_TYPES));
-  const [portLocations, setPortLocations] = useState(() => loadStored('portLocations', DEFAULT_MASTER_PORTS));
+  const [vesselTypes, setVesselTypes] = useState(() => load('vesselTypes', DEFAULT_VESSEL_TYPES));
+  const [portLocations, setPortLocations] = useState(() => load('portLocations', DEFAULT_MASTER_PORTS));
 
   useEffect(() => {
     localStorage.setItem('pms_vesselTypes', JSON.stringify(vesselTypes));
@@ -556,37 +471,14 @@ export const PMSProvider = ({ children }) => {
 
   // Sync to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-      localStorage.setItem('pms_vessels', JSON.stringify(vessels || []));
-      localStorage.setItem('pms_equipment', JSON.stringify(equipment || []));
-      localStorage.setItem('pms_schedules', JSON.stringify(schedules || []));
-      localStorage.setItem('pms_workOrders', JSON.stringify(workOrders || []));
-      localStorage.setItem('pms_technicalWorkOrders', JSON.stringify(technicalWorkOrders || []));
-      localStorage.setItem('pms_dailyMachineryLogs', JSON.stringify(dailyMachineryLogs || []));
-      localStorage.setItem('pms_criticalEquipmentTests', JSON.stringify(criticalEquipmentTests || []));
-      localStorage.setItem('pms_safeManningStandards', JSON.stringify(safeManningStandards || []));
-      localStorage.setItem('pms_spareparts', JSON.stringify(spareparts || []));
-      localStorage.setItem('pms_requisitions', JSON.stringify(requisitions || []));
-      localStorage.setItem('pms_costs', JSON.stringify(costs || []));
-      localStorage.setItem('pms_vessel_budgets', JSON.stringify(vesselBudgets || []));
-      localStorage.setItem('pms_crew', JSON.stringify(crew || []));
-      localStorage.setItem('pms_leaves', JSON.stringify(leaves || []));
-      localStorage.setItem('pms_drills', JSON.stringify(drills || []));
-      localStorage.setItem('pms_crewCertificates', JSON.stringify(crewCertificates || []));
-      localStorage.setItem('pms_shipDocuments', JSON.stringify(shipDocuments || []));
-      localStorage.setItem('pms_certificateCategories', JSON.stringify(certificateCategories || []));
-      localStorage.setItem('pms_documentTemplates', JSON.stringify(documentTemplates || []));
-      localStorage.setItem('pms_notificationSettings', JSON.stringify(notificationSettings || {}));
-      localStorage.setItem('pms_notificationLogs', JSON.stringify(notificationLogs || []));
-      localStorage.setItem('pms_users', JSON.stringify(users || []));
-      localStorage.setItem('pms_audits', JSON.stringify(audits || []));
-      localStorage.setItem('pms_auditFindings', JSON.stringify(auditFindings || []));
-      localStorage.setItem('pms_siteConfig', JSON.stringify(siteConfig || {}));
-      localStorage.setItem('pms_sidebarOverrides', JSON.stringify(sidebarOverrides || {}));
-    } catch (err) {
-      console.error('[PMS] Failed to sync state to localStorage:', err);
-    }
+    persistAllState({
+      vessels, equipment, schedules, workOrders, technicalWorkOrders,
+      dailyMachineryLogs, criticalEquipmentTests, safeManningStandards,
+      spareparts, requisitions, costs, vesselBudgets, crew, leaves, drills,
+      crewCertificates, shipDocuments, certificateCategories, documentTemplates,
+      notificationSettings, notificationLogs, users, audits, auditFindings,
+      siteConfig, sidebarOverrides,
+    });
   }, [
     vessels, equipment, schedules, workOrders, technicalWorkOrders, dailyMachineryLogs, criticalEquipmentTests, safeManningStandards,
     spareparts, requisitions, costs, vesselBudgets, crew, leaves, drills, crewCertificates, shipDocuments,
@@ -1791,7 +1683,7 @@ export const PMSProvider = ({ children }) => {
     if (!newTmpl || !newTmpl.name) return null;
     const name = newTmpl.name.trim();
     const category = newTmpl.category || 'BKI';
-    const id = newTmpl.id || `cn-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const id = newTmpl.id || `cn-${Math.floor(Math.random() * 1000)}-${Date.now()}`;
 
     const created = {
       id,
@@ -1851,7 +1743,7 @@ export const PMSProvider = ({ children }) => {
     const name = newSurvey.name.trim();
     const category = newSurvey.category || 'BKI';
     const intervalYears = newSurvey.intervalYears !== undefined ? Number(newSurvey.intervalYears) : 1;
-    const id = newSurvey.id || `st-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const id = newSurvey.id || `st-${Math.floor(Math.random() * 1000)}-${Date.now()}`;
 
     const created = {
       id,

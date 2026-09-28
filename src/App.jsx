@@ -1,27 +1,45 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { PMSProvider, usePMS } from './context/PMSContext';
 import { LoginPage } from './components/auth/LoginPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { UrgencyBanner } from './components/layout/UrgencyBanner';
-import { FleetOverview } from './components/dashboard/FleetOverview';
-import { VesselDashboard } from './components/dashboard/VesselDashboard';
-import { VesselList } from './components/vessels/VesselList';
-import { EquipmentList } from './components/equipment/EquipmentList';
-import { MaintenanceList } from './components/maintenance/MaintenanceList';
-import { InventoryList } from './components/sparepart/InventoryList';
-import { CostOverview } from './components/cost/CostOverview';
-import { CrewManager } from './components/crew/CrewManager';
-import { DocumentTracker } from './components/documents/DocumentTracker';
-import { NotificationCenter } from './components/notification/NotificationCenter';
-import { ReportGenerator } from './components/reports/ReportGenerator';
-import { MasterDataAdmin } from './components/admin/MasterDataAdmin';
-import { SiteSettingsAdmin } from './components/admin/SiteSettingsAdmin';
-import { SidebarManagementAdmin } from './components/admin/SidebarManagementAdmin';
-import { AuditManager } from './components/audit/AuditManager';
-import { CheckCircle, AlertTriangle, Info, ShieldAlert } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Info, ShieldAlert, Loader2 } from 'lucide-react';
 import { hasAccessWithOverrides, ROLE_DEFINITIONS } from './utils/rbac';
+
+// Lazy-loaded modules — hanya didownload saat pertama kali dibuka
+const FleetOverview          = lazy(() => import('./components/dashboard/FleetOverview').then(m => ({ default: m.FleetOverview })));
+const VesselDashboard        = lazy(() => import('./components/dashboard/VesselDashboard').then(m => ({ default: m.VesselDashboard })));
+const VesselList             = lazy(() => import('./components/vessels/VesselList').then(m => ({ default: m.VesselList })));
+const EquipmentList          = lazy(() => import('./components/equipment/EquipmentList').then(m => ({ default: m.EquipmentList })));
+const MaintenanceList        = lazy(() => import('./components/maintenance/MaintenanceList').then(m => ({ default: m.MaintenanceList })));
+const InventoryList          = lazy(() => import('./components/sparepart/InventoryList').then(m => ({ default: m.InventoryList })));
+const CostOverview           = lazy(() => import('./components/cost/CostOverview').then(m => ({ default: m.CostOverview })));
+const CrewManager            = lazy(() => import('./components/crew/CrewManager').then(m => ({ default: m.CrewManager })));
+const DocumentTracker        = lazy(() => import('./components/documents/DocumentTracker').then(m => ({ default: m.DocumentTracker })));
+const NotificationCenter     = lazy(() => import('./components/notification/NotificationCenter').then(m => ({ default: m.NotificationCenter })));
+const ReportGenerator        = lazy(() => import('./components/reports/ReportGenerator').then(m => ({ default: m.ReportGenerator })));
+const MasterDataAdmin        = lazy(() => import('./components/admin/MasterDataAdmin').then(m => ({ default: m.MasterDataAdmin })));
+const SiteSettingsAdmin      = lazy(() => import('./components/admin/SiteSettingsAdmin').then(m => ({ default: m.SiteSettingsAdmin })));
+const SidebarManagementAdmin = lazy(() => import('./components/admin/SidebarManagementAdmin').then(m => ({ default: m.SidebarManagementAdmin })));
+const AuditManager           = lazy(() => import('./components/audit/AuditManager').then(m => ({ default: m.AuditManager })));
+
+// Spinner saat modul sedang didownload
+const ModuleLoader = () => (
+  <div style={{
+    minHeight: '40vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: '0.75rem',
+    color: 'var(--text-muted)'
+  }}>
+    <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />
+    <span style={{ fontSize: '0.85rem' }}>Memuat modul...</span>
+  </div>
+);
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -186,7 +204,9 @@ const AppContent = () => {
           <UrgencyBanner />
 
           <main className="page-body">
-            {renderContent()}
+            <Suspense fallback={<ModuleLoader />}>
+              {renderContent()}
+            </Suspense>
           </main>
         </div>
       </ErrorBoundary>
