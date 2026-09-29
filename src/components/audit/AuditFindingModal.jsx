@@ -23,6 +23,17 @@ import {
   EXTERNAL_AUDIT_ORGANIZATIONS
 } from '../../data/auditMasterData';
 import { canPerformAction } from '../../utils/rbac';
+import { FindingModalHeader } from './finding/FindingModalHeader';
+import { FindingAuditTypeSection } from './finding/FindingAuditTypeSection';
+import { FindingInfoSection } from './finding/FindingInfoSection';
+import { FindingDetailSection } from './finding/FindingDetailSection';
+import { FindingCategorySection } from './finding/FindingCategorySection';
+import { FindingVerificationSection } from './finding/FindingVerificationSection';
+import { FindingEvidenceSection } from './finding/FindingEvidenceSection';
+import { FindingLinksSection } from './finding/FindingLinksSection';
+import { FindingModalFooter } from './finding/FindingModalFooter';
+import { FindingDeleteConfirm } from './finding/FindingDeleteConfirm';
+import { FindingCapaSection } from './finding/FindingCapaSection';
 
 export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, onClose }) => {
   const {
@@ -286,768 +297,131 @@ export const AuditFindingModal = ({ finding, defaultAuditId, defaultVesselId, on
         }}
       >
         {/* Header */}
-        <div className="modal-header" style={{ borderBottom: '2px solid var(--border-subtle)', padding: '1rem 1.5rem', background: 'var(--bg-surface-elevated)', backgroundColor: 'var(--bg-surface-elevated)', opacity: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '10px',
-              background: auditType === 'Internal' ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-              flexShrink: 0
-            }}>
-              {auditType === 'Internal' ? <Ship size={24} /> : <Building2 size={24} />}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0 }}>
-                  Laporan Audit ISM – Code / ISM – Code Audit Report
-                </h3>
-                <span className={`badge ${auditType === 'Internal' ? 'badge-info' : 'badge-warning'}`} style={{ fontWeight: 800 }}>
-                  {auditType === 'Internal' ? 'INTERNAL BAHARIMAS' : `EKSTERNAL: ${externalOrg}`}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
-                Format Resmi Informasi Ketidaksesuaian (NCR) • Report ID: <strong className="mono" style={{ color: 'var(--text-main)' }}>{reportId}</strong>
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={handleLoadSampleRP2004}
-              className="btn btn-secondary btn-sm"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#0284c7',
-                border: '1px solid #0284c7'
-              }}
-              title="Muat contoh lengkap sesuai foto formulir RP 2004 (Klausul 5.1.5)"
-            >
-              <Sparkles size={14} color="#0284c7" />
-              <span>Muat Contoh RP 2004 (5.1.5)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.35rem 0.6rem' }}
-            >
-              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-              <span style={{ fontSize: '0.75rem' }}>{isFullscreen ? 'Normal' : 'Fullscreen'}</span>
-            </button>
-            <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ padding: '0.35rem 0.6rem' }}>
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+        <FindingModalHeader
+          auditType={auditType}
+          externalOrg={externalOrg}
+          handleLoadSampleRP2004={handleLoadSampleRP2004}
+          isFullscreen={isFullscreen}
+          onClose={onClose}
+          reportId={reportId}
+          setIsFullscreen={setIsFullscreen}
+        />
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <div className="modal-body" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1.5rem', background: 'var(--bg-surface-card)', backgroundColor: 'var(--bg-surface-card)', opacity: 1 }}>
             
             {/* KONTROL JENIS AUDIT & LEMBAGA (SESUAI ATURAN USER) */}
-            <div style={{
-              padding: '1rem',
-              borderRadius: '10px',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              opacity: 1
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Pilih Kategori Pelaksanaan Audit ISM Code:
-                </span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setAuditType('Internal')}
-                    className={`btn btn-sm ${auditType === 'Internal' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: '0.75rem', fontWeight: 700 }}
-                  >
-                    🚢 1. Audit Internal (PT. Baharimas)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAuditType('External')}
-                    className={`btn btn-sm ${auditType === 'External' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: '0.75rem', fontWeight: 700 }}
-                  >
-                    🏢 2. Audit Eksternal (Lembaga Ditunjuk)
-                  </button>
-                </div>
-              </div>
-
-              {auditType === 'External' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-glass)' }}>
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                      Lembaga Audit Eksternal yang Ditunjuk Perusahaan *
-                    </label>
-                    <select
-                      value={externalOrg}
-                      onChange={(e) => setExternalOrg(e.target.value)}
-                      className="select-control"
-                      style={{ fontSize: '0.8rem', fontWeight: 700, borderColor: '#7c3aed' }}
-                    >
-                      <optgroup label="Standar BKI (Template Resmi F23.14.06-2024 Rev 05)">
-                        <option value={BKI_AUDIT_MASTER.name}>
-                          {BKI_AUDIT_MASTER.name}
-                        </option>
-                      </optgroup>
-                      <optgroup label="Lembaga Lain (Format Mandiri / Manual — Non-BKI)">
-                        {NON_BKI_AUDIT_ORGANIZATIONS.map(org => (
-                          <option key={org.id} value={org.name}>
-                            {org.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </div>
-
-                  {(externalOrg === 'Lembaga Audit Eksternal Lainnya (Input Manual)' ||
-                    (typeof externalOrg === 'string' && externalOrg.includes('Lainnya'))) && (
-                    <div>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                        Tuliskan Nama Lembaga Ditunjuk *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={customExternalOrg}
-                        onChange={(e) => setCustomExternalOrg(e.target.value)}
-                        placeholder="cth: Lloyd's Register (LR) / Bureau Veritas (BV) / ClassNK / RINA..."
-                        className="input-control"
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                      Nomor Laporan / Report ID *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={reportId}
-                      onChange={(e) => setReportId(e.target.value)}
-                      placeholder="contoh: 0859 - PK/ISM- SMC /2026"
-                      className="input-control mono"
-                      style={{ fontWeight: 800, color: '#7c3aed', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ paddingTop: '0.35rem', fontSize: '0.75rem', color: '#0284c7' }}>
-                  ℹ️ <em>Audit Internal dilaksanakan oleh Tim DPA & Safety Officer PT. Pelayaran Baharimas Kalimantan.</em>
-                </div>
-              )}
-            </div>
+            <FindingAuditTypeSection
+              auditType={auditType}
+              customExternalOrg={customExternalOrg}
+              externalOrg={externalOrg}
+              reportId={reportId}
+              setAuditType={setAuditType}
+              setCustomExternalOrg={setCustomExternalOrg}
+              setExternalOrg={setExternalOrg}
+              setReportId={setReportId}
+            />
 
             {/* SEKSI 1: INFORMASI KETIDAKSESUAIAN / NON-CONFORMITY INFORMATION */}
-            <div style={{
-              borderRadius: '10px',
-              border: '1.5px solid var(--border-subtle)',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              overflow: 'hidden',
-              opacity: 1
-            }}>
-              <div style={{
-                background: 'var(--bg-surface-hover)',
-                color: 'var(--text-main)',
-                padding: '0.5rem 0.85rem',
-                fontSize: '0.82rem',
-                fontWeight: 800,
-                letterSpacing: '0.5px'
-              }}>
-                INFORMASI KETIDAKSESUAIAN / NON-CONFORMITY INFORMATION
-              </div>
-
-              <div style={{ padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    LINGKUP AUDIT / Area under Audit *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={areaUnderAudit}
-                    onChange={(e) => setAreaUnderAudit(e.target.value)}
-                    placeholder="contoh: RP 2004 atau Kantor Pusat PBK"
-                    className="input-control"
-                    style={{ fontWeight: 800, fontSize: '0.9rem' }}
-                  />
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'block' }}>
-                    Nama kapal atau departemen darat yang diaudit
-                  </span>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    No. Lap. Ketidaksesuaian / NCR No. *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={findingNo}
-                    onChange={(e) => setFindingNo(e.target.value)}
-                    placeholder="contoh: 1/4 - 0859 - PK/ISM- SMC /2026"
-                    className="input-control mono"
-                    style={{ fontWeight: 800, color: '#ef4444', fontSize: '0.9rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    Tgl. Audit / Date of Audit *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={dateOfAudit}
-                    onChange={(e) => setDateOfAudit(e.target.value)}
-                    className="input-control mono"
-                    style={{ fontWeight: 700 }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    No. Elemen dari Koda / Element Number of Code *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={elementNumberOfCode}
-                    onChange={(e) => {
-                      setElementNumberOfCode(e.target.value);
-                      setClauseCode(e.target.value.split(' ')[0]);
-                    }}
-                    placeholder="contoh: 5.1.5 or other"
-                    className="input-control mono"
-                    style={{ fontWeight: 800, color: '#0284c7' }}
-                  />
-                </div>
-              </div>
-            </div>
+            <FindingInfoSection
+              areaUnderAudit={areaUnderAudit}
+              dateOfAudit={dateOfAudit}
+              elementNumberOfCode={elementNumberOfCode}
+              findingNo={findingNo}
+              setAreaUnderAudit={setAreaUnderAudit}
+              setClauseCode={setClauseCode}
+              setDateOfAudit={setDateOfAudit}
+              setElementNumberOfCode={setElementNumberOfCode}
+              setFindingNo={setFindingNo}
+            />
 
             {/* SEKSI 2: RINCIAN KETIDAKSESUAIAN & BUKTI OBJEKTIF */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                  Rincian Ketidaksesuaian / Non-Conformity Details *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Uraikan kondisi temuan ketidaksesuaian terhadap ketentuan ISM Code..."
-                  className="input-control"
-                  style={{ lineHeight: '1.45' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                  Bukti Objektif / Objective Evidence *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={objectiveEvidence}
-                  onChange={(e) => setObjectiveEvidence(e.target.value)}
-                  placeholder="- Poin 1 bukti objektif temuan audit...&#10;- Poin 2 catatan dokumen atau fakta lapangan..."
-                  className="input-control"
-                  style={{ lineHeight: '1.45', fontFamily: 'monospace', fontSize: '0.8rem' }}
-                />
-              </div>
-            </div>
+            <FindingDetailSection
+              description={description}
+              objectiveEvidence={objectiveEvidence}
+              setDescription={setDescription}
+              setObjectiveEvidence={setObjectiveEvidence}
+            />
 
             {/* SEKSI 3: KATEGORI KETIDAKSESUAIAN & TANDA TANGAN AWAL */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', background: 'var(--bg-surface-elevated)', backgroundColor: 'var(--bg-surface-elevated)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', opacity: 1 }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.4rem' }}>
-                  Kategori Ketidaksesuaian / Category *
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  {['Non-Conformity', 'Major NC', 'Observasi'].map(cat => (
-                    <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="categorySelection"
-                        checked={category === cat}
-                        onChange={() => setCategory(cat)}
-                      />
-                      <span style={{ fontWeight: category === cat ? 800 : 500, color: category === cat ? '#0284c7' : 'inherit' }}>
-                        {cat === 'Major NC' ? 'Major Non-Conformity (MNC)' : cat}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <FindingCategorySection
+              areaUnderAudit={areaUnderAudit}
+              auditType={auditType}
+              auditee={auditee}
+              auditor={auditor}
+              category={category}
+              externalOrg={externalOrg}
+              setAuditee={setAuditee}
+              setAuditor={setAuditor}
+              setCategory={setCategory}
+            />
 
-              <div>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Tanda tangan Auditor / Auditor's Signature *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={auditor}
-                  onChange={(e) => setAuditor(e.target.value)}
-                  placeholder="Nama Auditor"
-                  className="input-control"
-                  style={{ fontSize: '0.8rem', fontWeight: 700 }}
-                />
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'block' }}>
-                  {auditType === 'External' ? externalOrg : 'Lead Auditor PBK'}
-                </span>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Tanda tangan yang diaudit / Auditee's Signature *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={auditee}
-                  onChange={(e) => setAuditee(e.target.value)}
-                  placeholder="Nama Nakhoda / KKM / DPA"
-                  className="input-control"
-                  style={{ fontSize: '0.8rem', fontWeight: 700 }}
-                />
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'block' }}>
-                  Pihak yang Diaudit (Kapal {areaUnderAudit})
-                </span>
-              </div>
-            </div>
-
-            {/* SEKSI 4: PERBAIKAN / CORRECTION (to be completed by auditee) */}
-            <div style={{
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              padding: '0.85rem 1rem',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              opacity: 1
-            }}>
-              <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                PERBAIKAN (diisi oleh pihak yang diaudit) / CORRECTION (to be completed by auditee)
-              </label>
-              <textarea
-                rows={2}
-                value={correction}
-                onChange={(e) => setCorrection(e.target.value)}
-                placeholder="Tindakan koreksi langsung atas ketidaksesuaian yang ditemukan..."
-                className="input-control"
-                style={{ fontSize: '0.8rem' }}
-              />
-            </div>
-
-            {/* SEKSI 5: ANALISA AKAR PERMASALAHAN / ROOT CAUSE ANALYSIS (to be completed by auditee) */}
-            <div style={{
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              padding: '0.85rem 1rem',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              opacity: 1
-            }}>
-              <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                ANALISA AKAR PERMASALAHAN (diisi oleh pihak yang diaudit) / ROOT CAUSE ANALYSIS (to be completed by auditee)
-              </label>
-              <textarea
-                rows={2}
-                value={rootCause}
-                onChange={(e) => setRootCause(e.target.value)}
-                placeholder="Analisa penyebab utama kenapa kekurangan/ketidaksesuaian dapat terjadi..."
-                className="input-control"
-                style={{ fontSize: '0.8rem' }}
-              />
-            </div>
-
-            {/* SEKSI 6: TINDAKAN PERBAIKAN / CORRECTIVE ACTION (to be completed by auditee) */}
-            <div style={{
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              padding: '0.85rem 1rem',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              opacity: 1
-            }}>
-              <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-main)', display: 'block', marginBottom: '0.35rem' }}>
-                  TINDAKAN PERBAIKAN (diisi oleh pihak yang diaudit) / CORRECTIVE ACTION (to be completed by auditee)
-                </label>
-                <textarea
-                  rows={2}
-                  value={correctiveAction}
-                  onChange={(e) => setCorrectiveAction(e.target.value)}
-                  placeholder="Rencana tindakan pencegahan jangka panjang agar masalah serupa tidak terulang..."
-                  className="input-control"
-                  style={{ fontSize: '0.8rem' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', paddingTop: '0.5rem', borderTop: '1px dashed var(--border-subtle)' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    Tanggal kesepakatan penyelesaian / Agreed date for completion *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={agreedDate}
-                    onChange={(e) => setAgreedDate(e.target.value)}
-                    className="input-control mono"
-                    style={{ fontWeight: 800, color: '#0284c7' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    Tanggal Pengesahan Auditee / Date
-                  </label>
-                  <input
-                    type="date"
-                    value={auditeeSignatureDate}
-                    onChange={(e) => setAuditeeSignatureDate(e.target.value)}
-                    className="input-control mono"
-                  />
-                </div>
-              </div>
-            </div>
+            <FindingCapaSection
+              agreedDate={agreedDate}
+              auditeeSignatureDate={auditeeSignatureDate}
+              correction={correction}
+              correctiveAction={correctiveAction}
+              rootCause={rootCause}
+              setAgreedDate={setAgreedDate}
+              setAuditeeSignatureDate={setAuditeeSignatureDate}
+              setCorrection={setCorrection}
+              setCorrectiveAction={setCorrectiveAction}
+              setRootCause={setRootCause}
+            />
 
             {/* SEKSI 7: TINDAKAN PERBAIKAN TELAH DIVERIFIKASI (diisi oleh Auditor) / CORRECTIVE ACTION VERIFIED */}
-            <div style={{
-              borderRadius: '10px',
-              border: '1.5px solid #10b981',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              padding: '1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              opacity: 1
-            }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#047857', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <CheckCircle2 size={16} />
-                <span>TINDAKAN PERBAIKAN TELAH DIVERIFIKASI (diisi oleh Auditor) / CORRECTIVE ACTION VERIFIED</span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                    Perubahan kategori ketidaksesuaian karena sebab diatas / Upgrade / Downgrade NC:
-                  </span>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={verifiedUpgradeDowngrade === 'MJ'}
-                        onChange={(e) => setVerifiedUpgradeDowngrade(e.target.checked ? 'MJ' : null)}
-                      />
-                      <span>MJ (Major NC)</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={verifiedUpgradeDowngrade === 'NC'}
-                        onChange={(e) => setVerifiedUpgradeDowngrade(e.target.checked ? 'NC' : null)}
-                      />
-                      <span>NC (Non-Conformity)</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-                    Tindakan perbaikan dilaksanakan dengan baik / Completed satisfactorily:
-                  </span>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="satisfactoryRadio"
-                        checked={verifiedSatisfactory === true}
-                        onChange={() => setVerifiedSatisfactory(true)}
-                      />
-                      <strong style={{ color: '#10b981' }}>☑ Ya / Yes</strong>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="satisfactoryRadio"
-                        checked={verifiedSatisfactory === false}
-                        onChange={() => setVerifiedSatisfactory(false)}
-                      />
-                      <strong style={{ color: '#ef4444' }}>☐ Tidak / No</strong>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', paddingTop: '0.5rem', borderTop: '1px dashed rgba(16, 185, 129, 0.3)' }}>
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    Catatan Verifikasi Auditor ISM
-                  </label>
-                  <input
-                    type="text"
-                    value={auditorReviewNotes}
-                    onChange={(e) => setAuditorReviewNotes(e.target.value)}
-                    placeholder="Catatan penutupan / verifikasi fisik di lapangan..."
-                    className="input-control"
-                    style={{ fontSize: '0.78rem' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                    Tanggal Verifikasi Auditor / Date
-                  </label>
-                  <input
-                    type="date"
-                    value={auditorSignatureDate}
-                    onChange={(e) => setAuditorSignatureDate(e.target.value)}
-                    className="input-control mono"
-                  />
-                </div>
-              </div>
-            </div>
+            <FindingVerificationSection
+              auditorReviewNotes={auditorReviewNotes}
+              auditorSignatureDate={auditorSignatureDate}
+              setAuditorReviewNotes={setAuditorReviewNotes}
+              setAuditorSignatureDate={setAuditorSignatureDate}
+              setVerifiedSatisfactory={setVerifiedSatisfactory}
+              setVerifiedUpgradeDowngrade={setVerifiedUpgradeDowngrade}
+              verifiedSatisfactory={verifiedSatisfactory}
+              verifiedUpgradeDowngrade={verifiedUpgradeDowngrade}
+            />
 
             {/* SEKSI 8: UPLOAD BUKTI EVIDEN PERBAIKAN */}
-            <div style={{
-              padding: '1rem',
-              borderRadius: '10px',
-              background: 'var(--bg-surface-elevated)',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border-subtle)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              opacity: 1
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Upload size={14} color="#0284c7" />
-                  <span>Lampiran Dokumen Bukti Eviden Perbaikan (PDF / Scan / Foto):</span>
-                </span>
-                {evidenceFileName && (
-                  <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
-                    ✓ Terlampir: {evidenceFileName} ({evidenceFileSize})
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <input
-                  type="file"
-                  id="findingEvidenceUpload"
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                  accept=".pdf,.jpg,.jpeg,.png,.svg,.doc,.docx"
-                />
-                <label
-                  htmlFor="findingEvidenceUpload"
-                  className="btn btn-secondary btn-sm"
-                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <Upload size={14} />
-                  <span>Pilih File Eviden dari Komputer</span>
-                </label>
-
-                {evidenceFileName && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEvidenceFileName('');
-                      setEvidenceFileSize('');
-                      setEvidenceFileUrl('');
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#ef4444' }}
-                  >
-                    Hapus File
-                  </button>
-                )}
-              </div>
-            </div>
+            <FindingEvidenceSection
+              evidenceFileName={evidenceFileName}
+              evidenceFileSize={evidenceFileSize}
+              handleFileUpload={handleFileUpload}
+              setEvidenceFileName={setEvidenceFileName}
+              setEvidenceFileSize={setEvidenceFileSize}
+              setEvidenceFileUrl={setEvidenceFileUrl}
+            />
 
             {/* SEKSI 9: INTEGRASI SPB GUDANG & SERTIFIKAT */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.75rem' }}>
-              <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>
-                  Tautkan Sertifikat Statutori Terkait (Opsional)
-                </label>
-                <select
-                  value={linkedCertificateId}
-                  onChange={(e) => setLinkedCertificateId(e.target.value)}
-                  className="select-control"
-                  style={{ fontSize: '0.78rem' }}
-                >
-                  <option value="">-- Tidak Terkait Sertifikat Spesifik --</option>
-                  {(shipDocuments || []).slice(0, 25).map(cert => (
-                    <option key={cert.id} value={cert.id}>
-                      {cert.name || cert.type} ({cert.documentNumber || 'No. Dok'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem', fontWeight: 600 }}>
-                  Tautkan Permintaan Suku Cadang ke Gudang (Opsional)
-                </label>
-                <select
-                  value={linkedRequisitionId}
-                  onChange={(e) => setLinkedRequisitionId(e.target.value)}
-                  className="select-control"
-                  style={{ fontSize: '0.78rem' }}
-                >
-                  <option value="">-- Tidak Terkait SPB Gudang --</option>
-                  {(requisitions || []).map(req => (
-                    <option key={req.id} value={req.id}>
-                      {req.requisitionNumber || req.id} - {req.title || req.department || 'Material Requisition'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <FindingLinksSection
+              linkedCertificateId={linkedCertificateId}
+              linkedRequisitionId={linkedRequisitionId}
+              requisitions={requisitions}
+              setLinkedCertificateId={setLinkedCertificateId}
+              setLinkedRequisitionId={setLinkedRequisitionId}
+              shipDocuments={shipDocuments}
+            />
 
           </div>
 
           {/* Footer */}
-          <div className="modal-footer" style={{ borderTop: '1px solid var(--border-subtle)', padding: '0.85rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-elevated)', backgroundColor: 'var(--bg-surface-elevated)', opacity: 1, flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button type="button" onClick={onClose} className="btn btn-secondary">
-                {isAuditorOrDPA ? 'Batal' : 'Tutup'}
-              </button>
-              {isEdit && isAuditorOrDPA && (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="btn btn-secondary"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    color: '#ef4444',
-                    borderColor: 'rgba(239, 68, 68, 0.4)',
-                    fontWeight: 700
-                  }}
-                  title="Hapus Temuan Ini"
-                >
-                  <Trash2 size={14} />
-                  <span>Hapus Temuan</span>
-                </button>
-              )}
-            </div>
-
-            {isAuditorOrDPA ? (
-              <button type="submit" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800 }}>
-                <Save size={16} />
-                <span>{isEdit ? 'Simpan Perubahan Laporan NCR' : 'Simpan Laporan Ketidaksesuaian (NCR)'}</span>
-              </button>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#f59e0b', fontSize: '0.75rem', fontWeight: 600 }}>
-                <Clock size={14} />
-                <span>Mode Tinjauan: Otorisasi penerbitan NCR wewenang Lead Auditor / DPA</span>
-              </div>
-            )}
-          </div>
+          <FindingModalFooter
+            isAuditorOrDPA={isAuditorOrDPA}
+            isEdit={isEdit}
+            onClose={onClose}
+            setShowDeleteConfirm={setShowDeleteConfirm}
+          />
         </form>
       </div>
 
       {/* In-app Confirm Delete Finding Modal */}
-      {showDeleteConfirm && (
-        <div
-          className="modal-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 15000,
-            background: 'rgba(3, 7, 18, 0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <div
-            className="glass-card"
-            style={{
-              maxWidth: '460px',
-              width: '100%',
-              background: 'var(--bg-surface-card)',
-              backgroundColor: 'var(--bg-surface-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: '14px',
-              boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.75)',
-              overflow: 'hidden',
-              opacity: 1
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-surface-elevated)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                <Trash2 size={20} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0 }}>Hapus Temuan Ketidaksesuaian</h3>
-                <p style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700, margin: '0.15rem 0 0 0' }}>Tindakan ini tidak dapat dibatalkan</p>
-              </div>
-              <button type="button" onClick={() => setShowDeleteConfirm(false)} className="btn btn-secondary btn-sm" style={{ padding: '0.3rem 0.5rem' }}>
-                <X size={15} />
-              </button>
-            </div>
-            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ padding: '0.75rem 1rem', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Nomor Temuan (NCR):</div>
-                <div className="mono" style={{ fontSize: '1rem', fontWeight: 800, color: '#ef4444' }}>{finding?.findingNo}</div>
-              </div>
-              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0 }}>
-                Catatan temuan ini beserta seluruh data rencana tindakan koreksi dan eviden yang terlampir akan dihapus permanen.
-              </p>
-            </div>
-            <div style={{ padding: '0.85rem 1.5rem', background: 'var(--bg-surface-elevated)', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button type="button" onClick={() => setShowDeleteConfirm(false)} className="btn btn-secondary btn-sm" style={{ padding: '0.45rem 1rem' }}>
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  deleteAuditFinding(finding?.id || finding?.findingNo);
-                  setShowDeleteConfirm(false);
-                  onClose();
-                }}
-                className="btn btn-sm"
-                style={{ background: '#ef4444', color: '#fff', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 1.1rem' }}
-              >
-                <Trash2 size={14} />
-                <span>Ya, Hapus Temuan</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {(showDeleteConfirm) && (
+        <FindingDeleteConfirm
+          deleteAuditFinding={deleteAuditFinding}
+          finding={finding}
+          onClose={onClose}
+          setShowDeleteConfirm={setShowDeleteConfirm}
+        />
       )}
     </div>
   );
