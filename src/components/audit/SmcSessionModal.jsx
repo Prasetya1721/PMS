@@ -27,6 +27,13 @@ import {
 } from '../../data/auditMasterData';
 import { canPerformAction } from '../../utils/rbac';
 import { makeId } from '../../utils/idUtils';
+import { SmcSessionHeader } from './smcsession/SmcSessionHeader';
+import { SmcSessionToolbar } from './smcsession/SmcSessionToolbar';
+import { SmcSessionInfoBanner } from './smcsession/SmcSessionInfoBanner';
+import { SmcSessionShipColumn } from './smcsession/SmcSessionShipColumn';
+import { SmcSessionCrewColumn } from './smcsession/SmcSessionCrewColumn';
+import { SmcSessionChecklistBanner } from './smcsession/SmcSessionChecklistBanner';
+import { SmcSessionDeleteConfirm } from './smcsession/SmcSessionDeleteConfirm';
 
 const getStandardBkiSmcChecklist = () => {
   return (BKI_SMC_CHECKLIST_TEMPLATE.items || []).map(normalizeChecklistItem).map(item => {
@@ -291,489 +298,73 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
         }}
       >
         {/* MODAL HEADER */}
-        <div style={{
-          padding: '1rem 1.25rem',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'var(--bg-surface-elevated)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: 'rgba(2, 132, 199, 0.15)',
-              color: '#0284c7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Ship size={22} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
-                  {isEdit ? 'Edit Sesi Audit SMC Kapal' : 'Formulir Sesi Audit SMC Kapal (Shipboard)'}
-                </h3>
-                <span className="badge badge-primary" style={{ fontSize: '0.68rem', fontWeight: 800 }}>
-                  🚢 STANDAR SMC KAPAL
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                Tahap 1: Inisiasi data kapal, sertifikat SMC, personil nakhoda/auditor, dan jadwal pemeriksaan BKI Rev 05.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <button
-              type="button"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '0.4rem', borderRadius: '6px' }}
-              title={isFullscreen ? 'Kecilkan' : 'Perbesar Layar Penuh'}
-            >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '0.4rem', borderRadius: '6px' }}
-              title="Tutup Formulir"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+        <SmcSessionHeader
+          isEdit={isEdit}
+          isFullscreen={isFullscreen}
+          onClose={onClose}
+          setIsFullscreen={setIsFullscreen}
+        />
 
         {/* COMPACT CONFIGURATION BAR (TIPE AUDIT & DEMO PRESET) */}
-        <div style={{
-          padding: '0.55rem 1.25rem',
-          background: 'rgba(2, 132, 199, 0.05)',
-          borderBottom: '1px solid var(--border-subtle)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.6rem'
-        }}>
-          {/* Jenis Audit Switch */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              Jenis Audit:
-            </span>
-            <div style={{ display: 'inline-flex', background: 'var(--bg-surface)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}>
-              <button
-                type="button"
-                onClick={() => applyAuditTypeSwitch('Internal')}
-                style={{
-                  padding: '0.25rem 0.65rem',
-                  fontSize: '0.74rem',
-                  fontWeight: auditType === 'Internal' ? 800 : 500,
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: auditType === 'Internal' ? 'var(--primary)' : 'transparent',
-                  color: auditType === 'Internal' ? '#ffffff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                🏢 Internal PBK
-              </button>
-              <button
-                type="button"
-                onClick={() => applyAuditTypeSwitch('External')}
-                style={{
-                  padding: '0.25rem 0.65rem',
-                  fontSize: '0.74rem',
-                  fontWeight: auditType === 'External' ? 800 : 500,
-                  borderRadius: '4px',
-                  border: 'none',
-                  background: auditType === 'External' ? '#0284c7' : 'transparent',
-                  color: auditType === 'External' ? '#ffffff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                🏛️ Eksternal (BKI / Flag State)
-              </button>
-            </div>
-
-            {auditType === 'External' && (
-              <select
-                value={externalOrganization}
-                onChange={(e) => setExternalOrganization(e.target.value)}
-                className="form-control"
-                style={{ fontSize: '0.74rem', padding: '0.25rem 0.5rem', height: 'auto', minWidth: '190px' }}
-              >
-                {EXTERNAL_AUDIT_ORGANIZATIONS.map(org => (
-                  <option key={org.id} value={org.name}>{org.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Quick Demo Preset */}
-          {!isEdit && (
-            <button
-              type="button"
-              onClick={applyDemoPreset}
-              className="btn btn-secondary btn-sm"
-              style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                padding: '0.25rem 0.6rem',
-                color: '#0284c7',
-                borderColor: 'rgba(2, 132, 199, 0.3)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem'
-              }}
-              title="Muat data contoh audit resmi SMC TB. RP 2004"
-            >
-              <Sparkles size={13} color="#0284c7" />
-              <span>Contoh SMC RP 2004</span>
-            </button>
-          )}
-        </div>
+        <SmcSessionToolbar
+          applyAuditTypeSwitch={applyAuditTypeSwitch}
+          applyDemoPreset={applyDemoPreset}
+          auditType={auditType}
+          externalOrganization={externalOrganization}
+          isEdit={isEdit}
+          setExternalOrganization={setExternalOrganization}
+        />
 
         {/* MODAL BODY (FORM GRID 2-KOLOM DEDIKASI SMC) */}
         <form onSubmit={handleSave} style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* PETUNJUK KHUSUS AUDIT SMC KAPAL ARMADA */}
-          <div style={{
-            padding: '0.8rem 1rem',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(2, 132, 199, 0.02) 100%)',
-            border: '1px solid rgba(2, 132, 199, 0.25)',
-            display: 'flex',
-            gap: '0.75rem',
-            alignItems: 'flex-start'
-          }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: '#0284c7',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              marginTop: '1px'
-            }}>
-              <Ship size={18} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: '0.82rem', color: '#0284c7' }}>
-                  PETUNJUK PELAKSANAAN AUDIT SMC (SAFETY MANAGEMENT CERTIFICATE - KAPAL ARMADA)
-                </strong>
-                <span className="badge badge-primary" style={{ fontSize: '0.62rem' }}>BKI Rev 05 (74 Klausul)</span>
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-main)', marginTop: '0.35rem', lineHeight: '1.5' }}>
-                <div>• <strong>Fokus Pengujian:</strong> Kelaiklautan fisik kapal, operasional navigasi di anjungan, kesiapan mesin & generator, uji fungsi alat keselamatan (LSA/FFA), drill darurat awak kapal, dan kesesuaian logbook kapal dengan sistem PMS.</div>
-                <div>• <strong>Auditee Onboard:</strong> Nakhoda (Master), KKM (Chief Engineer), dan seluruh awak kapal yang bertugas di atas kapal armada.</div>
-                <div>• <strong>Hasil Sesi Tahap 1:</strong> Penetapan nomor registrasi audit kapal, pengesahan Lead Auditor independen, dan pemasangan otomatis 74 butir checklist resmi BKI SMS Shipboard Rev 05.</div>
-              </div>
-            </div>
-          </div>
+          <SmcSessionInfoBanner
+
+          />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
 
             {/* KOLOM 1: OBJEK KAPAL ARMADA & LEGALITAS PENOMORAN */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="glass-card" style={{ padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0284c7', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Ship size={15} />
-                  <span>1. Objek Kapal Armada & Sertifikat SMC</span>
-                </div>
-
-                {/* Pilih Kapal Armada */}
-                <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700 }}>
-                    Kapal Armada Sasaran Audit <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <select
-                    value={vesselId}
-                    onChange={(e) => handleVesselChange(e.target.value)}
-                    className="form-control"
-                    style={{ fontSize: '0.82rem', fontWeight: 700 }}
-                    required
-                  >
-                    {vessels.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.type || 'Tugboat'}) — Port: {v.portOfRegistry || 'Pontianak'}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Chip Spesifikasi Teknis Kapal */}
-                <div style={{
-                  padding: '0.45rem 0.65rem',
-                  borderRadius: '6px',
-                  background: 'rgba(2, 132, 199, 0.08)',
-                  border: '1px solid rgba(2, 132, 199, 0.2)',
-                  fontSize: '0.72rem',
-                  color: 'var(--text-main)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '0.4rem',
-                  marginBottom: '0.75rem'
-                }}>
-                  <span><strong>IMO/Reg:</strong> {currentSelectedVessel?.imo || currentSelectedVessel?.regNo || '-'}</span>
-                  <span><strong>Call Sign:</strong> {currentSelectedVessel?.callSign || '-'}</span>
-                  <span><strong>GT:</strong> {currentSelectedVessel?.gt || '250'}</span>
-                  <span><strong>Port:</strong> {currentSelectedVessel?.portOfRegistry || 'PONTIANAK'}</span>
-                </div>
-
-                {/* Nomor Sertifikat SMC Kapal */}
-                <div className="form-group" style={{ marginBottom: '0.25rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.76rem', fontWeight: 700 }}>
-                    No. Sertifikat SMC Kapal (Safety Management Certificate) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={smcCertificateNo}
-                    onChange={(e) => setSmcCertificateNo(e.target.value)}
-                    placeholder="Contoh: SMC-TB-RP2004/2026"
-                    className="form-control"
-                    style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0284c7' }}
-                    required
-                  />
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
-                    Sertifikat resmi kelaiklautan ISM Code kapal yang diverifikasi masa berlakunya.
-                  </span>
-                </div>
-              </div>
-
-              {/* Registrasi & Legalitas Audit */}
-              <div className="glass-card" style={{ padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <ShieldCheck size={15} color="#10b981" />
-                  <span>2. Penomoran & Status Sesi Audit</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '0.75rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                      No. Registrasi Audit <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={auditNo}
-                      onChange={(e) => setAuditNo(e.target.value)}
-                      className="form-control"
-                      style={{ fontSize: '0.8rem', fontWeight: 700 }}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                      No. Laporan BKI (Report ID) <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={reportId}
-                      onChange={(e) => setReportId(e.target.value)}
-                      placeholder="0859-PK/ISM-SMC/2026"
-                      className="form-control"
-                      style={{ fontSize: '0.8rem', fontWeight: 700 }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                    Status Pelaksanaan Sesi
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="form-control"
-                    style={{ fontSize: '0.8rem', fontWeight: 700 }}
-                  >
-                    <option value="In Progress">Sedang Berjalan (In Progress)</option>
-                    <option value="Scheduled">Terjadwal (Scheduled)</option>
-                    <option value="Completed">Selesai & Tertutup (Completed)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+            <SmcSessionShipColumn
+              auditNo={auditNo}
+              currentSelectedVessel={currentSelectedVessel}
+              handleVesselChange={handleVesselChange}
+              reportId={reportId}
+              setAuditNo={setAuditNo}
+              setReportId={setReportId}
+              setSmcCertificateNo={setSmcCertificateNo}
+              setStatus={setStatus}
+              smcCertificateNo={smcCertificateNo}
+              status={status}
+              vesselId={vesselId}
+              vessels={vessels}
+            />
 
             {/* KOLOM 2: PERSONIL AUDIT ONBOARD & JADWAL */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="glass-card" style={{ padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Users size={15} color="#f59e0b" />
-                  <span>3. Personil Tim Auditor & Nakhoda Kapal</span>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '0.65rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                    Lead Auditor (Auditor Kepala) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={leadAuditor}
-                    onChange={(e) => setLeadAuditor(e.target.value)}
-                    placeholder="Nama Lead Auditor resmi"
-                    className="form-control"
-                    style={{ fontSize: '0.8rem' }}
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '0.65rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                    Tim Auditor Pendamping
-                  </label>
-                  <input
-                    type="text"
-                    value={auditTeam}
-                    onChange={(e) => setAuditTeam(e.target.value)}
-                    placeholder="Pisahkan dengan koma jika lebih dari satu"
-                    className="form-control"
-                    style={{ fontSize: '0.8rem' }}
-                  />
-                </div>
-
-                <div className="form-group" style={{ marginBottom: '0.65rem' }}>
-                  <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                    Auditee (Nakhoda / Chief Engineer yang Diaudit) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={auditee}
-                    onChange={(e) => setAuditee(e.target.value)}
-                    placeholder="Contoh: Capt. Ekhsan (Nakhoda) & KKM"
-                    className="form-control"
-                    style={{ fontSize: '0.8rem' }}
-                    required
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                    Lokasi Fisik Audit Kapal <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={auditLocation}
-                    onChange={(e) => setAuditLocation(e.target.value)}
-                    placeholder="Contoh: Onboard TB. RP 2004 (Dermaga Pontianak)"
-                    className="form-control"
-                    style={{ fontSize: '0.8rem' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Jadwal & Ruang Lingkup SMC */}
-              <div className="glass-card" style={{ padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Calendar size={15} color="#6366f1" />
-                  <span>4. Jadwal & Ruang Lingkup Audit SMC</span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', marginBottom: '0.75rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                      Tanggal Audit <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={auditDate}
-                      onChange={(e) => setAuditDate(e.target.value)}
-                      className="form-control"
-                      style={{ fontSize: '0.8rem' }}
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700 }}>
-                      Target Due Date (Batas CAPA) <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={targetCloseDate}
-                      onChange={(e) => setTargetCloseDate(e.target.value)}
-                      className="form-control"
-                      style={{ fontSize: '0.8rem' }}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <label className="form-label" style={{ fontSize: '0.74rem', fontWeight: 700, margin: 0 }}>
-                      Ruang Lingkup Pemeriksaan Kapal (Audit Scope)
-                    </label>
-                    <div style={{ display: 'flex', gap: '0.3rem' }}>
-                      <button
-                        type="button"
-                        onClick={() => setScope(`Audit Kelaikan Pembaruan Sistem Manajemen Keselamatan (SMC) Kapal ${currentSelectedVessel?.name || 'Kapal'} Onboard sesuai IMO Res. A.741(18) dan BKI SMS Shipboard Checklist Rev 05 (74 Klausul).`)}
-                        style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer' }}
-                      >
-                        Pembaruan
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setScope(`Audit Antara (Interim SMC) Sistem Manajemen Keselamatan Kapal ${currentSelectedVessel?.name || 'Kapal'} Onboard sesuai ISM Code klausul 1 s.d. 12.`)}
-                        style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'transparent', cursor: 'pointer' }}
-                      >
-                        Antara
-                      </button>
-                    </div>
-                  </div>
-                  <textarea
-                    value={scope}
-                    onChange={(e) => setScope(e.target.value)}
-                    rows={2}
-                    className="form-control"
-                    style={{ fontSize: '0.78rem', resize: 'vertical' }}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
+            <SmcSessionCrewColumn
+              auditDate={auditDate}
+              auditLocation={auditLocation}
+              auditTeam={auditTeam}
+              auditee={auditee}
+              currentSelectedVessel={currentSelectedVessel}
+              leadAuditor={leadAuditor}
+              scope={scope}
+              setAuditDate={setAuditDate}
+              setAuditLocation={setAuditLocation}
+              setAuditTeam={setAuditTeam}
+              setAuditee={setAuditee}
+              setLeadAuditor={setLeadAuditor}
+              setScope={setScope}
+              setTargetCloseDate={setTargetCloseDate}
+              targetCloseDate={targetCloseDate}
+            />
 
           </div>
 
           {/* CHECKLIST PREVIEW BANNER */}
-          <div style={{
-            marginTop: '1.25rem',
-            padding: '0.75rem 1rem',
-            borderRadius: '8px',
-            background: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.5rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <CheckSquare size={18} color="#10b981" />
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Checklist Kelaiklautan SMC Kapal Siap Diperiksa ({checklist.length} Butir Klausul Resmi)
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                  Mengadopsi standar BKI F23.14.06-2024 Rev 05 mencakup Bagian A s.d. E (Kamar Mesin, Geladak, Navigasi, LSA/FFA, & Dokumen Awak).
-                </div>
-              </div>
-            </div>
-            <span className="badge badge-success" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
-              ✓ 74 Klausul Terpasang
-            </span>
-          </div>
+          <SmcSessionChecklistBanner
+            checklist={checklist}
+          />
         </form>
 
         {/* MODAL FOOTER */}
@@ -836,40 +427,16 @@ export const SmcSessionModal = ({ session, onClose, defaultVesselId, onSaved }) 
         </div>
 
         {/* MODAL KONFIRMASI HAPUS SESI */}
-        {showDeleteConfirm && (
-          <div className="modal-overlay" style={{ zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-            <div className="glass-card" style={{ maxWidth: '420px', padding: '1.5rem', textAlign: 'center', background: 'var(--bg-surface-card)', borderRadius: '12px' }}>
-              <AlertTriangle size={42} color="#ef4444" style={{ margin: '0 auto 0.75rem' }} />
-              <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
-                Hapus Sesi Audit SMC Ini?
-              </h4>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                Sesi audit <strong>{auditNo}</strong> untuk kapal <strong>{currentSelectedVessel?.name}</strong> akan dihapus permanen dari sistem.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    deleteAuditSession(session.id);
-                    showToast('Sesi audit SMC berhasil dihapus', 'info');
-                    setShowDeleteConfirm(false);
-                    onClose();
-                  }}
-                  className="btn btn-primary btn-sm"
-                  style={{ background: '#ef4444', borderColor: '#ef4444' }}
-                >
-                  Ya, Hapus Sesi
-                </button>
-              </div>
-            </div>
-          </div>
+        {(showDeleteConfirm) && (
+          <SmcSessionDeleteConfirm
+            auditNo={auditNo}
+            currentSelectedVessel={currentSelectedVessel}
+            deleteAuditSession={deleteAuditSession}
+            onClose={onClose}
+            session={session}
+            setShowDeleteConfirm={setShowDeleteConfirm}
+            showToast={showToast}
+          />
         )}
 
       </div>
