@@ -31,6 +31,7 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
     allEquipment,
     spareparts,
     allCrew,
+    schedules,
     addTechnicalWorkOrder,
     updateTechnicalWorkOrder,
     completeTechnicalWorkOrder,
@@ -39,6 +40,16 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
 
   const isEdit = Boolean(workOrder);
   const isCompleted = workOrder?.status === 'Completed';
+
+  // Interval servis PMS yang ditampilkan di lembar cetak. Sebelumnya
+  // `serviceIntervalHours` dipakai di TechnicalWOPrintSheet tanpa pernah
+  // dideklarasikan maupun dikirim sebagai prop, sehingga membuka lembar WO
+  // melempar ReferenceError. Sumber nilainya sama dengan yang dipakai
+  // PMSContext saat menutup siklus servis: jadwal milik WO, fallback 500 jam.
+  const serviceIntervalHours = useMemo(() => {
+    const sched = (schedules || []).find(s => s.id === workOrder?.scheduleId);
+    return sched?.intervalHours || 500;
+  }, [schedules, workOrder?.scheduleId]);
 
   // Target Vessel
   const [selectedVesselId, setSelectedVesselId] = useState(
@@ -387,6 +398,7 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
             selectedEquipment={selectedEquipment}
             setViewMode={setViewMode}
             sopSteps={sopSteps}
+            serviceIntervalHours={serviceIntervalHours}
             targetRunningHours={targetRunningHours}
             waterTemp={waterTemp}
             woType={woType}

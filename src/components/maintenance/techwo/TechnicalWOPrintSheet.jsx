@@ -23,6 +23,7 @@ export const TechnicalWOPrintSheet = ({
   selectedEquipment,
   setViewMode,
   sopSteps,
+  serviceIntervalHours,
   targetRunningHours,
   waterTemp,
   woType,
