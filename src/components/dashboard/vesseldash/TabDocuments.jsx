@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { CalendarPlus, Edit2, FileCheck, FileText, Plus, Send, Trash2, UserCheck } from 'lucide-react';
+import { usePMS } from '../../../context/PMSContext';
 
 export const TabDocuments = ({
   certificateCategories,
@@ -19,6 +20,9 @@ export const TabDocuments = ({
   shipDocCatFilter,
   shipDocs,
 }) => {
+  // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
+  // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
+  const confirm = usePMS().confirm;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -268,10 +272,14 @@ export const TabDocuments = ({
                                     <span>WA</span>
                                   </button>
                                   <button
-                                    onClick={() => {
-                                      if (window.confirm(`Hapus sertifikat "${d.name}" (${d.documentNo}) dari ${currentShip.name}?`)) {
-                                        deleteShipDocument(d.id);
-                                      }
+                                    onClick={async () => {
+                                      const lanjut = await confirm({
+                                        variant: 'danger',
+                                        title: 'Hapus Sertifikat',
+                                        subtitle: 'Dokumen yang dihapus tidak dapat dikembalikan',
+                                        message: `Hapus sertifikat "${d.name}" (${d.documentNo}) dari ${currentShip.name}?`
+                                      });
+                                      if (lanjut) deleteShipDocument(d.id);
                                     }}
                                     className="btn btn-secondary btn-sm"
                                     title="Hapus Dokumen"

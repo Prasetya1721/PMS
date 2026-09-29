@@ -4,6 +4,7 @@
  * Sumber: Tab 6: manajemen user & role
  */
 import React from 'react';
+import { usePMS } from '../../../context/PMSContext';
 import { Download, Edit2, Eye, EyeOff, Key, Mail, Phone, RefreshCw, Search, Trash2, UserPlus, Users } from 'lucide-react';
 
 export const MasterDataTabUsers = ({
@@ -33,6 +34,9 @@ export const MasterDataTabUsers = ({
   userStatusFilter,
   vessels,
 }) => {
+  // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
+  // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
+  const confirm = usePMS().confirm;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Header Bar */}
@@ -417,14 +421,18 @@ export const MasterDataTabUsers = ({
                                   </button>
 
                                   <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                       if (isMe) {
                                         showToast('Gagal: Anda tidak dapat menghapus akun yang sedang aktif digunakan!', 'error');
                                         return;
                                       }
-                                      if (confirm(`Apakah Anda yakin ingin menghapus akun pengguna "${u.name}"?`)) {
-                                        deleteUser(u.id);
-                                      }
+                                      const lanjut = await confirm({
+                                        variant: 'danger',
+                                        title: 'Hapus Akun Pengguna',
+                                        subtitle: 'Akun yang dihapus tidak dapat dikembalikan',
+                                        message: `Apakah Anda yakin ingin menghapus akun pengguna "${u.name}"?`
+                                      });
+                                      if (lanjut) deleteUser(u.id);
                                     }}
                                     disabled={isMe}
                                     className="btn-icon"

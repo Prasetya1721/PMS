@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { PMS_STORAGE_VERSION, initStorageVersion, loadStored, persistAllState } from '../utils/pmsStorage';
 import {
   INITIAL_VESSELS,
@@ -351,6 +352,13 @@ export const PMSProvider = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
+  // Antrean dialog konfirmasi in-app. Array, bukan satu nilai: aksi bisa saling
+  // menyusul (mis. konfirmasi impor yang memicu konfirmasi lain), dan satu slot
+  // tunggal akan membuat permintaan kedua menimpa resolver permintaan pertama -
+  // promise pertama tidak pernah selesai, jadi `await`-nya menggantung selamanya.
+  const [confirmQueue, setConfirmQueue] = useState([]);
+  const confirmResolvers = React.useRef({});
+
   // Set Current Role with RBAC sync and auto-redirect
   const setCurrentRole = (newRole) => {
     setCurrentRoleState(newRole);
@@ -444,6 +452,30 @@ export const PMSProvider = ({ children }) => {
   const showToast = (msg, type = 'info') => {
     setToastMessage({ message: msg, type });
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  // Pengganti window.confirm(): mengembalikan Promise<boolean>.
+  //
+  // Pemanggil cukup `if (!(await confirm({...}))) return;` - alur tetap lurus,
+  // tidak perlu menyimpan state dialog sendiri. Yang berubah: fungsi pemanggilnya
+  // kini async, dan kode SETELAH await berjalan di microtask, bukan sinkron.
+  // Di dalam handler React itu aman.
+  const confirm = (options = {}) => new Promise((resolve) => {
+    const id = `cf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    confirmResolvers.current[id] = resolve;
+    setConfirmQueue((prev) => [...prev, { id, ...options }]);
+  });
+
+  // Dipanggil ConfirmDialog saat pengguna memilih. Resolver diambil per-id lalu
+  // dihapus, sehingga resolve kedua atas id yang sama tidak mungkin terjadi
+  // (Promise mengabaikannya, tapi menghapusnya mencegah kebocoran memori).
+  const resolveConfirm = (id, value) => {
+    const resolve = confirmResolvers.current[id];
+    if (resolve) {
+      delete confirmResolvers.current[id];
+      resolve(value);
+    }
+    setConfirmQueue((prev) => prev.filter((r) => r.id !== id));
   };
 
   // 1. Equipment Actions
@@ -2758,6 +2790,9 @@ export const PMSProvider = ({ children }) => {
         searchQuery,
         setSearchQuery,
         toastMessage,
+        confirm,
+        confirmQueue,
+        resolveConfirm,
 
         // Counters
         overdueWOCount,

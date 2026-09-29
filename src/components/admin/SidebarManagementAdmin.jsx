@@ -31,7 +31,8 @@ export const SidebarManagementAdmin = () => {
     sidebarOverrides,
     updateSidebarOverrides,
     setActiveTab,
-    showToast
+    showToast,
+    confirm
   } = usePMS();
 
   const [localOverrides, setLocalOverrides] = useState({ ...sidebarOverrides });
@@ -67,8 +68,15 @@ export const SidebarManagementAdmin = () => {
     setTimeout(() => setIsSaved(false), 2500);
   };
 
-  const handleResetDefault = () => {
-    if (window.confirm('Kembalikan seluruh hak akses modul sidebar ke default sistem PT Baharimas?')) {
+  const handleResetDefault = async () => {
+    const lanjut = await confirm({
+      variant: 'reset',
+      title: 'Kembalikan Hak Akses Sidebar',
+      subtitle: 'Semua modul akan kembali ke default sistem',
+      message: 'Kembalikan seluruh hak akses modul sidebar ke default sistem PT Baharimas?',
+      confirmLabel: 'Kembalikan'
+    });
+    if (lanjut) {
       const resetObj = {};
       roles.forEach(r => {
         resetObj[r] = [...(ROLE_PERMISSIONS[r] || [])];

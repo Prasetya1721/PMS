@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePMS } from '../../context/PMSContext';
 import {
   Ship,
   X,
@@ -27,6 +28,10 @@ const SECTION_ICONS = {
 };
 
 export const ParticularsModal = ({ vessel, isOpen, onClose, onSave }) => {
+  // Hook dipanggil SEBELUM early-return di bawah — urutan hook tidak boleh berubah
+  // antar render. Dialog konfirmasi in-app diambil dari context, bukan props.
+  const confirm = usePMS().confirm;
+
   if (!isOpen || !vessel) return null;
 
   const [activeSection, setActiveSection] = useState('general');
@@ -49,8 +54,15 @@ export const ParticularsModal = ({ vessel, isOpen, onClose, onSave }) => {
     setIsDirty(true);
   };
 
-  const handleResetToDefault = () => {
-    if (window.confirm(`Kembalikan data particular ${vessel.name} ke spesifikasi standar bawaan armada?`)) {
+  const handleResetToDefault = async () => {
+    const lanjut = await confirm({
+      variant: 'reset',
+      title: 'Kembalikan ke Spesifikasi Standar',
+      subtitle: 'Data particular akan diganti nilai bawaan armada',
+      message: `Kembalikan data particular ${vessel.name} ke spesifikasi standar bawaan armada?`,
+      confirmLabel: 'Kembalikan'
+    });
+    if (lanjut) {
       const defaults = createDefaultShipParticulars(vessel);
       setFormData(defaults);
       setIsDirty(true);

@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { usePMS } from '../../../context/PMSContext';
 
 export const CostLedgerTab = ({
   canAction,
@@ -19,6 +20,9 @@ export const CostLedgerTab = ({
   setShowAddExpenseModal,
   vessels,
 }) => {
+  // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
+  // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
+  const confirm = usePMS().confirm;
   return (
     <div className="glass-card" style={{ overflow: 'hidden' }}>
               <div style={{
@@ -121,10 +125,15 @@ export const CostLedgerTab = ({
                             {canAction('record_actual_expense') && (
                               <td style={{ textAlign: 'right' }}>
                                 <button
-                                  onClick={() => {
-                                    if (window.confirm(`Batalkan pengeluaran ${cost.id} (${cost.description})? Sisa pagu anggaran kapal akan dikembalikan.`)) {
-                                      deleteExpenseTransaction(cost.id);
-                                    }
+                                  onClick={async () => {
+                                    const lanjut = await confirm({
+                                      variant: 'danger',
+                                      title: 'Batalkan Transaksi',
+                                      subtitle: 'Pagu anggaran kapal akan dikembalikan',
+                                      message: `Batalkan pengeluaran ${cost.id} (${cost.description})?`,
+                                      confirmLabel: 'Batalkan Transaksi'
+                                    });
+                                    if (lanjut) deleteExpenseTransaction(cost.id);
                                   }}
                                   className="btn btn-secondary btn-sm"
                                   style={{ padding: '0.2rem 0.5rem', color: '#f87171' }}

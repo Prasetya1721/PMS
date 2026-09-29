@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { Download, Edit2, Plus, Search, Trash2 } from 'lucide-react';
+import { usePMS } from '../../../context/PMSContext';
 
 export const MasterDataTabVessels = ({
   auditReport,
@@ -28,6 +29,9 @@ export const MasterDataTabVessels = ({
   vesselTypes,
   vessels,
 }) => {
+  // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
+  // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
+  const confirm = usePMS().confirm;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -277,10 +281,14 @@ export const MasterDataTabVessels = ({
                         <span>{t}</span>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Hapus tipe kapal "${t}" dari master data?`)) {
-                              deleteMasterVesselType(t);
-                            }
+                          onClick={async () => {
+                            const lanjut = await confirm({
+                              variant: 'danger',
+                              title: 'Hapus Tipe Kapal',
+                              subtitle: 'Hapus dari master data',
+                              message: `Hapus tipe kapal "${t}" dari master data?`
+                            });
+                            if (lanjut) deleteMasterVesselType(t);
                           }}
                           style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.85rem' }}
                           title="Hapus dari master data"
@@ -323,10 +331,14 @@ export const MasterDataTabVessels = ({
                         <span>{p}</span>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Hapus pelabuhan "${p}" dari master data?`)) {
-                              deleteMasterPort(p);
-                            }
+                          onClick={async () => {
+                            const lanjut = await confirm({
+                              variant: 'danger',
+                              title: 'Hapus Pelabuhan',
+                              subtitle: 'Hapus dari master data',
+                              message: `Hapus pelabuhan "${p}" dari master data?`
+                            });
+                            if (lanjut) deleteMasterPort(p);
                           }}
                           style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: '0.85rem' }}
                           title="Hapus dari master data"

@@ -27,7 +27,7 @@ import { EquipListFilterBar } from './equiplist/EquipListFilterBar';
 import { EquipListTable } from './equiplist/EquipListTable';
 
 export const EquipmentList = () => {
-  const { equipment, vessels, selectedVesselId, deleteEquipment, theme } = usePMS();
+  const { equipment, vessels, selectedVesselId, deleteEquipment, theme, confirm } = usePMS();
   const [activeTab, setActiveTab] = useState('machinery'); // 'machinery' | 'critical'
   const [isDailyLogModalOpen, setIsDailyLogModalOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -79,10 +79,14 @@ export const EquipmentList = () => {
   const dueSoonCount = equipment.filter(e => e.status === 'Due Soon').length;
   const overdueCount = equipment.filter(e => e.status === 'Overdue').length;
 
-  const handleDelete = (eq) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus equipment "${eq.name}" (${eq.code}) dari database?`)) {
-      deleteEquipment(eq.id);
-    }
+  const handleDelete = async (eq) => {
+    const lanjut = await confirm({
+      variant: 'danger',
+      title: 'Hapus Equipment',
+      subtitle: 'Data yang dihapus tidak dapat dikembalikan',
+      message: `Apakah Anda yakin ingin menghapus equipment "${eq.name}" (${eq.code}) dari database?`
+    });
+    if (lanjut) deleteEquipment(eq.id);
   };
 
   return (

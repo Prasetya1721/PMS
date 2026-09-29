@@ -18,7 +18,8 @@ export const DataSyncModal = ({ onClose }) => {
     exportFullDatabaseBackup,
     importSyncPackage,
     restoreFullDatabase,
-    showToast
+    showToast,
+    confirm
   } = usePMS();
 
   const [activeTab, setActiveTab] = useState('vessel_sync'); // 'vessel_sync' | 'full_backup'
@@ -38,11 +39,22 @@ export const DataSyncModal = ({ onClose }) => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    // onload dibuat async: konfirmasi kini mengembalikan Promise, dan `await` hanya
+    // boleh dipakai di dalam fungsi async. Pembacaan berkasnya sendiri tetap sama.
+    reader.onload = async (evt) => {
       try {
         const parsed = JSON.parse(evt.target.result);
         if (isFullRestore) {
-          if (window.confirm('PERINGATAN: Memulihkan database penuh akan menimpa seluruh data sistem saat ini dengan data cadangan. Lanjutkan?')) {
+          // Aksi paling merusak di aplikasi: menimpa SELURUH data sistem. Dulu ini
+          // hanya satu baris window.confirm yang mudah terlewat.
+          const lanjut = await confirm({
+            variant: 'danger',
+            title: 'Peringatan: Pulihkan Database Penuh',
+            subtitle: 'Tindakan ini tidak dapat dibatalkan',
+            message: 'Memulihkan database penuh akan menimpa SELURUH data sistem saat ini dengan data cadangan. Lanjutkan?',
+            confirmLabel: 'Timpa & Pulihkan'
+          });
+          if (lanjut) {
             restoreFullDatabase(parsed);
             onClose();
           }

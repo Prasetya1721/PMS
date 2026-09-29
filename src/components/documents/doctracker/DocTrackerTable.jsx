@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { CalendarPlus, Edit2, Eye, FileText, Plus, Send, Trash2, UserCheck } from 'lucide-react';
+import { usePMS } from '../../../context/PMSContext';
 
 export const DocTrackerTable = ({
   deleteShipDocument,
@@ -18,6 +19,9 @@ export const DocTrackerTable = ({
   setWaModalOffset,
   vessels,
 }) => {
+  // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
+  // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
+  const confirm = usePMS().confirm;
   return (
     <div className="glass-card" style={{ overflow: 'hidden' }}>
             <div className="table-container">
@@ -275,10 +279,14 @@ export const DocTrackerTable = ({
                             </button>
                             {item.itemCategory === 'Surat Legal Kapal' && (
                               <button
-                                onClick={() => {
-                                  if (window.confirm(`Hapus sertifikat ${item.name}?`)) {
-                                    deleteShipDocument(item.id);
-                                  }
+                                onClick={async () => {
+                                  const lanjut = await confirm({
+                                    variant: 'danger',
+                                    title: 'Hapus Sertifikat',
+                                    subtitle: 'Dokumen yang dihapus tidak dapat dikembalikan',
+                                    message: `Hapus sertifikat ${item.name}?`
+                                  });
+                                  if (lanjut) deleteShipDocument(item.id);
                                 }}
                                 className="btn btn-secondary btn-sm"
                                 title="Hapus Dokumen"

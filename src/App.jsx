@@ -5,6 +5,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { UrgencyBanner } from './components/layout/UrgencyBanner';
+import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { CheckCircle, AlertTriangle, Info, ShieldAlert, Loader2 } from 'lucide-react';
 import { hasAccessWithOverrides, ROLE_DEFINITIONS } from './utils/rbac';
 
@@ -92,7 +93,8 @@ class ErrorBoundary extends React.Component {
 }
 
 const AppContent = () => {
-  const { activeTab, setActiveTab, currentRole, selectedVesselId, toastMessage, sidebarOverrides } = usePMS();
+  const { activeTab, setActiveTab, currentRole, selectedVesselId, toastMessage, sidebarOverrides,
+          confirmQueue, resolveConfirm } = usePMS();
 
   const renderContent = () => {
     // Role-based Module Access Guard (with sidebar overrides)
@@ -213,6 +215,13 @@ const AppContent = () => {
 
       {/* Thumb-friendly Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Dialog konfirmasi in-app — pengganti window.confirm(). Hanya yang paling
+          depan dirender; sisanya menunggu, jadi tidak ada dua dialog bertumpuk. */}
+      <ConfirmDialog
+        request={confirmQueue && confirmQueue.length > 0 ? confirmQueue[0] : null}
+        onResolve={(value) => resolveConfirm(confirmQueue[0].id, value)}
+      />
 
       {/* Toast Alert Notification */}
       {toastMessage && (

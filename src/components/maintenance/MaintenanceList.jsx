@@ -25,7 +25,8 @@ export const MaintenanceList = () => {
     allEquipment,
     selectedVesselId,
     deleteTechnicalWorkOrder,
-    sendWhatsAppReminder
+    sendWhatsAppReminder,
+    confirm
   } = usePMS();
 
   const [activeMainTab, setActiveMainTab] = useState('technical_wo'); // 'technical_wo' | 'schedules' | 'requisitions'
@@ -296,10 +297,14 @@ export const MaintenanceList = () => {
                               </button>
 
                               <button
-                                onClick={() => {
-                                  if (window.confirm(`Hapus Work Order ${wo.id}?`)) {
-                                    deleteTechnicalWorkOrder(wo.id);
-                                  }
+                                onClick={async () => {
+                                  const lanjut = await confirm({
+                                    variant: 'danger',
+                                    title: 'Hapus Work Order',
+                                    subtitle: 'Data yang dihapus tidak dapat dikembalikan',
+                                    message: `Hapus Work Order ${wo.id}?`
+                                  });
+                                  if (lanjut) deleteTechnicalWorkOrder(wo.id);
                                 }}
                                 className="btn btn-neutral btn-sm"
                                 style={{ color: '#f87171', padding: '0.3rem 0.5rem' }}

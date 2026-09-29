@@ -35,7 +35,8 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
     addTechnicalWorkOrder,
     updateTechnicalWorkOrder,
     completeTechnicalWorkOrder,
-    showToast
+    showToast,
+    confirm
   } = usePMS();
 
   const isEdit = Boolean(workOrder);
@@ -237,13 +238,18 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
   };
 
   // Complete Work Order & Closed Loop Execution
-  const handleCompleteWorkOrder = () => {
+  const handleCompleteWorkOrder = async () => {
     const allStepsDone = sopSteps.every(s => s.done);
     if (!allStepsDone) {
-      const confirmIncomplete = window.confirm(
-        'Perhatian: Masih ada langkah SOP checklist yang belum dicentang selesai. Tetap ingin menutup dan menyelesaikan Work Order ini?'
-      );
-      if (!confirmIncomplete) return;
+      // Aksi ini tidak menghapus data, tapi mengubah status WO secara permanen.
+      const lanjut = await confirm({
+        variant: 'warning',
+        title: 'Langkah SOP Belum Lengkap',
+        subtitle: 'Konfirmasi penyelesaian Work Order',
+        message: 'Masih ada langkah SOP checklist yang belum dicentang selesai. Tetap ingin menutup dan menyelesaikan Work Order ini?',
+        confirmLabel: 'Tetap Selesaikan'
+      });
+      if (!lanjut) return;
     }
 
     const completionData = {

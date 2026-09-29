@@ -66,6 +66,7 @@ export const SiteSettingsAdmin = () => {
     updateSiteConfig,
     resetSiteConfig,
     showToast,
+    confirm,
     setActiveTab: setNavTab
   } = usePMS();
 
@@ -112,8 +113,15 @@ export const SiteSettingsAdmin = () => {
     setTimeout(() => setIsSaved(false), 2500);
   };
 
-  const handleResetBaharimas = () => {
-    if (window.confirm('Kembalikan konfigurasi login & branding ke Standar PT. Pelayaran Baharimas Kalimantan?')) {
+  const handleResetBaharimas = async () => {
+    const lanjut = await confirm({
+      variant: 'reset',
+      title: 'Kembalikan ke Standar Baharimas',
+      subtitle: 'Konfigurasi CMS tampilan login',
+      message: 'Kembalikan konfigurasi login & branding ke Standar PT. Pelayaran Baharimas Kalimantan?',
+      confirmLabel: 'Kembalikan'
+    });
+    if (lanjut) {
       resetSiteConfig();
       setFormData({
         bgType: 'wallpaper',
