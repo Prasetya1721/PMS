@@ -24,6 +24,18 @@ import {
   INITIAL_USERS
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
+// Lima fungsi notifikasi dipindah ke ./logic/ dengan dependensi closure induk
+// diangkat menjadi PARAMETER. Diimpor dengan alias `Raw`, lalu di bawah dibuat
+// wrapper bernama sama yang mengikat parameter itu. Dengan begitu:
+//   * API ke konsumen (nilai context) tidak berubah sama sekali
+//   * semua call site internal yang sudah ada tetap valid tanpa disentuh
+import { resolveEmailRecipients as resolveEmailRecipientsRaw } from './logic/resolveEmailRecipients';
+import { getGoogleCalendarUrl as getGoogleCalendarUrlRaw } from './logic/getGoogleCalendarUrl';
+import { sendEmailReminder as sendEmailReminderRaw } from './logic/sendEmailReminder';
+import { sendWhatsAppReminder as sendWhatsAppReminderRaw } from './logic/sendWhatsAppReminder';
+import { exportMultiIntervalICS as exportMultiIntervalICSRaw } from './logic/exportMultiIntervalICS';
+import { DEFAULT_SITE_CONFIG } from './logic/DEFAULT_SITE_CONFIG';
+import { DEFAULT_MASTER_PORTS } from './logic/DEFAULT_MASTER_PORTS';
 import {
   CERTIFICATE_CATEGORIES,
   DEFAULT_MASTER_SURVEY_TYPES,
@@ -172,54 +184,7 @@ export const PMSProvider = ({ children }) => {
 
   // CMS Site Configuration (login page content, branding, backgrounds)
   // CMS Site Configuration (login page content, branding, backgrounds)
-  const DEFAULT_SITE_CONFIG = {
-    // Tipe Latar Belakang: 'bawaan' | 'solid' | 'gradasi' | 'wallpaper'
-    bgType: 'wallpaper',
-    solidColor: '#0c1a30',
-    gradientFrom: '#0c1a30',
-    gradientVia: '#0f2942',
-    gradientTo: '#060d19',
-    gradientDirection: 'to bottom right',
-    wallpaperUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80',
-    wallpaperBlur: 0,
-    wallpaperOverlay: 40,
-    glowBlobs: true,
-    glowColor1: 'rgba(2, 132, 199, 0.25)',
-    glowColor2: 'rgba(6, 182, 212, 0.2)',
-    // Tema Kontras: 'light' (Latar Terang) | 'dark' (Latar Gelap)
-    textColorTheme: 'light',
-
-    // Panel Kiri (Branding PT Baharimas)
-    logoMode: 'baharimas',
-    customLogoUrl: '',
-    companyBadge: 'MARITIME FLEET MANAGEMENT SYSTEM',
-    systemTitle: 'PT PELAYARAN BAHARIMAS KALIMANTAN',
-    companySubtitle: 'Fleet Management & Marine Shipping Lines',
-    portalDescription: 'Pusat sistem digital operasional armada kapal tunda (tugboat), tongkang, dan kapal kargo niaga perairan Kalimantan Barat dan jalur pelayaran Nusantara.',
-    officeAddress: 'Jl. Adi Sucipto KM 6, Kompleks Bahari Permai No. 2, RT. 004 / RW. 004, Desa Sungai Raya, Kec. Sungai Raya, Kab. Kubu Raya - Pontianak, Kalimantan Barat',
-    officePhone: '(0561) 531016 / 732194',
-    officeEmail: 'pt.baharimas@hotmail.com',
-
-    // Panel Kanan (Formulir Login)
-    formCardStyle: 'dark_glass',
-    formTitle: 'Masuk ke Portal PMS',
-    formSubtitle: 'Gunakan akun korporat PT. Pelayaran Baharimas Kalimantan',
-    usernamePlaceholder: 'admin@baharimas.co.id',
-    passwordPlaceholder: '•••',
-    buttonText: 'Masuk ke Sistem PMS →',
-    showQuickLogin: true,
-    quickLoginLabel: '⚡ Akses Cepat Demo (Klik Akun):',
-    quickAccounts: [
-      { name: 'Capt. Robert Sitorus', role: 'Super Admin', email: 'admin@baharimas.co.id' },
-      { name: 'Ir. H. Gunawan', role: 'Fleet Manager', email: 'fleet.ops@baharimas.co.id' },
-      { name: 'Capt. Hendra Gunawan', role: 'Admin Kapal / Nakhoda', email: 'nakhoda@baharimas.co.id' },
-      { name: 'Ir. Bambang Wijaya (KKM)', role: 'Teknisi / Chief Engineer', email: 'kkm@baharimas.co.id' },
-      { name: 'Suryadi Pratama', role: 'Crew / ABK', email: 'abk@baharimas.co.id' },
-      { name: 'Siti Rahmawati', role: 'HR / Personalia', email: 'hr@baharimas.co.id' }
-    ],
-    formFooterNotice: '🔒 Portal Resmi PT. Pelayaran Baharimas Kalimantan • ISM Code Compliant',
-    footerText: '© 2026 PT. Pelayaran Baharimas Kalimantan • All Rights Reserved'
-  };
+  
 
   const [siteConfig, setSiteConfig] = useState(() => {
     const stored = load('siteConfig', null);
@@ -290,19 +255,7 @@ export const PMSProvider = ({ children }) => {
     'Oil Barge (Tongkang Minyak)'
   ];
 
-  const DEFAULT_MASTER_PORTS = [
-    'Pontianak',
-    'Ketapang',
-    'Kendawangan',
-    'Banjarmasin',
-    'Samarinda',
-    'Balikpapan',
-    'Jakarta',
-    'Surabaya',
-    'Batam',
-    'Kumai',
-    'Sampit'
-  ];
+  
 
   const [vesselTypes, setVesselTypes] = useState(() => load('vesselTypes', DEFAULT_VESSEL_TYPES));
   const [portLocations, setPortLocations] = useState(() => load('portLocations', DEFAULT_MASTER_PORTS));
@@ -2250,181 +2203,26 @@ export const PMSProvider = ({ children }) => {
     return newTime;
   };
 
-  // WhatsApp Sender with tailored messages per interval & optional direct API Gateway
-  const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}) => {
-    let phone = '6281200000000';
-    let recipientName = 'Crew / Admin';
-    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : (item.daysUntilExpiry || 30);
 
-    const v = vessels.find(ship => ship.id === item.vesselId);
-    const vesselName = v?.name || 'Fleet';
 
-    if (type === 'crew_cert') {
-      const targetCrew = crew.find(c => c.id === item.crewId);
-      phone = targetCrew?.whatsapp || '6281288991122';
-      recipientName = targetCrew?.name || item.crewName;
-    } else if (type === 'ship_doc') {
-      recipientName = `Admin Kapal & Nakhoda ${vesselName}`;
-      phone = '6281288991122';
-    } else if (type === 'work_order') {
-      recipientName = item.assignedTo || 'Teknisi / Chief Engineer';
-      phone = '6281288991122';
-    } else if (type === 'audit_nc_open') {
-      recipientName = options.recipientName || item.assignedTo || `Nakhoda & KKM ${item.targetName || vesselName}`;
-      phone = options.phone || '6281288991122';
-    } else if (type === 'audit_nc_close') {
-      recipientName = options.recipientName || 'DPA & Marine Superintendent PBK';
-      phone = options.phone || '6281288991122';
-    }
+  // ---- Wrapper pengikat untuk fungsi notifikasi yang dipindah ke ./logic/ ----
+  // Badan fungsi kini tinggal di modul sendiri dan menerima dependensi induk
+  // sebagai parameter; di sini parameter itu diikat sekali. Tanda tangan yang
+  // dilihat pemanggil TIDAK berubah, jadi konsumen context tidak perlu diubah.
+  const resolveEmailRecipients = (item, type = 'crew_cert', options = {}) =>
+    resolveEmailRecipientsRaw(item, type, options, notificationSettings, users, crew);
 
-    let headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO DOKUMEN*';
-    let urgencyBadge = 'Rentang 30 Hari';
-    if (offsetDays === 1) {
-      headerPrefix = '*🚨 PERINGATAN DARURAT H-1 (HARI TERAKHIR)*';
-      urgencyBadge = 'H-1 Hari';
-    } else if (offsetDays === 7) {
-      headerPrefix = '*⚠️ PERINGATAN KRITIS H-1 MINGGU (H-7)*';
-      urgencyBadge = 'H-1 Minggu';
-    } else if (offsetDays === 30) {
-      headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO H-1 BULAN (H-30)*';
-      urgencyBadge = 'H-1 Bulan';
-    } else if (offsetDays === 365) {
-      headerPrefix = '*📋 PERSIAPAN ANGGARAN DINI H-1 TAHUN (H-365)*';
-      urgencyBadge = 'H-1 Tahun';
-    } else if (offsetDays > 0) {
-      headerPrefix = `*📌 PENGINGAT JATUH TEMPO H-${offsetDays} HARI*`;
-      urgencyBadge = `H-${offsetDays} Hari`;
-    }
+  const getGoogleCalendarUrl = (item, options = {}) =>
+    getGoogleCalendarUrlRaw(item, options, notificationSettings, vessels);
 
-    let msg = options.customMessage;
-    if (!msg) {
-      if (type === 'audit_nc_open') {
-        const range = calculateNCRange(item);
-        const lateInfo = range?.isOverdue
-          ? `🚨 STATUS: MELEWATI BATAS WAKTU (${Math.abs(range.remainingDays)} Hari Overdue)!`
-          : `⏳ STATUS: NC TERBUKA (Berjalan ${range?.activeDays} hari, sisa ${range?.remainingDays} hari)`;
+  const sendEmailReminder = async (item, type = 'crew_cert', options = {}) =>
+    sendEmailReminderRaw(item, type, options, notificationSettings, vessels, resolveEmailRecipients, setNotificationLogs, showToast);
 
-        msg = `*🚨 NOTIFIKASI TEMUAN AUDIT ISM CODE (NC OPEN)*\n` +
-          `_PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS_\n\n` +
-          `Kepada Yth: *${recipientName}*\n` +
-          `Kapal / Entitas: *${item.targetName || vesselName}*\n` +
-          `No. Temuan: *${item.findingNo}* [${item.category}]\n` +
-          `Klausul ISM: *${item.clauseCode} - ${item.clauseName}*\n` +
-          `Standar Audit: *${item.standard} (ISM Code)*\n\n` +
-          `*Deskripsi Ketidaksesuaian:*\n"${item.description}"\n\n` +
-          `*📅 RENTANG WAKTU TINDAKAN KOREKTIF (CAP):*\n` +
-          `• Tanggal Audit Terbuka: *${range?.openDateStr || item.dateIdentified}*\n` +
-          `• Target Batas Close: *${range?.dueDateStr || item.dueDate}*\n` +
-          `• ${lateInfo}\n\n` +
-          `*INSTRUKSI AUDITEE KAPAL:*\n` +
-          `Harap segera mengajukan rencana tindakan korektif (CAP) dan mengunggah dokumen/foto eviden perbaikan di Portal PMS Baharimas sebelum batas waktu berakhir.\n\n` +
-          `_Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan_`;
-        urgencyBadge = range?.isOverdue ? 'NC Overdue' : 'NC Open';
-      } else if (type === 'audit_nc_close') {
-        const range = calculateNCRange(item);
-        msg = `*✅ NOTIFIKASI PENUTUPAN TEMUAN AUDIT (NC CLOSE)*\n` +
-          `_PT. Pelayaran Baharimas Kalimantan - Sistem PMS & SMS_\n\n` +
-          `Kepada Yth: *${recipientName}*\n` +
-          `Kapal / Entitas: *${item.targetName || vesselName}*\n` +
-          `No. Temuan: *${item.findingNo}* [${item.category}]\n` +
-          `Klausul ISM: *${item.clauseCode} - ${item.clauseName}*\n` +
-          `Standar Audit: *${item.standard} (ISM Code)*\n\n` +
-          `*HASIL VERIFIKASI & CLOSING:*\n` +
-          `Tindakan koreksi dan dokumen eviden perbaikan telah diverifikasi efektif oleh Lead Auditor DPA / Surveyor BKI. Status temuan resmi dinyatakan *NC CLOSE (TUNTAS)*.\n\n` +
-          `*⏱️ LAPORAN EFISIENSI RENTANG WAKTU (LEAD TIME):*\n` +
-          `• Tanggal Dibuka: *${range?.openDateStr || item.dateIdentified}*\n` +
-          `• Target Awal: *${range?.dueDateStr || item.dueDate}*\n` +
-          `• Tanggal Ditutup Resmi: *${range?.closedDateStr || 'Selesai'}*\n` +
-          `• Durasi Penyelesaian: *${range?.resolutionDays || 1} Hari* (${range?.varianceText || 'Sesuai Target'})\n\n` +
-          `Status Kepatuhan: *100% COMPLIANT (IMO ISM CODE & BKI)*\n\n` +
-          `_Pusat Pengendali Kepatuhan Armada PT. Pelayaran Baharimas Kalimantan_`;
-        urgencyBadge = 'NC Close Tuntas';
-      } else if (type === 'crew_cert') {
-        msg = `${headerPrefix} - SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN\n\n` +
-          `Yth. *${recipientName}*,\n` +
-          `Sertifikat Anda: *${item.name}* (No: ${item.certificateNo})\n` +
-          `Tanggal Jatuh Tempo: *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\n` +
-          (offsetDays <= 1
-            ? `PENTING: Besok adalah hari terakhir masa berlaku! Harap segera lapor Nakhoda untuk pengurusan darurat kelaiklautan.\n\n`
-            : offsetDays <= 7
-            ? `PENTING: Tersisa 1 minggu sebelum sertifikat habis masa berlaku. Mohon koordinasikan dengan personalia kapal.\n\n`
-            : offsetDays <= 30
-            ? `Harap segera memproses perpanjangan sertifikasi ke Bagian Personalia agar kelaiklautan kapal tetap terjaga.\n\n`
-            : offsetDays <= 365
-            ? `Pemberitahuan awal 1 tahun untuk persiapan pembaharuan sertifikat kepelautan STCW.\n\n`
-            : `Harap koordinasikan pembaruan dokumen ini tepat waktu.\n\n`) +
-          `_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
-      } else if (type === 'ship_doc') {
-        msg = `${headerPrefix} - SISTEM PMS BAHARIMAS\n\n` +
-          `Kepada: *${recipientName}*\n` +
-          `Dokumen: *${item.name}* (No: ${item.documentNo})\n` +
-          `Kapal: *${vesselName}*\n` +
-          `Tanggal Jatuh Tempo: *${item.expiryDate}* (${item.daysUntilExpiry} hari lagi).\n\n` +
-          (offsetDays <= 1
-            ? `TINDAKAN MENDESAK: Sertifikat akan kadaluarsa besok! Pastikan dispensasi atau survey BKI/Syahbandar telah terkonfirmasi.\n\n`
-            : offsetDays <= 7
-            ? `PERHATIAN KRITIS: Tersisa 7 hari. Konfirmasi jadwal kedatangan surveyor BKI/Syahbandar ke atas kapal.\n\n`
-            : offsetDays <= 30
-            ? `Segera daftarkan permohonan survey ke Kantor BKI / Syahbandar terdekat.\n\n`
-            : offsetDays <= 365
-            ? `Perencanaan anggaran survey besar & pembaharuan sertifikat kelas untuk tahun anggaran mendatang.\n\n`
-            : `Segera tindak lanjuti sebelum batas toleransi habis.\n\n`) +
-          `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
-      } else {
-        msg = `*PERINGATAN WORK ORDER OVERDUE*\n\nKepada: *${recipientName}*\nWork Order: *${item.title}* (ID: ${item.id})\nStatus: OVERDUE\nTarget: ${item.targetHours} Jam (Saat ini: ${item.currentRunningHours} Jam).\n\nHarap segera menindaklanjuti servicing.`;
-      }
-    }
+  const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}) =>
+    sendWhatsAppReminderRaw(item, type, options, notificationSettings, vessels, crew, setNotificationLogs, showToast);
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
-
-    const gateway = notificationSettings.autoSend?.whatsappGateway;
-    let deliveryStatus = 'Delivered';
-    let channelLabel = 'WhatsApp Direct';
-
-    // Direct API Gateway dispatch if API key provided and requested
-    if (options.useGatewayApi && gateway?.apiKey && gateway?.apiUrl) {
-      try {
-        await fetch(gateway.apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': gateway.apiKey },
-          body: JSON.stringify({ phone: cleanPhone, message: msg })
-        });
-        deliveryStatus = `Delivered (${gateway.provider})`;
-        channelLabel = `WhatsApp API (${gateway.provider})`;
-      } catch (err) {
-        console.warn('API Gateway send error, falling back to URL:', err);
-      }
-    }
-
-    // Log to notification audit
-    const newLog = {
-      id: makeId('notif'),
-      timestamp: new Date().toLocaleString('id-ID'),
-      channel: channelLabel,
-      target: `${recipientName} (${phone})`,
-      vesselName: item.targetName || vesselName,
-      subject: type === 'audit_nc_open'
-        ? `Notifikasi NC Open: ${item.findingNo} (${item.targetName || vesselName})`
-        : type === 'audit_nc_close'
-        ? `Notifikasi NC Close: ${item.findingNo} (${item.targetName || vesselName})`
-        : `Reminder ${urgencyBadge}: ${item.name || item.title}`,
-      message: msg,
-      status: deliveryStatus,
-      thresholdTriggered: urgencyBadge
-    };
-
-    setNotificationLogs(prev => [newLog, ...prev]);
-
-    if (!options.silent) {
-      if (!options.useGatewayApi || !gateway?.apiKey) {
-        window.open(waUrl, '_blank');
-      }
-      showToast(`Pesan WhatsApp telah disiapkan & dibuka ke ${recipientName} (${urgencyBadge})`, 'success');
-    }
-
-    return newLog;
-  };
+  const exportMultiIntervalICS = (filterOffset = null) =>
+    exportMultiIntervalICSRaw(filterOffset, notificationSettings, vessels, crewCertificates, shipDocuments, showToast);
 
   // Helper specifically for sending Audit NC Open / Close WhatsApp notifications
   const sendAuditWhatsAppNotification = async (finding, notificationType = 'open', options = {}) => {
@@ -2432,180 +2230,16 @@ export const PMSProvider = ({ children }) => {
     return await sendWhatsAppReminder(finding, type, options);
   };
 
-  // Email recipient resolver (backend-ready: uses users + gateway defaults)
-  const resolveEmailRecipients = (item, type = 'crew_cert', options = {}) => {
-    const gateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
-    const defaults = normalizeEmailList(gateway.defaultRecipients?.length ? gateway.defaultRecipients : ['fleet.ops@baharimas.co.id']);
-    if (options.to) return normalizeEmailList(options.to);
-    if (options.recipientEmail) return normalizeEmailList(options.recipientEmail);
-    const userEmailByRole = (keyword) => {
-      const u = (users || []).find(x => (x.role || '').toLowerCase().includes(keyword.toLowerCase()));
-      return u?.email || null;
-    };
-    if (type === 'crew_cert') {
-      const targetCrew = crew.find(c => c.id === item.crewId);
-      const crewEmail = targetCrew?.email || null;
-      return normalizeEmailList([crewEmail, userEmailByRole('HR'), userEmailByRole('Nakhoda'), ...defaults].filter(Boolean));
-    }
-    if (type === 'ship_doc') return normalizeEmailList([userEmailByRole('Nakhoda'), userEmailByRole('Fleet'), 'nakhoda@baharimas.co.id', ...defaults]);
-    if (type === 'work_order') return normalizeEmailList([userEmailByRole('Teknisi'), userEmailByRole('Chief'), 'kkm@baharimas.co.id', ...defaults]);
-    if (type === 'audit_nc_open') return normalizeEmailList([options.email || null, userEmailByRole('Nakhoda'), userEmailByRole('Fleet'), ...defaults].filter(Boolean));
-    if (type === 'audit_nc_close') return normalizeEmailList([options.email || null, userEmailByRole('Super Admin'), 'admin@baharimas.co.id', ...defaults].filter(Boolean));
-    return defaults;
-  };
 
-  // Email Sender — otomatis + backend-ready (mailto fallback saat backend belum ada)
-  const sendEmailReminder = async (item, type = 'crew_cert', options = {}) => {
-    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : (item.daysUntilExpiry ?? 30);
-    const v = vessels.find(ship => ship.id === item.vesselId);
-    const vesselName = v?.name || item.targetName || 'Fleet';
-    const gateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
-    const toList = resolveEmailRecipients(item, type, options);
-    if (!toList.length) {
-      if (!options.silent) showToast('Alamat email penerima tidak ditemukan. Isi Email Gateway / data user dulu.', 'warning');
-      return null;
-    }
-    let urgencyBadge = `H-${offsetDays} Hari`;
-    if (offsetDays === 1) urgencyBadge = 'H-1 Hari';
-    else if (offsetDays === 7) urgencyBadge = 'H-1 Minggu';
-    else if (offsetDays === 30) urgencyBadge = 'H-1 Bulan';
-    else if (offsetDays === 365) urgencyBadge = 'H-1 Tahun';
 
-    const docNo = item.certificateNo || item.documentNo || item.findingNo || '-';
-    let subject = options.customSubject;
-    let textBody = options.customMessage ? stripWhatsappMarkdown(options.customMessage) : '';
-    if (!subject) {
-      if (type === 'audit_nc_open') subject = `[NC OPEN] ${item.findingNo} — ${item.targetName || vesselName}`;
-      else if (type === 'audit_nc_close') subject = `[NC CLOSE] ${item.findingNo} — ${item.targetName || vesselName}`;
-      else if (type === 'work_order') subject = `[WO OVERDUE] ${item.title} — ${vesselName}`;
-      else subject = `[PMS ${urgencyBadge}] ${item.name} — ${vesselName} (Jatuh tempo ${item.expiryDate})`;
-    }
-    if (!textBody) {
-      if (type === 'audit_nc_open' || type === 'audit_nc_close') {
-        textBody = `Kepada Yth. Penerima,\n\nTemuan audit ${item.findingNo} (${item.category || ''}) pada ${item.targetName || vesselName} — status ${type === 'audit_nc_open' ? 'NC OPEN' : 'NC CLOSE'}.\nKlausul: ${item.clauseCode || ''} - ${item.clauseName || ''}\nDeskripsi: ${item.description || ''}\nTarget close: ${item.dueDate || '-'}\n\nMohon tindak lanjut via Portal PMS Baharimas.\n\n_Sistem PMS PT. Pelayaran Baharimas Kalimantan_`;
-      } else if (type === 'work_order') {
-        textBody = `Kepada Teknisi,\n\nWork Order ${item.title} (ID: ${item.id}) status OVERDUE.\nTarget: ${item.targetHours} jam (saat ini ${item.currentRunningHours} jam).\nKapal: ${vesselName}\n\nHarap segera menindaklanjuti servicing.\n\n_Sistem PMS Baharimas_`;
-      } else {
-        textBody = `Kepada Yth. Penerima,\n\nDokumen/Sertifikat: ${item.name} (No: ${docNo})\nKapal/Pemilik: ${item.crewName ? `Kru ${item.crewName}` : vesselName}\nJatuh tempo: ${item.expiryDate} (${item.daysUntilExpiry ?? offsetDays} hari lagi) — ${urgencyBadge}\nPenerbit: ${item.issuer || '-'}\n\nMohon segera proses perpanjangan ke BKI/Syahbandar/personalia sebelum batas toleransi habis.\n\n_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
-      }
-    }
-    const html = buildEmailHtml({
-      preheader: subject,
-      title: subject,
-      badge: urgencyBadge,
-      rows: [
-        { label: 'Kapal / Entitas', value: vesselName },
-        { label: 'Dokumen / Temuan', value: `${item.name || item.title || item.findingNo || '-'}` },
-        { label: 'Nomor', value: docNo },
-        { label: 'Jatuh Tempo', value: `${item.expiryDate || item.dueDate || '-'}` },
-      ],
-      bodyText: textBody,
-    });
-    const payload = buildEmailPayload({ to: toList, cc: options.cc, bcc: options.bcc, subject, text: textBody, html, meta: { type, vesselName, offsetDays } });
-    // Coba backend dulu (otomatis, tanpa buka tab). Kalau backend belum ada -> status Queued.
-    const backendRes = await sendEmailViaBackend(payload, gateway);
-    const channelLabel = backendRes.ok ? `Email Auto (${gateway.provider})` : 'Email Auto';
-    const newLog = {
-      id: makeId('notif-email'),
-      timestamp: new Date().toLocaleString('id-ID'),
-      channel: channelLabel,
-      target: payload.to.join(', '),
-      vesselName: item.targetName || vesselName,
-      subject,
-      message: textBody,
-      status: backendRes.status,
-      thresholdTriggered: urgencyBadge,
-    };
-    setNotificationLogs(prev => [newLog, ...prev]);
-    if (!options.silent) {
-      if (backendRes.ok) {
-        showToast(`Email otomatis terkirim ke ${payload.to.join(', ')} (${urgencyBadge})`, 'success');
-      } else {
-        // Fallback frontend-only: buka aplikasi email agar user bisa kirim sekarang,
-        // log tetap tercatat sebagai Queued agar tidak hilang saat backend hadir.
-        if (!options.skipMailto) window.open(buildMailtoUrl(payload.to, subject, textBody), '_self');
-        showToast(`Backend email belum aktif — draf email dibuka & dicatat sebagai antrean (${payload.to.join(', ')})`, 'info');
-      }
-    }
-    return { ...newLog, backend: backendRes, payload };
-  };
+
 
   const sendAuditEmailNotification = async (finding, notificationType = 'open', options = {}) => {
     const type = notificationType === 'open' ? 'audit_nc_open' : 'audit_nc_close';
     return await sendEmailReminder(finding, type, options);
   };
 
-  // Google Calendar URL Generator with custom offset days and scheduled hour
-  const getGoogleCalendarUrl = (item, options = {}) => {
-    // options: { offsetDays: 0 | 1 | 7 | 30 | 365 | number, eventTime: '08:00' }
-    const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : 30;
-    const eventTime = options.eventTime || notificationSettings.autoSend?.scheduleTime || '08:00';
-    const [evHH, evMM] = eventTime.split(':').map(Number);
 
-    const vessel = vessels.find(v => v.id === item.vesselId);
-    const vesselName = vessel?.name || 'Armada Kapal';
-    const docNo = item.certificateNo || item.documentNo || '-';
-    const holder = item.crewName ? `Kru: ${item.crewName}` : `Kapal: ${vesselName}`;
-
-    let startIso = '';
-    let endIso = '';
-
-    if (item.expiryDate) {
-      const [year, month, day] = item.expiryDate.split('-').map(Number);
-      const targetDate = new Date(year, month - 1, day);
-
-      if (offsetDays > 0) {
-        targetDate.setDate(targetDate.getDate() - offsetDays);
-      }
-
-      const tYear = targetDate.getFullYear();
-      const tMonth = String(targetDate.getMonth() + 1).padStart(2, '0');
-      const tDay = String(targetDate.getDate()).padStart(2, '0');
-
-      const startH = String(evHH || 8).padStart(2, '0');
-      const startM = String(evMM || 0).padStart(2, '0');
-      const endH = String(Math.min(23, (evHH || 8) + 1)).padStart(2, '0');
-      const endM = startM;
-
-      startIso = `${tYear}${tMonth}${tDay}T${startH}${startM}00`;
-      endIso = `${tYear}${tMonth}${tDay}T${endH}${endM}00`;
-    }
-
-    let intervalLabel = 'H-30 (1 Bulan)';
-    if (offsetDays === 1) intervalLabel = 'H-1 (1 Hari Terakhir)';
-    else if (offsetDays === 7) intervalLabel = 'H-7 (1 Minggu)';
-    else if (offsetDays === 30) intervalLabel = 'H-30 (1 Bulan)';
-    else if (offsetDays === 365) intervalLabel = 'H-365 (1 Tahun Persiapan)';
-    else if (offsetDays === 0) intervalLabel = 'JATUH TEMPO HARI-H';
-    else if (offsetDays > 0) intervalLabel = `H-${offsetDays} Hari`;
-
-    const title = `[PMS ${intervalLabel}] ${item.name} (${vesselName})`;
-    const details = `PENGINGAT RESMI SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN:\n` +
-      `----------------------------------------\n` +
-      `Kategori Peringatan: ${intervalLabel}\n` +
-      `Waktu Pengingat: Jam ${eventTime} WIB\n` +
-      `Nama Dokumen/Sertifikat: ${item.name}\n` +
-      `Nomor Dokumen: ${docNo}\n` +
-      `Subjek/Pemilik: ${holder}\n` +
-      `Kapal: ${vesselName}\n` +
-      `Instansi Penerbit: ${item.issuer || '-'}\n` +
-      `Tanggal Jatuh Tempo: ${item.expiryDate} (${item.daysUntilExpiry} hari lagi)\n` +
-      `Status Kelaikan: ${item.status}\n\n` +
-      `INSTRUKSI TINDAK LANJUT:\n` +
-      (offsetDays === 1
-        ? `🚨 DARURAT: Hari ini/besok masa berlaku habis! Segera hubungi Syahbandar/BKI untuk dispensasi atau survey mendesak.`
-        : offsetDays === 7
-        ? `⚠️ KRITIS: Tersisa 7 hari. Pastikan surveyor telah ditunjuk dan dokumen persiapan kapal siap di pelabuhan.`
-        : offsetDays === 30
-        ? `🔔 FORMAL: Masuk jendela survei perpanjangan 30 hari. Hubungi Bagian Legal Armada & BKI Surveyor.`
-        : offsetDays === 365
-        ? `📋 TAHUNAN: Rencanakan anggaran docking & survey pembaharuan (Renewal Survey) tahun depan.`
-        : `Segera tindak lanjuti sebelum batas toleransi survey habis.`);
-
-    const location = `${vesselName}, Pelabuhan Pendaftaran ${vessel?.portOfRegistry || 'Pontianak, Kalimantan Barat'}`;
-
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startIso}/${endIso}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
-  };
 
   const openGoogleCalendar = (item, options = {}) => {
     const url = getGoogleCalendarUrl(item, options);
@@ -2636,83 +2270,7 @@ export const PMSProvider = ({ children }) => {
     showToast(`Google Calendar dibuka untuk event pengingat ${tagLabel} pukul ${eventTime} WIB: ${item.name}`, 'success');
   };
 
-  // Export .ics calendar file with multi-alarm (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun, Kustom)
-  const exportMultiIntervalICS = (filterOffset = null) => {
-    const activeThresholds = [
-      ...(notificationSettings.thresholds || []).filter(t => t.enabled),
-      ...(notificationSettings.customThresholds || []).filter(t => t.enabled)
-    ];
 
-    const allItems = [
-      ...crewCertificates.map(c => ({ ...c, itemCategory: 'crew_cert' })),
-      ...shipDocuments.map(d => ({ ...d, itemCategory: 'ship_doc' }))
-    ];
-
-    let targetItems = allItems;
-    if (filterOffset !== null) {
-      targetItems = allItems.filter(i => i.daysUntilExpiry !== undefined && i.daysUntilExpiry <= filterOffset && i.daysUntilExpiry >= -30);
-    } else {
-      const maxDays = Math.max(...activeThresholds.map(t => t.days), 365);
-      targetItems = allItems.filter(i => i.daysUntilExpiry !== undefined && i.daysUntilExpiry <= maxDays && i.daysUntilExpiry >= -30);
-    }
-
-    if (targetItems.length === 0) {
-      showToast('Tidak ada dokumen yang cocok dengan ambang batas yang dipilih.', 'info');
-      return;
-    }
-
-    let icsContent = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//PT. Pelayaran Baharimas Kalimantan//PMS Statutory Multi-Alarm Calendar//ID',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'X-WR-CALNAME:PT. Pelayaran Baharimas Kalimantan - Dokumen & Sertifikat Kapal',
-      'X-WR-TIMEZONE:Asia/Jakarta'
-    ];
-
-    targetItems.forEach((item, idx) => {
-      const vessel = vessels.find(v => v.id === item.vesselId);
-      const vesselName = vessel?.name || 'Kapal';
-      const cleanDate = item.expiryDate ? item.expiryDate.replace(/-/g, '') : '20260918';
-      const eventTime = notificationSettings.autoSend?.scheduleTime?.replace(':', '') || '0800';
-
-      icsContent.push(
-        'BEGIN:VEVENT',
-        `UID:pms-cert-${item.id}-${idx}@baharimas.co.id`,
-        `DTSTAMP:${cleanDate}T${eventTime}00Z`,
-        `DTSTART;VALUE=DATE:${cleanDate}`,
-        `SUMMARY:[PMS JATUH TEMPO] ${item.name} (${vesselName})`,
-        `DESCRIPTION:Pengingat jatuh tempo dokumen ${item.name} (No: ${item.certificateNo || item.documentNo}). Pemegang: ${item.crewName || vesselName}. Segera lakukan perpanjangan kelaiklautan kapal.`,
-        `LOCATION:${vesselName}, ${vessel?.portOfRegistry || 'Indonesia'}`
-      );
-
-      // Add VALARM for each active threshold
-      activeThresholds.forEach(th => {
-        icsContent.push(
-          'BEGIN:VALARM',
-          'ACTION:DISPLAY',
-          `DESCRIPTION:Pengingat ${th.label} - Dokumen ${item.name}`,
-          `TRIGGER:-P${th.days}D`,
-          'END:VALARM'
-        );
-      });
-
-      icsContent.push('END:VEVENT');
-    });
-
-    icsContent.push('END:VCALENDAR');
-
-    const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', `PMS_MultiAlarm_Calendar_${new Date().toISOString().split('T')[0]}.ics`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast(`File .ics multi-alarm berhasil diunduh (${targetItems.length} dokumen dengan alarm 1 hari, 1 minggu, 1 bulan, 1 tahun)!`, 'success');
-  };
 
   // Alias for backward compatibility
   const exportH30CalendarICS = () => exportMultiIntervalICS(30);
