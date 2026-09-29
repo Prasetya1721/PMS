@@ -2483,7 +2483,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_spareparts', JSON.stringify([]));
     localStorage.setItem('pms_requisitions', JSON.stringify([]));
     localStorage.setItem('pms_costs', JSON.stringify([]));
-    localStorage.setItem('pms_vessel_budgets', JSON.stringify([]));
+    localStorage.setItem('pms_vesselBudgets', JSON.stringify([]));
     localStorage.setItem('pms_crew', JSON.stringify([]));
     localStorage.setItem('pms_leaves', JSON.stringify([]));
     localStorage.setItem('pms_drills', JSON.stringify([]));
@@ -2559,7 +2559,7 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_spareparts', JSON.stringify(dParts));
     localStorage.setItem('pms_requisitions', JSON.stringify(dReq));
     localStorage.setItem('pms_costs', JSON.stringify(dCosts));
-    localStorage.setItem('pms_vessel_budgets', JSON.stringify(dBudgets));
+    localStorage.setItem('pms_vesselBudgets', JSON.stringify(dBudgets));
     localStorage.setItem('pms_crew', JSON.stringify(dCrew));
     localStorage.setItem('pms_leaves', JSON.stringify(dLeaves));
     localStorage.setItem('pms_drills', JSON.stringify(dDrills));

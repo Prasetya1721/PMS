@@ -7,6 +7,68 @@ import { createDefaultShipParticulars } from '../data/shipParticularsData';
 export const PMS_STORAGE_VERSION = 'v15-clean-audit-bki';
 
 /**
+ * Nama kunci localStorage per field state - SATU sumber kebenaran.
+ *
+ * Dibaca dan ditulis lewat peta ini supaya nama kunci tidak bisa lagi menyimpang
+ * antara loadStored() dan persistAllState(). Sebelumnya keduanya menuliskan
+ * literal sendiri-sendiri, dan satu kunci menyimpang tanpa terdeteksi:
+ * persistAllState menulis `pms_vessel_budgets` sementara loadStored membaca
+ * `pms_vesselBudgets`, sehingga data anggaran kapal kembali ke nilai bawaan
+ * setiap kali halaman dimuat ulang.
+ */
+export const STORAGE_KEYS = {
+  vessels: 'pms_vessels',
+  equipment: 'pms_equipment',
+  schedules: 'pms_schedules',
+  workOrders: 'pms_workOrders',
+  technicalWorkOrders: 'pms_technicalWorkOrders',
+  dailyMachineryLogs: 'pms_dailyMachineryLogs',
+  criticalEquipmentTests: 'pms_criticalEquipmentTests',
+  safeManningStandards: 'pms_safeManningStandards',
+  spareparts: 'pms_spareparts',
+  requisitions: 'pms_requisitions',
+  costs: 'pms_costs',
+  vesselBudgets: 'pms_vesselBudgets',
+  crew: 'pms_crew',
+  leaves: 'pms_leaves',
+  drills: 'pms_drills',
+  crewCertificates: 'pms_crewCertificates',
+  shipDocuments: 'pms_shipDocuments',
+  certificateCategories: 'pms_certificateCategories',
+  documentTemplates: 'pms_documentTemplates',
+  notificationSettings: 'pms_notificationSettings',
+  notificationLogs: 'pms_notificationLogs',
+  users: 'pms_users',
+  audits: 'pms_audits',
+  auditFindings: 'pms_auditFindings',
+  siteConfig: 'pms_siteConfig',
+  sidebarOverrides: 'pms_sidebarOverrides',
+  masterSurveyTypes: 'pms_masterSurveyTypes',
+  vesselTypes: 'pms_vesselTypes',
+  portLocations: 'pms_portLocations',
+};
+
+/**
+ * Field yang ditulis persistAllState. Sengaja lebih sedikit daripada STORAGE_KEYS:
+ * `masterSurveyTypes`, `vesselTypes`, dan `portLocations` punya jalur simpan
+ * sendiri di PMSContext, dan menuliskannya dari sini akan menimpanya dengan
+ * nilai kosong.
+ */
+export const PERSISTED_FIELDS = [
+  'vessels', 'equipment', 'schedules', 'workOrders', 'technicalWorkOrders',
+  'dailyMachineryLogs', 'criticalEquipmentTests', 'safeManningStandards',
+  'spareparts', 'requisitions', 'costs', 'vesselBudgets', 'crew', 'leaves',
+  'drills', 'crewCertificates', 'shipDocuments', 'certificateCategories',
+  'documentTemplates', 'notificationSettings', 'notificationLogs', 'users',
+  'audits', 'auditFindings', 'siteConfig', 'sidebarOverrides',
+];
+
+/** Kunci localStorage untuk sebuah field state. */
+export function storageKeyFor(field) {
+  return STORAGE_KEYS[field] || `pms_${field}`;
+}
+
+/**
  * Purge localStorage jika versi berubah, dengan menjaga data user aktif.
  * Dipanggil sekali saat modul di-load (side effect yang disengaja).
  */
@@ -22,6 +84,18 @@ export function initStorageVersion() {
     }
 
     // Bersihkan data master template agar kosong default
+    // Migrasi kunci lama. `pms_vessel_budgets` pernah ditulis oleh persistAllState
+    // dan dua jalur seed, tetapi selalu dibaca sebagai `pms_vesselBudgets` - jadi
+    // data anggaran kapal hilang setiap reload. Salin sekali ke kunci yang benar,
+    // lalu buang yang lama supaya tidak ada dua salinan yang bisa menyimpang.
+    const legacyBudgets = localStorage.getItem('pms_vessel_budgets');
+    if (legacyBudgets !== null) {
+      if (localStorage.getItem('pms_vesselBudgets') === null) {
+        localStorage.setItem('pms_vesselBudgets', legacyBudgets);
+      }
+      localStorage.removeItem('pms_vessel_budgets');
+    }
+
     const isMasterCleaned = localStorage.getItem('pms_master_templates_cleaned_v3');
     if (!isMasterCleaned) {
       localStorage.setItem('pms_documentTemplates', JSON.stringify([]));
@@ -41,7 +115,7 @@ export function loadStored(key, fallback, INITIAL_NOTIFICATION_SETTINGS) {
     const version = localStorage.getItem('pms_fleet_version');
     if (version !== PMS_STORAGE_VERSION) return fallback;
 
-    const saved = localStorage.getItem(`pms_${key}`);
+    const saved = localStorage.getItem(storageKeyFor(key));
     if (!saved) return fallback;
 
     const sanitized = saved
@@ -99,36 +173,12 @@ export function loadStored(key, fallback, INITIAL_NOTIFICATION_SETTINGS) {
 export function persistAllState(state) {
   try {
     localStorage.setItem('pms_fleet_version', PMS_STORAGE_VERSION);
-    const entries = [
-      ['pms_vessels',                  state.vessels],
-      ['pms_equipment',                state.equipment],
-      ['pms_schedules',                state.schedules],
-      ['pms_workOrders',               state.workOrders],
-      ['pms_technicalWorkOrders',      state.technicalWorkOrders],
-      ['pms_dailyMachineryLogs',       state.dailyMachineryLogs],
-      ['pms_criticalEquipmentTests',   state.criticalEquipmentTests],
-      ['pms_safeManningStandards',     state.safeManningStandards],
-      ['pms_spareparts',               state.spareparts],
-      ['pms_requisitions',             state.requisitions],
-      ['pms_costs',                    state.costs],
-      ['pms_vessel_budgets',           state.vesselBudgets],
-      ['pms_crew',                     state.crew],
-      ['pms_leaves',                   state.leaves],
-      ['pms_drills',                   state.drills],
-      ['pms_crewCertificates',         state.crewCertificates],
-      ['pms_shipDocuments',            state.shipDocuments],
-      ['pms_certificateCategories',    state.certificateCategories],
-      ['pms_documentTemplates',        state.documentTemplates],
-      ['pms_notificationSettings',     state.notificationSettings],
-      ['pms_notificationLogs',         state.notificationLogs],
-      ['pms_users',                    state.users],
-      ['pms_audits',                   state.audits],
-      ['pms_auditFindings',            state.auditFindings],
-      ['pms_siteConfig',               state.siteConfig],
-      ['pms_sidebarOverrides',         state.sidebarOverrides],
-    ];
-    for (const [k, v] of entries) {
-      localStorage.setItem(k, JSON.stringify(v ?? (Array.isArray(v) ? [] : {})));
+    for (const field of PERSISTED_FIELDS) {
+      const v = state[field];
+      localStorage.setItem(
+        storageKeyFor(field),
+        JSON.stringify(v ?? (Array.isArray(v) ? [] : {}))
+      );
     }
   } catch (err) {
     console.error('[PMS] Failed to sync state to localStorage:', err);
