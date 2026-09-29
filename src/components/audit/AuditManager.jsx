@@ -2,6 +2,9 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import { getRoleGuidance } from './logic/getRoleGuidance';
 import { handleLoadSampleSMCAudit } from './logic/handleLoadSampleSMCAudit';
+import { handleQuickLaunchSession } from './logic/handleQuickLaunchSession';
+import { handleQuickLogNC } from './logic/handleQuickLogNC';
+import { handleGenerateMockVesselChecklistEvidence } from './logic/handleGenerateMockVesselChecklistEvidence';
 import {
   ShieldCheck,
   Building2,
@@ -499,96 +502,11 @@ export const AuditManager = ({ initialStandard = null }) => {
     checklistEvidenceMap
   ]);
 
-  // Handler Inisiasi Cepat Sesi Audit (1-Click Launch)
-  const handleQuickLaunchSession = () => {
-    if (!isAuditorOrDPA) {
-      showToast('Wewenang DPA: Sesi audit kapal hanya dapat diinisiasi oleh Lead Auditor atau DPA dari kantor darat.', 'warning');
-      return;
-    }
-    if (!currentTarget) return;
-    const isDoc = currentTarget.standard === 'DOC';
-    const rand = Math.floor(Math.random() * 900 + 100);
-    const year = new Date().getFullYear();
-    const newSession = {
-      auditNo: `AUD-INT-${currentTarget.standard}-${year}/${rand}`,
-      reportId: `0859-PK/ISM-${currentTarget.standard}/${year}`,
-      auditType: 'Internal',
-      externalOrganization: 'PT. Pelayaran Baharimas Kalimantan (Internal DPA / QHSE)',
-      standard: currentTarget.standard,
-      targetType: isDoc ? 'Office' : 'Vessel',
-      targetName: currentTarget.name,
-      vesselId: isDoc ? null : currentTarget.id,
-      leadAuditor: 'Capt. Marine Safety Inspector (Lead Auditor DPA)',
-      auditTeam: ['DPA & Marine Superintendent', 'QHSE Staff'],
-      auditee: isDoc ? 'Direktur Operasional & DPA' : `${currentTarget.nakhoda || 'Nakhoda'} & ${currentTarget.kkm || 'KKM'}`,
-      auditLocation: isDoc ? 'Kantor Pusat PT. PBK Pontianak' : `Onboard ${currentTarget.name} (Pelabuhan Pontianak)`,
-      auditDate: new Date().toISOString().split('T')[0],
-      targetCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      scope: isDoc ? 'Audit Kepatuhan Kantor Pusat ISM Code Standar DOC' : `Audit Kepatuhan Kapal ${currentTarget.name} Standar SMC ISM Code`,
-      status: 'In Progress',
-      selectedCertificateIds: [],
-      selectedRequisitionIds: [],
-      checklist: (activeChecklistItems || []).map(i => ({
-        id: i.code || i.id,
-        code: i.code,
-        name: i.name,
-        checkPoint: i.checkPoint,
-        ismCode: i.ismCode || '',
-        result: i.isStrikethrough ? 'N/A' : (i.defaultResult || ''),
-        notes: '',
-        isManual: false,
-        isStrikethrough: Boolean(i.isStrikethrough),
-        evidence: null
-      })),
-      auditConclusion: '',
-      leadAuditorSign: '',
-      auditeeSign: '',
-      totalItemsChecked: (activeChecklistItems || []).length,
-      itemsComplied: 0,
-      findingsSummary: { majorNC: 0, minorNC: 0, observation: 0, totalOpen: 0, totalClosed: 0 }
-    };
-    addAuditSession(newSession);
-    showToast(`✓ Sesi Audit ${newSession.auditNo} aktif untuk ${currentTarget.name}!`, 'success');
-    setVesselTab('checklist');
-  };
 
 
 
-  // Handler 1-Click NC Creation dari Butir Checklist
-  const handleQuickLogNC = (item, preferredCategory = 'Minor NC') => {
-    if (!isAuditorOrDPA) {
-      showToast('Wewenang Auditor: Pencatatan temuan NC resmi merupakan wewenang Lead Auditor saat inspeksi.', 'warning');
-      return;
-    }
-    if (!currentTarget) return;
-    const assignedPIC = currentTarget.type === 'vessel'
-      ? `${currentTarget.kkm || 'KKM'} / ${currentTarget.nakhoda || 'Nakhoda'}`
-      : 'Manager QHSE / DPA';
 
-    const draftFinding = {
-      isDraft: true,
-      auditId: activeSession?.id || null,
-      auditNo: activeSession?.auditNo || `AUD-${currentTarget.standard}-${Date.now().toString().slice(-4)}`,
-      vesselId: currentTarget.type === 'vessel' ? currentTarget.id : null,
-      targetName: currentTarget.name,
-      standard: currentTarget.standard,
-      auditType: activeSession?.auditType || 'Internal',
-      externalOrganization: activeSession?.externalOrganization || 'Biro Klasifikasi Indonesia (BKI)',
-      clauseCode: item.code,
-      clauseName: item.name,
-      elementNumberOfCode: item.code,
-      description: `Ketidaksesuaian teridentifikasi pada butir ${item.code} (${item.name}): ${item.checkPoint || item.description || 'Pemeriksaan kepatuhan'}. Kondisi aktual belum memenuhi standar keselamatan ISM Code.`,
-      objectiveEvidence: vesselChecklistNotes[item.code] || checklistEvidenceMap[item.code]?.fileName || 'Hasil observasi auditor saat pemeriksaan checklist lapangan.',
-      category: preferredCategory === 'Major NC' ? 'Major NC' : preferredCategory === 'Observation' ? 'Observation' : 'Minor NC',
-      assignedTo: assignedPIC,
-      dateIdentified: new Date().toISOString().split('T')[0],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    };
 
-    setEditingFinding(draftFinding);
-    setFindingDefaultAuditId(activeSession?.id || null);
-    setFindingModalOpen(true);
-  };
 
   // Handler toggle evaluasi Yes / No / NA dengan auto-sync ke activeSession
   const handleToggleManagerResult = (code, targetResult) => {
@@ -798,44 +716,7 @@ export const AuditManager = ({ initialStandard = null }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleGenerateMockVesselChecklistEvidence = (itemCode, itemName, vesselName) => {
-    const targetName = vesselName || 'Kapal Armada PBK';
-    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-      <rect width="100%" height="100%" fill="#0f172a"/>
-      <rect x="20" y="20" width="560" height="360" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="2"/>
-      <circle cx="300" cy="100" r="40" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="3"/>
-      <path d="M282 100 L295 113 L325 85" stroke="#10b981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      <text x="300" y="175" font-family="sans-serif" font-size="18" font-weight="bold" fill="#f8fafc" text-anchor="middle">BUKTI AUDIT CHECKLIST ONBOARD</text>
-      <text x="300" y="205" font-family="sans-serif" font-size="13" font-weight="bold" fill="#38bdf8" text-anchor="middle">PT. PELAYARAN BAHARIMAS KALIMANTAN</text>
-      <text x="300" y="240" font-family="monospace" font-size="13" fill="#e2e8f0" text-anchor="middle">Klausul: ${itemCode} - ${itemName?.substring(0, 35)}</text>
-      <text x="300" y="270" font-family="sans-serif" font-size="12" fill="#94a3b8" text-anchor="middle">Lokasi Onboard: ${targetName}</text>
-      <rect x="180" y="315" width="240" height="35" rx="6" fill="#047857"/>
-      <text x="300" y="338" font-family="sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">VERIFIED AUDIT EVIDENCE</text>
-    </svg>`;
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
-    const evidenceObj = {
-      fileName: `BUKTI_${itemCode.replace(/[^a-zA-Z0-9]/g, '_')}_${targetName.replace(/\s+/g, '_')}.svg`,
-      fileSize: '16.2 KB',
-      fileUrl: dataUrl,
-      uploadedAt: new Date().toISOString()
-    };
-    setChecklistEvidenceMap(prev => ({ ...prev, [itemCode]: evidenceObj }));
-
-    if (activeSession && updateAuditSession) {
-      const baseItems = activeSession.checklist && activeSession.checklist.length > 0
-        ? activeSession.checklist
-        : (activeChecklistItems || []);
-      const updatedList = baseItems.map(it => {
-        if (it.code === itemCode || it.id === itemCode) {
-          return { ...it, evidence: evidenceObj };
-        }
-        return it;
-      });
-      updateAuditSession(activeSession.id, { checklist: updatedList });
-    }
-
-    showToast(`✓ Simulasi bukti audit ${itemCode} berhasil dilampirkan!`, 'info');
-  };
+  
 
   const handleRemoveVesselChecklistEvidence = (itemCode) => {
     setChecklistEvidenceMap(prev => {
@@ -1116,7 +997,14 @@ export const AuditManager = ({ initialStandard = null }) => {
               setVesselChecklistNotes,
               setVesselTab
             )}
-            handleQuickLaunchSession={handleQuickLaunchSession}
+            handleQuickLaunchSession={() => handleQuickLaunchSession(
+              activeChecklistItems,
+              addAuditSession,
+              currentTarget,
+              isAuditorOrDPA,
+              setVesselTab,
+              showToast
+            )}
             isAuditorOrDPA={isAuditorOrDPA}
             setAuditRolePerspective={setAuditRolePerspective}
             setShowRoleFlowModal={setShowRoleFlowModal}
@@ -1178,9 +1066,31 @@ export const AuditManager = ({ initialStandard = null }) => {
             customChecklistItems={customChecklistItems}
             getEnrichedReportSession={getEnrichedReportSession}
             handleAddManualChecklistItem={handleAddManualChecklistItem}
-            handleGenerateMockVesselChecklistEvidence={handleGenerateMockVesselChecklistEvidence}
+            handleGenerateMockVesselChecklistEvidence={(itemCode, itemName, vesselName) =>
+              handleGenerateMockVesselChecklistEvidence(
+                itemCode,
+                itemName,
+                vesselName,
+                activeChecklistItems,
+                activeSession,
+                setChecklistEvidenceMap,
+                showToast,
+                updateAuditSession
+              )}
             handleOpenEditManagerItem={handleOpenEditManagerItem}
-            handleQuickLogNC={handleQuickLogNC}
+            handleQuickLogNC={(item, category) => handleQuickLogNC(
+              item,
+              category,
+              activeSession,
+              checklistEvidenceMap,
+              currentTarget,
+              isAuditorOrDPA,
+              setEditingFinding,
+              setFindingDefaultAuditId,
+              setFindingModalOpen,
+              showToast,
+              vesselChecklistNotes
+            )}
             handleRemoveVesselChecklistEvidence={handleRemoveVesselChecklistEvidence}
             handleToggleManagerResult={handleToggleManagerResult}
             handleToggleVesselStrikethrough={handleToggleVesselStrikethrough}
