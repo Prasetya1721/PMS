@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { usePMS } from '../../context/PMSContext';
+import { getRoleGuidance } from './logic/getRoleGuidance';
+import { handleLoadSampleSMCAudit } from './logic/handleLoadSampleSMCAudit';
 import {
   ShieldCheck,
   Building2,
@@ -205,78 +207,7 @@ export const AuditManager = ({ initialStandard = null }) => {
 
   const [showRoleFlowModal, setShowRoleFlowModal] = useState(false);
 
-  // Helper deskripsi tanggung jawab peran sesuai tahap aktif terpisah untuk SMC dan DOC
-  const getRoleGuidance = (tab, role, standard = 'SMC') => {
-    const isDoc = standard === 'DOC';
 
-    if (isDoc) {
-      // PANDUAN DEDIKASI AUDIT DOC (KANTOR PUSAT PERUSAHAAN PT. PBK)
-      if (role === 'dpa') {
-        switch (tab) {
-          case 'sessions':
-            return 'DPA & Lead Auditor merencanakan audit Sistem Manajemen Keselamatan (SMS) Kantor Pusat PT. PBK, menyusun Audit Plan tiap departemen darat (Direksi, HR/Crewing, Teknis, Logistik, HSSE), dan menetapkan jadwal Opening Meeting.';
-          case 'checklist':
-            return 'Auditor mengevaluasi pemenuhan 13 Seksi ISM Code Standar BKI F23.14.05 Rev 06 untuk Kantor Pusat: memverifikasi manual SMS darat, komitmen direksi, kualifikasi personel, kesiapsiagaan ERT darat, dan pengadaan logistik kapal.';
-          case 'findings':
-            return 'Auditor merumuskan temuan audit kantor (Major NC, Minor NC, atau Observation) terhadap kesenjangan prosedur darat dengan implementasi nyata pada berkas administrasi dan dukungan armada.';
-          case 'capa':
-            return 'DPA mengevaluasi usulan CAPA dari Kepala Departemen darat, memastikan akar masalah (RCA) prosedural tertangani, memverifikasi revisi SOP/rekaman darat, dan mengesahkan penutupan temuan (Close NC).';
-          case 'reporting':
-            return 'Lead Auditor & DPA menerbitkan Laporan Resmi Audit DOC Kantor Pusat, mempresentasikan evaluasi SMS pada Rapat Tinjauan Manajemen (Management Review), dan merekomendasikan penerbitan/pembaruan sertifikat DOC ke BKI / Ditjen Hubla.';
-          default:
-            return 'DPA memantau kepatuhan tata kelola SMS darat, pemenuhan audit internal departemen, dan sertifikasi DOC perusahaan.';
-        }
-      } else {
-        switch (tab) {
-          case 'sessions':
-            return 'Kepala Departemen Darat & Manajemen menghadiri Opening Meeting, menyiapkan rekaman kerja (HR/Crewing, Logistik, Teknis, HSSE), dan menugaskan PIC pendamping auditor di kantor pusat.';
-          case 'checklist':
-            return 'Kepala Departemen Darat menyajikan bukti objektif implementasi SMS kantor: berkas rekrutmen/evaluasi kru, rekaman drill darat (ERT), approval purchase order kapal, dan laporan supervisi superintendent.';
-          case 'findings':
-            return 'Kepala Departemen Darat menerima dan membahas temuan ketidaksesuaian prosedur operasional kantor bersama auditor, mengklarifikasi fakta, dan menandatangani lembar konfirmasi temuan NCR.';
-          case 'capa':
-            return 'Kepala Departemen Darat menganalisis akar masalah (Root Cause Analysis), memperbarui instruksi kerja/SOP kantor, mengunggah bukti perbaikan rekaman darat, dan menyerahkan berkas CAPA kepada DPA.';
-          case 'reporting':
-            return 'Manajemen Darat & Direksi menghadiri Closing Meeting, menyetujui hasil evaluasi efektivitas SMS, menindaklanjuti rekomendasi pada Rapat Tinjauan Manajemen, serta mengarsipkan laporan audit DOC.';
-          default:
-            return 'Manajemen Darat memastikan seluruh departemen kantor pusat mematuhi regulasi ISM Code dan memberikan dukungan penuh bagi keselamatan kapal di laut.';
-        }
-      }
-    } else {
-      // PANDUAN DEDIKASI AUDIT SMC (KAPAL ARMADA ONBOARD)
-      if (role === 'dpa') {
-        switch (tab) {
-          case 'sessions':
-            return 'DPA merencanakan audit internal SMC kapal armada, menetapkan Lead Auditor independen, menentukan tanggal kedatangan di pelabuhan/galangan, dan mengirimkan notifikasi resmi ke Nakhoda.';
-          case 'checklist':
-            return 'DPA / Auditor memverifikasi pemenuhan 74 Butir Klausul SMC Kapal Standar BKI F23.14.06 Rev 05: uji fungsi fisik navigasi anjungan, mesin, LSA/FFA, drill darurat awak kapal, dan kesesuaian logbook dengan PMS.';
-          case 'findings':
-            return 'DPA / Auditor meninjau daftar temuan fisik maupun operasional kapal, menetapkan derajat ketidaksesuaian (Major/Minor/Obs), menentukan target batas waktu (Due Date), dan menerbitkan form NCR ke Nakhoda.';
-          case 'capa':
-            return 'DPA memeriksa bukti foto/video fisik perbaikan yang dikirimkan oleh Nakhoda dari kapal, mengevaluasi efektivitas tindakan perbaikan (CAPA), dan mengesahkan penutupan temuan (Close NC).';
-          case 'reporting':
-            return 'DPA menetapkan Deklarasi Kelaiklautan (Fit to Sail / SMC Full Compliance), mengunci sesi audit kapal menjadi Completed, dan menandatangani Laporan Eksekutif SMC.';
-          default:
-            return 'DPA memantau kepatuhan sertifikat statutory kapal dan ketersediaan suku cadang kritis armada.';
-        }
-      } else {
-        switch (tab) {
-          case 'sessions':
-            return 'Nakhoda bertindak selaku Auditee Resmi Onboard, menyelenggarakan Opening Meeting di kapal, mengonfirmasi kesiapan kru kapal, dan menyiapkan dokumen SMS di anjungan.';
-          case 'checklist':
-            return 'Nakhoda mendampingi auditor saat inspeksi fisik geladak, kamar mesin, pengujian alat keselamatan (LSA/FFA), peragaan drill darurat, serta verifikasi logbook navigasi dan perawatan PMS.';
-          case 'findings':
-            return 'Nakhoda menerima daftar ketidaksesuaian yang ditemukan auditor di kapal, memahami butir klausul yang terlanggar, dan menandatangani Berita Acara Temuan Lapangan.';
-          case 'capa':
-            return 'Nakhoda memimpin perbaikan fisik onboard (Correction), menganalisis akar masalah (RCA), menyusun langkah pencegahan, melampirkan foto bukti pengerjaan, dan mengirimkan eviden ke DPA.';
-          case 'reporting':
-            return 'Nakhoda menghadiri Closing Meeting di anjungan, menandatangani lembar penerimaan laporan audit, mengonfirmasi status Fit to Sail, dan mengarsipkan dokumen di anjungan kapal.';
-          default:
-            return 'Nakhoda memastikan masa berlaku sertifikat kapal aktif dan permintaan logistik suku cadang telah diajukan ke kantor darat.';
-        }
-      }
-    }
-  };
 
   // Manual checklist state per vessel
   const [customChecklistItems, setCustomChecklistItems] = useState([]);
@@ -621,175 +552,7 @@ export const AuditManager = ({ initialStandard = null }) => {
     setVesselTab('checklist');
   };
 
-  // Handler Memuat Contoh Audit SMC Lengkap & Realistis (5 Tahap Lifecycle)
-  const handleLoadSampleSMCAudit = () => {
-    if (!isAuditorOrDPA) {
-      showToast('Wewenang DPA: Pemuatan simulasi data audit hanya diizinkan untuk DPA / Lead Auditor.', 'warning');
-      return;
-    }
-    if (!currentTarget) return;
-    const isDoc = currentTarget.standard === 'DOC';
-    const vesselName = isDoc ? 'TB. RP 2004' : currentTarget.name;
-    const vesselId = isDoc ? 'v-rp2004' : currentTarget.id;
-    const nakhoda = currentTarget.nakhoda || 'Capt. Ekhsan (Nakhoda)';
-    const kkm = currentTarget.kkm || 'Ir. Bambang Wijaya (KKM)';
-    const year = new Date().getFullYear();
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dueStr = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const sampleSessionId = makeId('aud-smc-sample');
-    const sampleAuditNo = `AUD-SMC-BKI/PBK-${year}/089`;
-    const sampleReportId = `0859-PK/ISM-SMC/${year}`;
-
-    // Siapkan 74 butir checklist BKI SMC Rev 05 terisi realistis
-    const resultsMap = {};
-    const notesMap = {};
-    const sessionChecklist = (activeChecklistItems || []).map(i => {
-      let res = 'Complied';
-      let note = '';
-
-      if (i.code === '10.3' || i.code?.startsWith('10.3')) {
-        res = 'Minor NC';
-        note = 'Emergency Fire Pump di steering gear room mengalami delay start 45 detik saat pengujian simulasi.';
-      } else if (i.code === '6.5' || i.code?.startsWith('6.5')) {
-        res = 'Observation';
-        note = 'Formulir familiarisasi onboard untuk 2 ABK baru belum ditandatangani Perwira Keselamatan.';
-      } else if (i.code?.startsWith('10.7') || i.code?.startsWith('10.8') || i.name?.toLowerCase().includes('cargo') || i.name?.toLowerCase().includes('crane')) {
-        res = 'N/A';
-        note = 'Klausul N/A (Kapal jenis Tugboat / Tunda tanpa crane kargo).';
-      }
-
-      resultsMap[i.code] = res;
-      if (note) notesMap[i.code] = note;
-
-      return {
-        id: i.code || i.id,
-        code: i.code,
-        name: i.name,
-        checkPoint: i.checkPoint,
-        ismCode: i.ismCode || '',
-        result: res,
-        notes: note,
-        isManual: false,
-        isStrikethrough: res === 'N/A',
-        evidence: res !== 'N/A' ? {
-          fileName: `EVIDEN-${i.code}-DOKUMEN-FOTO.pdf`,
-          fileUrl: 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=800&q=80',
-          uploadedAt: new Date().toISOString()
-        } : null
-      };
-    });
-
-    const sampleSession = {
-      id: sampleSessionId,
-      auditNo: sampleAuditNo,
-      reportId: sampleReportId,
-      auditType: 'Internal',
-      externalOrganization: 'Biro Klasifikasi Indonesia (BKI) / Internal DPA',
-      standard: 'SMC',
-      targetType: 'Vessel',
-      targetName: vesselName,
-      vesselId: vesselId,
-      leadAuditor: 'Capt. Hendra Gunawan (Lead Marine Auditor ISM/DPA)',
-      auditTeam: ['Ir. H. Gunawan (Marine Superintendent)', 'Dian Anggraini (QHSE Officer)'],
-      auditee: `${nakhoda} & ${kkm}`,
-      auditLocation: `Onboard ${vesselName} (Dermaga Pelabuhan Pontianak)`,
-      auditDate: todayStr,
-      targetCloseDate: dueStr,
-      scope: `Audit Pemenuhan Sistem Manajemen Keselamatan ISM Code Standar SMC Kapal ${vesselName} (BKI SMS Shipboard Rev 05)`,
-      status: 'In Progress',
-      selectedCertificateIds: [],
-      selectedRequisitionIds: [],
-      checklist: sessionChecklist,
-      auditConclusion: 'Operasional keselamatan kapal secara umum memenuhi ketentuan ISM Code dan BKI SMS Rev 05. Ditemukan 1 Minor NC pada pompa pemadam darurat dan 1 Observasi pada verifikasi familiarisasi kru.',
-      leadAuditorSign: 'Capt. Hendra Gunawan',
-      auditeeSign: nakhoda,
-      totalItemsChecked: sessionChecklist.length,
-      itemsComplied: sessionChecklist.filter(x => x.result === 'Complied').length,
-      findingsSummary: { majorNC: 0, minorNC: 1, observation: 1, totalOpen: 1, totalClosed: 1 }
-    };
-
-    addAuditSession(sampleSession);
-
-    // Temuan 1: Minor NC pada 10.3 (Status: Eviden Submitted / Siap Verifikasi)
-    const finding1 = {
-      id: makeId('fnd-smc-1'),
-      findingNo: `NC-SMC-${year}-001`,
-      auditId: sampleSessionId,
-      auditNo: sampleAuditNo,
-      vesselId: vesselId,
-      targetName: vesselName,
-      standard: 'SMC',
-      auditType: 'Internal',
-      externalOrganization: 'Biro Klasifikasi Indonesia (BKI)',
-      clauseCode: '10.3',
-      clauseName: 'Peralatan Kritis Kapal (Critical Shipboard Equipment)',
-      elementNumberOfCode: '10.3',
-      description: 'Saat pengetesan berkala darurat di dermaga, Emergency Fire Pump di steering gear room mengalami delay start 45 detik karena akumulasi udara pada suction line. Tekanan discharge belum stabil mencapai 2.5 bar sesuai SOLAS II-2.',
-      objectiveEvidence: 'Logbook pengetesan mingguan tanggal 20 September 2026 dan pengujian fisik di hadapan Lead Auditor.',
-      category: 'Minor NC',
-      assignedTo: `${kkm} & Masinis II`,
-      dateIdentified: todayStr,
-      dueDate: dueStr,
-      status: 'Eviden Submitted',
-      evidence: {
-        rootCause: 'Foot valve pada pipa hisap mengalami kerak karat tipis sehingga terjadi back-leakage air pancingan saat pompa standby dalam posisi siap jalan.',
-        correction: 'Pembersihan dan penggantian seal foot valve, serta bleeding sistem pipa hisap hingga pompa dapat start instan dalam 5 detik dengan tekanan 3.2 bar.',
-        correctiveAction: 'Menambahkan poin pemeriksaan seal foot valve ke dalam PMS 3-bulanan dan mewajibkan uji pengetesan mingguan dicatat di log book kamar mesin.',
-        preventiveAction: 'Audit silang antar-kapal armada setiap 6 bulan untuk verifikasi kesiapan pompa pemadam darurat.',
-        agreedDate: dueStr,
-        submittedBy: `${kkm} (Chief Engineer)`,
-        submissionDate: todayStr,
-        attachments: [
-          { name: 'BAST-PERBAIKAN-FOOTVALVE-PUMP.pdf', size: '1.4 MB' },
-          { name: 'FOTO-RUNNING-TEST-PRESSURE-3.2BAR.jpg', size: '2.1 MB' }
-        ]
-      }
-    };
-
-    // Temuan 2: Observation pada 6.5 (Status: NC Close / Sudah Ditutup)
-    const finding2 = {
-      id: makeId('fnd-smc-2'),
-      findingNo: `OBS-SMC-${year}-002`,
-      auditId: sampleSessionId,
-      auditNo: sampleAuditNo,
-      vesselId: vesselId,
-      targetName: vesselName,
-      standard: 'SMC',
-      auditType: 'Internal',
-      externalOrganization: 'Biro Klasifikasi Indonesia (BKI)',
-      clauseCode: '6.5',
-      clauseName: 'Pelatihan & Familiarisasi Personil Onboard',
-      elementNumberOfCode: '6.5',
-      description: 'Formulir familiarisasi safety onboard untuk 2 orang ABK baru (Oiler & Kelasi) telah dilaksanakan secara lisan saat sign-on, namun lembar verifikasi checklist belum ditandatangani oleh Perwira Keselamatan (Chief Mate).',
-      objectiveEvidence: 'Dokumen checklist familiarisasi FM-CREW-04 di ruang nakhoda belum dibubuhi tanda tangan.',
-      category: 'Observation',
-      assignedTo: `Chief Mate & ${nakhoda}`,
-      dateIdentified: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      dueDate: todayStr,
-      status: 'NC Close',
-      dateClosed: todayStr,
-      closedBy: 'Capt. Hendra Gunawan (Lead Auditor)',
-      closedNotes: 'Diverifikasi langsung di kapal: seluruh formulir familiarisasi telah ditandatangani dan ABK mampu mendemonstrasikan prosedur evakuasi darurat.',
-      evidence: {
-        rootCause: 'Pergantian jadwal jaga saat kapal tiba di dermaga menyebabkan penandatanganan dokumen administrasi tertunda.',
-        correction: 'Verifikasi ulang pemahaman keselamatan dan melengkapi tanda tangan seluruh lembar familiarisasi.',
-        correctiveAction: 'SOP sign-on kru mewajibkan verifikasi dan tanda tangan selesai maksimal 24 jam sebelum kapal bertolak.',
-        preventiveAction: 'Briefing safety rutin pada hari pertama pergantian kru (crew change).',
-        submittedBy: `${nakhoda} (Master Captain)`,
-        submissionDate: todayStr
-      }
-    };
-
-    addAuditFinding(finding1);
-    addAuditFinding(finding2);
-
-    setVesselChecklistResults(resultsMap);
-    setVesselChecklistNotes(notesMap);
-
-    showToast(`✓ Contoh Audit SMC Resmi BKI (${vesselName}) berhasil dimuat lengkap dengan 5 Tahap!`, 'success');
-    setVesselTab('capa');
-  };
 
   // Handler 1-Click NC Creation dari Butir Checklist
   const handleQuickLogNC = (item, preferredCategory = 'Minor NC') => {
@@ -1342,7 +1105,17 @@ export const AuditManager = ({ initialStandard = null }) => {
             currentTargetCertificates={currentTargetCertificates}
             currentTargetRequisitions={currentTargetRequisitions}
             getRoleGuidance={getRoleGuidance}
-            handleLoadSampleSMCAudit={handleLoadSampleSMCAudit}
+            handleLoadSampleSMCAudit={() => handleLoadSampleSMCAudit(
+              isAuditorOrDPA,
+              showToast,
+              currentTarget,
+              activeChecklistItems,
+              addAuditSession,
+              addAuditFinding,
+              setVesselChecklistResults,
+              setVesselChecklistNotes,
+              setVesselTab
+            )}
             handleQuickLaunchSession={handleQuickLaunchSession}
             isAuditorOrDPA={isAuditorOrDPA}
             setAuditRolePerspective={setAuditRolePerspective}
