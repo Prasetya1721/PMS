@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, Upload, Link as LinkIcon, Image, X, Check, RefreshCw } from 'lucide-react';
+import { usePMS } from '../../context/PMSContext';
 
 const MARITIME_PRESET_PHOTOS = [
   {
@@ -40,6 +41,10 @@ export const EditVesselPhotoModal = ({
   vessel,
   onSavePhoto
 }) => {
+  // Hook dipanggil SEBELUM early-return di bawah — urutan hook tidak boleh berubah
+  // antar render. showToast sudah global lewat context (sama seperti confirm()).
+  const { showToast } = usePMS();
+
   if (!isOpen || !vessel) return null;
 
   const [photoUrl, setPhotoUrl] = useState(vessel.photo || '');
@@ -60,13 +65,15 @@ export const EditVesselPhotoModal = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Pesan validasi. showToast bersifat sinkron, jadi fungsi ini TIDAK perlu async -
+    // berbeda dari penggantian window.confirm, yang mengharuskan await.
     if (!file.type.startsWith('image/')) {
-      alert('Mohon pilih file gambar yang valid (JPG, PNG, WEBP).');
+      showToast('Mohon pilih file gambar yang valid (JPG, PNG, WEBP).', 'warning');
       return;
     }
 
     if (file.size > 4 * 1024 * 1024) {
-      alert('Ukuran file terlalu besar. Maksimal ukuran gambar adalah 4MB.');
+      showToast('Ukuran file terlalu besar. Maksimal ukuran gambar adalah 4MB.', 'warning');
       return;
     }
 
@@ -81,7 +88,7 @@ export const EditVesselPhotoModal = ({
       setIsProcessingFile(false);
     };
     reader.onerror = () => {
-      alert('Gagal membaca file gambar.');
+      showToast('Gagal membaca file gambar.', 'error');
       setIsProcessingFile(false);
     };
     reader.readAsDataURL(file);
@@ -89,7 +96,7 @@ export const EditVesselPhotoModal = ({
 
   const handleSave = () => {
     if (!photoUrl) {
-      alert('Mohon pilih atau masukkan URL foto kapal.');
+      showToast('Mohon pilih atau masukkan URL foto kapal.', 'warning');
       return;
     }
     onSavePhoto(photoUrl);
