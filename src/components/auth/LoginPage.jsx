@@ -11,6 +11,13 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { makeId } from '../../utils/idUtils';
+import { LoginAmbientGlow } from './login/LoginAmbientGlow';
+import { LoginBrandPanel } from './login/LoginBrandPanel';
+import { LoginFormCard } from './login/LoginFormCard';
+import { LoginFooterNotice } from './login/LoginFooterNotice';
+import { LoginGlowBlobs } from './login/LoginGlowBlobs';
+import { LoginErrorBanner } from './login/LoginErrorBanner';
+import { LoginQuickAccounts } from './login/LoginQuickAccounts';
 
 export const LoginPage = () => {
   const { users, login, siteConfig } = usePMS();
@@ -157,42 +164,17 @@ export const LoginPage = () => {
       overflow: 'hidden'
     }}>
       {/* Background Backdrop Layer with Wallpaper Blur (Does NOT blur content) */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 0,
-        ...getContainerBackground(),
-        filter: (cfg.bgType === 'wallpaper' && cfg.wallpaperBlur) ? `blur(${cfg.wallpaperBlur}px)` : 'none',
-        transform: (cfg.bgType === 'wallpaper' && cfg.wallpaperBlur) ? 'scale(1.05)' : 'none',
-        transition: 'all 0.3s ease'
-      }} />
+      <LoginAmbientGlow
+        cfg={cfg}
+        getContainerBackground={getContainerBackground}
+      />
 
       {/* Ambient Glow Blobs */}
-      {cfg.glowBlobs !== false && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
-          <div style={{
-            position: 'absolute',
-            top: '-15%',
-            left: '-10%',
-            width: '600px',
-            height: '600px',
-            borderRadius: '50%',
-            background: isLight ? 'rgba(2, 132, 199, 0.12)' : (cfg.glowColor1 || 'radial-gradient(circle, rgba(2, 132, 199, 0.25) 0%, transparent 70%)'),
-            filter: 'blur(60px)',
-            pointerEvents: 'none'
-          }} />
-          <div style={{
-            position: 'absolute',
-            bottom: '-15%',
-            right: '-10%',
-            width: '650px',
-            height: '650px',
-            borderRadius: '50%',
-            background: isLight ? 'rgba(6, 182, 212, 0.1)' : (cfg.glowColor2 || 'radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%)'),
-            filter: 'blur(70px)',
-            pointerEvents: 'none'
-          }} />
-        </div>
+      {(cfg.glowBlobs !== false) && (
+        <LoginGlowBlobs
+          cfg={cfg}
+          isLight={isLight}
+        />
       )}
 
       {/* Main Container matching Image 2 */}
@@ -207,110 +189,10 @@ export const LoginPage = () => {
         zIndex: 10
       }}>
         {/* Left Column: Maritime Company Branding */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', minWidth: 0 }}>
-          {/* Badge: MARITIME FLEET MANAGEMENT SYSTEM */}
-          <div>
-            <span style={{
-              display: 'inline-block',
-              padding: '0.4rem 1rem',
-              borderRadius: '9999px',
-              background: isLight ? '#eff6ff' : 'rgba(2, 132, 199, 0.15)',
-              border: isLight ? '1px solid #bfdbfe' : '1px solid rgba(56, 189, 248, 0.3)',
-              color: isLight ? '#1d4ed8' : '#38bdf8',
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase'
-            }}>
-              {cfg.companyBadge || 'MARITIME FLEET MANAGEMENT SYSTEM'}
-            </span>
-          </div>
-
-          {/* Official Emblem & Logo (Reactive to logoMode and customLogoUrl) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {cfg.logoMode === 'custom' && cfg.customLogoUrl ? (
-              <img
-                src={cfg.customLogoUrl}
-                alt="Logo"
-                style={{ maxHeight: '48px', maxWidth: '140px', objectFit: 'contain', borderRadius: '8px' }}
-              />
-            ) : cfg.logoMode === 'combined' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <BaharimasEmblem size={44} />
-                <div style={{ width: '2px', height: '28px', background: isLight ? '#cbd5e1' : 'rgba(255,255,255,0.2)' }} />
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isLight ? '#0369a1' : '#38bdf8', letterSpacing: '0.05em' }}>
-                  BKI
-                </span>
-              </div>
-            ) : (
-              <BaharimasEmblem size={44} />
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{
-                fontFamily: "'Oswald', 'Bebas Neue', sans-serif",
-                fontSize: 'clamp(1.35rem, 1.8vw, 1.65rem)',
-                fontWeight: 800,
-                color: isLight ? '#0f172a' : '#ffffff',
-                letterSpacing: '0.03em',
-                lineHeight: 1.15,
-                textTransform: 'uppercase'
-              }}>
-                {cfg.systemTitle || 'PT PELAYARAN BAHARIMAS KALIMANTAN'}
-              </span>
-              {cfg.companySubtitle && (
-                <span style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  color: isLight ? '#0369a1' : '#38bdf8',
-                  letterSpacing: '0.02em',
-                  marginTop: '0.15rem'
-                }}>
-                  {cfg.companySubtitle}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          <p style={{
-            fontSize: '0.925rem',
-            color: isLight ? '#334155' : '#94a3b8',
-            lineHeight: 1.65,
-            maxWidth: '520px',
-            margin: 0
-          }}>
-            {cfg.portalDescription || 'Pusat sistem digital operasional armada kapal tunda (tugboat), tongkang, dan kapal kargo niaga perairan Kalimantan Barat dan jalur pelayaran Nusantara.'}
-          </p>
-
-          {/* Real Head Office Address Card */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.55rem',
-            fontSize: '0.8rem',
-            color: isLight ? '#475569' : '#94a3b8',
-            background: isLight ? '#ffffff' : 'rgba(2, 6, 23, 0.45)',
-            padding: '0.95rem 1.25rem',
-            borderRadius: '12px',
-            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(56, 189, 248, 0.25)',
-            maxWidth: '520px',
-            boxShadow: isLight ? '0 4px 14px rgba(0,0,0,0.06)' : 'none',
-            backdropFilter: 'blur(8px)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-              <MapPin size={16} color={isLight ? '#0284c7' : '#38bdf8'} style={{ marginTop: '0.15rem', flexShrink: 0 }} />
-              <div style={{ lineHeight: 1.5 }}>
-                <strong style={{ color: isLight ? '#0f172a' : '#ffffff' }}>Alamat Kantor Pusat:</strong>{' '}
-                {cfg.officeAddress || 'Jl. Adi Sucipto KM 6, Kompleks Bahari Permai No. 2, RT. 004 / RW. 004, Desa Sungai Raya, Kec. Sungai Raya, Kab. Kubu Raya - Pontianak, Kalimantan Barat'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.75rem', marginLeft: '1.65rem' }}>
-              <span>📞 Telp: {cfg.officePhone || '(0561) 531016 / 732194'}</span>
-              <span>✉️ {cfg.officeEmail || 'pt.baharimas@hotmail.com'}</span>
-            </div>
-          </div>
-        </div>
+        <LoginBrandPanel
+          cfg={cfg}
+          isLight={isLight}
+        />
 
         {/* Right Column: Dynamically Light or Dark Glass Card (Respects formCardStyle) */}
         <div style={{
@@ -334,212 +216,43 @@ export const LoginPage = () => {
             </p>
           </div>
 
-          {errorMsg && (
-            <div style={{
-              padding: '0.75rem 1rem',
-              borderRadius: '10px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              color: '#f87171',
-              fontSize: '0.825rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem'
-            }}>
-              <AlertTriangle size={16} />
-              <span>{errorMsg}</span>
-            </div>
+          {(errorMsg) && (
+            <LoginErrorBanner
+              errorMsg={errorMsg}
+            />
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Email Input */}
-            <div style={{ position: 'relative' }}>
-              <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={cfg.usernamePlaceholder || 'admin@baharimas.co.id'}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem 0.75rem 2.5rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: isLight ? '#f8fafc' : '#ffffff',
-                  color: '#0f172a',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  outline: 'none'
-                }}
-                required
-              />
-            </div>
-
-            {/* Password Input */}
-            <div style={{ position: 'relative' }}>
-              <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={cfg.passwordPlaceholder || 'Kata sandi...'}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 2.5rem 0.75rem 2.5rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: isLight ? '#f8fafc' : '#ffffff',
-                  color: '#0f172a',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  outline: 'none'
-                }}
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '0.85rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center'
-                }}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-
-            {/* Remember Me & Sandi Demo Info */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: isLight ? '#475569' : '#94a3b8' }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: '#0284c7' }}
-                />
-                <span>Ingat sesi saya</span>
-              </label>
-              <span style={{ color: isLight ? '#0284c7' : '#38bdf8', fontSize: '0.75rem', fontWeight: 600 }}>
-                Default Sandi Demo: <strong>123</strong>
-              </span>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '0.85rem',
-                fontSize: '0.9rem',
-                fontWeight: 800,
-                borderRadius: '8px',
-                border: 'none',
-                background: isLight ? '#1e3a8a' : '#0284c7',
-                color: '#ffffff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                boxShadow: isLight ? '0 4px 14px rgba(30, 58, 138, 0.35)' : '0 4px 20px rgba(2, 132, 199, 0.45)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              {isLoading ? (
-                <span>Memverifikasi Otorisasi...</span>
-              ) : (
-                <>
-                  <span>{cfg.buttonText || 'Masuk ke Sistem PMS →'}</span>
-                </>
-              )}
-            </button>
-          </form>
+          <LoginFormCard
+            cfg={cfg}
+            email={email}
+            handleSubmit={handleSubmit}
+            isLight={isLight}
+            isLoading={isLoading}
+            password={password}
+            rememberMe={rememberMe}
+            setEmail={setEmail}
+            setPassword={setPassword}
+            setRememberMe={setRememberMe}
+            setShowPassword={setShowPassword}
+            showPassword={showPassword}
+          />
 
           {/* Quick Demo Role Accounts (2 columns x 3 rows) */}
-          {cfg.showQuickLogin !== false && (
-            <div style={{ marginTop: '0.5rem', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '1rem' }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '0.75rem'
-              }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#b45309' : '#38bdf8', letterSpacing: '0.03em' }}>
-                  {cfg.quickLoginLabel || '⚡ Akses Cepat Demo (Klik Akun):'}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                  1-Click Role Access
-                </span>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '0.55rem'
-              }}>
-                {demoAccounts.map((acc, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleQuickLogin(acc)}
-                    style={{
-                      padding: '0.55rem 0.75rem',
-                      borderRadius: '8px',
-                      border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255, 255, 255, 0.08)',
-                      background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
-                      color: isLight ? '#0f172a' : '#ffffff',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.15rem'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = isLight ? '#eff6ff' : 'rgba(2, 132, 199, 0.18)';
-                      e.currentTarget.style.borderColor = isLight ? '#93c5fd' : '#38bdf8';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)';
-                      e.currentTarget.style.borderColor = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)';
-                    }}
-                  >
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#0f172a' : '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
-                        {acc.name.split(',')[0]}
-                      </span>
-                      <ChevronRight size={12} color={isLight ? '#0284c7' : '#38bdf8'} />
-                    </div>
-                    <div style={{ fontSize: '0.68rem', color: isLight ? '#0369a1' : '#38bdf8', fontWeight: 600 }}>
-                      {acc.role}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+          {(cfg.showQuickLogin !== false) && (
+            <LoginQuickAccounts
+              cfg={cfg}
+              demoAccounts={demoAccounts}
+              handleQuickLogin={handleQuickLogin}
+              isLight={isLight}
+            />
           )}
 
           {/* Form Footer Notice */}
           {cfg.formFooterNotice && (
-            <div style={{
-              fontSize: '0.72rem',
-              color: isLight ? '#64748b' : '#94a3b8',
-              textAlign: 'center',
-              marginTop: '0.25rem',
-              borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.1)',
-              paddingTop: '0.5rem'
-            }}>
-              {cfg.formFooterNotice}
-            </div>
+            <LoginFooterNotice
+              cfg={cfg}
+              isLight={isLight}
+            />
           )}
         </div>
       </div>
