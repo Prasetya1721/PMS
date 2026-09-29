@@ -18,6 +18,13 @@ import {
   BookOpen,
   Sparkles
 } from 'lucide-react';
+import { RoleFlowHeader } from './roleflow/RoleFlowHeader';
+import { RoleFlowStandardToggle } from './roleflow/RoleFlowStandardToggle';
+import { RoleFlowSubTabs } from './roleflow/RoleFlowSubTabs';
+import { RoleFlowFooter } from './roleflow/RoleFlowFooter';
+import { RoleFlowAuditorTab } from './roleflow/RoleFlowAuditorTab';
+import { RoleFlowAuditeeTab } from './roleflow/RoleFlowAuditeeTab';
+import { RoleFlowMatrixTab } from './roleflow/RoleFlowMatrixTab';
 
 export const AuditRoleFlowModal = ({
   isOpen,
@@ -473,253 +480,31 @@ export const AuditRoleFlowModal = ({
         {/* ===================================================================== */}
         {/* HEADER MODAL DENGAN SWITCHER STANDAR SMC vs DOC                       */}
         {/* ===================================================================== */}
-        <div
-          style={{
-            padding: '1rem 1.5rem',
-            background: isDoc
-              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, var(--bg-surface) 100%)'
-              : 'linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, var(--bg-surface) 100%)',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                background: isDoc
-                  ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)'
-                  : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                boxShadow: isDoc
-                  ? '0 4px 14px rgba(217, 119, 6, 0.35)'
-                  : '0 4px 14px rgba(2, 132, 199, 0.35)'
-              }}
-            >
-              {isDoc ? <Building2 size={22} /> : <Ship size={22} />}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '1.12rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>
-                  {isDoc
-                    ? 'Petunjuk & Alur Kerja: Audit DOC (Kantor Pusat PT. PBK)'
-                    : 'Petunjuk & Alur Kerja: Audit SMC (Kapal Armada Onboard)'}
-                </h3>
-                <span className={`badge ${isDoc ? 'badge-warning' : 'badge-primary'}`} style={{ fontSize: '0.7rem', fontWeight: 800 }}>
-                  {isDoc ? '🏢 STANDAR BKI DOC REV 06 (13 SEKSI)' : '🚢 STANDAR BKI SMC REV 05 (74 KLAUSUL)'}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-                {isDoc
-                  ? 'Panduan tata kelola SMS darat perusahaan, pembagian peran Auditor/DPA vs Departemen Darat & Direksi, serta Matriks RACI DOC.'
-                  : 'Panduan pengujian fisik kelaiklautan kapal, alur kolaborasi DPA (Darat) vs Nakhoda (Kapal Onboard), serta Matriks RACI SMC.'}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '0.4rem', borderRadius: '8px' }}
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
+        <RoleFlowHeader
+          isDoc={isDoc}
+          onClose={onClose}
+        />
 
         {/* ===================================================================== */}
         {/* SEGMENTED TOGGLE: PILIH STANDAR PETUNJUK (SMC vs DOC)                 */}
         {/* ===================================================================== */}
-        <div
-          style={{
-            padding: '0.65rem 1.5rem',
-            background: 'var(--bg-surface-elevated)',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}
-        >
-          {/* Segmented Standard Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-              PILIH STANDAR PETUNJUK:
-            </span>
-            <div style={{
-              display: 'inline-flex',
-              background: 'var(--bg-surface)',
-              padding: '3px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)',
-              gap: '4px'
-            }}>
-              <button
-                type="button"
-                onClick={() => setStandard('SMC')}
-                style={{
-                  border: 'none',
-                  background: standard === 'SMC' ? '#0284c7' : 'transparent',
-                  color: standard === 'SMC' ? '#ffffff' : 'var(--text-muted)',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Ship size={14} />
-                <span>Petunjuk Audit SMC (Kapal Armada)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStandard('DOC')}
-                style={{
-                  border: 'none',
-                  background: standard === 'DOC' ? '#d97706' : 'transparent',
-                  color: standard === 'DOC' ? '#ffffff' : 'var(--text-muted)',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <Building2 size={14} />
-                <span>Petunjuk Audit DOC (Kantor Darat PT. PBK)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Perspective Apply Button */}
-          {onSelectPerspective && (
-            <button
-              type="button"
-              onClick={() => {
-                onSelectPerspective(activeTab === 'auditee' ? 'nakhoda' : 'dpa');
-                onClose();
-              }}
-              className="btn btn-primary btn-sm"
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                background: isDoc && activeTab !== 'auditee' ? '#d97706' : undefined,
-                borderColor: isDoc && activeTab !== 'auditee' ? '#d97706' : undefined
-              }}
-            >
-              <span>
-                Aktifkan Sudut Pandang {activeTab === 'auditee'
-                  ? (isDoc ? 'Divisi Darat (Auditee)' : 'Nakhoda (Kapal)')
-                  : (isDoc ? 'Auditor & DPA' : 'DPA (Darat)')}
-              </span>
-              <ArrowRight size={13} />
-            </button>
-          )}
-        </div>
+        <RoleFlowStandardToggle
+          activeTab={activeTab}
+          isDoc={isDoc}
+          onClose={onClose}
+          onSelectPerspective={onSelectPerspective}
+          setStandard={setStandard}
+          standard={standard}
+        />
 
         {/* ===================================================================== */}
         {/* SUB-TABS: PERAN 1 vs PERAN 2 vs MATRIKS RACI                          */}
         {/* ===================================================================== */}
-        <div
-          style={{
-            padding: '0.55rem 1.5rem',
-            background: 'var(--bg-input)',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            gap: '0.4rem',
-            flexWrap: 'wrap'
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveTab('auditor')}
-            className={`tab-btn ${activeTab === 'auditor' ? 'active' : ''}`}
-            style={{
-              padding: '0.45rem 0.95rem',
-              fontSize: '0.78rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontWeight: activeTab === 'auditor' ? 800 : 600,
-              color: activeTab === 'auditor' ? '#ffffff' : 'var(--text-main)',
-              background: activeTab === 'auditor' ? (isDoc ? '#d97706' : '#0284c7') : 'transparent',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            <Building2 size={15} />
-            <span>{isDoc ? '1. Alur Lead Auditor & DPA (DOC)' : '1. Alur DPA (Darat - SMC)'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('auditee')}
-            className={`tab-btn ${activeTab === 'auditee' ? 'active' : ''}`}
-            style={{
-              padding: '0.45rem 0.95rem',
-              fontSize: '0.78rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontWeight: activeTab === 'auditee' ? 800 : 600,
-              color: activeTab === 'auditee' ? '#ffffff' : 'var(--text-main)',
-              background: activeTab === 'auditee' ? '#10b981' : 'transparent',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            {isDoc ? <Users size={15} /> : <Ship size={15} />}
-            <span>{isDoc ? '2. Alur Divisi Darat & Direksi (Auditee DOC)' : '2. Alur Nakhoda (Onboard Kapal - SMC)'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('matrix')}
-            className={`tab-btn ${activeTab === 'matrix' ? 'active' : ''}`}
-            style={{
-              padding: '0.45rem 0.95rem',
-              fontSize: '0.78rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontWeight: activeTab === 'matrix' ? 800 : 600,
-              color: activeTab === 'matrix' ? '#ffffff' : 'var(--text-main)',
-              background: activeTab === 'matrix' ? '#6366f1' : 'transparent',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            <CheckSquare size={15} />
-            <span>{isDoc ? '3. Matriks RACI DOC (Kantor Darat)' : '3. Matriks RACI SMC (Kapal & DPA)'}</span>
-          </button>
-        </div>
+        <RoleFlowSubTabs
+          activeTab={activeTab}
+          isDoc={isDoc}
+          setActiveTab={setActiveTab}
+        />
 
         {/* ===================================================================== */}
         {/* MODAL SCROLLABLE BODY                                                 */}
@@ -729,286 +514,44 @@ export const AuditRoleFlowModal = ({
           {/* ------------------------------------------------------------------- */}
           {/* TAB 1: ALUR AUDITOR / DPA                                           */}
           {/* ------------------------------------------------------------------- */}
-          {activeTab === 'auditor' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div
-                style={{
-                  padding: '0.85rem 1.15rem',
-                  borderRadius: '10px',
-                  background: isDoc ? 'rgba(245, 158, 11, 0.08)' : 'rgba(2, 132, 199, 0.08)',
-                  border: isDoc ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(2, 132, 199, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.85rem'
-                }}
-              >
-                <div style={{ padding: '0.5rem', borderRadius: '8px', background: isDoc ? '#d97706' : '#0284c7', color: '#fff' }}>
-                  <Building2 size={20} />
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: isDoc ? '#d97706' : '#0284c7', margin: 0 }}>
-                    {isDoc
-                      ? 'Mandat Lead Auditor & DPA sesuai ISM Code Klausul 3 & 4 (Standar DOC Kantor):'
-                      : 'Mandat DPA sesuai ISM Code Klausul 4 (Standar SMC Kapal):'}
-                  </h4>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-main)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
-                    {isDoc
-                      ? 'DPA menghubungkan jajaran Direksi dengan armada dan seluruh departemen darat. Bertanggung jawab mengevaluasi efektivitas 13 Seksi SMS kantor pusat, memastikan kualifikasi staf & awak kapal memadai, memverifikasi kesiapan tanggap darurat (ERT) darat, dan merekomendasikan perpanjangan sertifikat DOC ke BKI.'
-                      : 'DPA menghubungkan manajemen puncak darat dengan kapal, bertanggung jawab memantau operasional keselamatan, memastikan alokasi suku cadang kritis memadai, mengevaluasi laporan nakhoda, memverifikasi bukti perbaikan fisik onboard, dan mendeklarasikan status kelaiklautan kapal (Fit to Sail).'}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {(isDoc ? docAuditorSteps : smcDpaSteps).map(step => (
-                  <div
-                    key={step.step}
-                    className="glass-card"
-                    style={{
-                      padding: '1rem 1.25rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-subtle)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            background: isDoc ? '#d97706' : '#0284c7',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.8rem',
-                            fontWeight: 900
-                          }}
-                        >
-                          {step.step}
-                        </span>
-                        <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>{step.title}</strong>
-                      </div>
-                      <span className={`badge ${isDoc ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '0.68rem', fontWeight: 700 }}>
-                        {step.ismRef}
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
-                      {step.description}
-                    </p>
-
-                    <div style={{ background: 'var(--bg-surface-elevated)', borderRadius: '8px', padding: '0.65rem 0.85rem', marginTop: '0.35rem' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                        Daftar Aksi Sistem:
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                        {step.actions.map((act, i) => (
-                          <li key={i}>{act}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.74rem', color: isDoc ? '#d97706' : '#0284c7', fontWeight: 700, marginTop: '0.2rem' }}>
-                      <CheckCircle2 size={13} />
-                      <span>Hasil / Output Dokumen: {step.output}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {(activeTab === 'auditor') && (
+            <RoleFlowAuditorTab
+              docAuditorSteps={docAuditorSteps}
+              isDoc={isDoc}
+              smcDpaSteps={smcDpaSteps}
+            />
           )}
 
           {/* ------------------------------------------------------------------- */}
           {/* TAB 2: ALUR AUDITEE (NAKHODA KAPAL ATAU DIVISI DARAT)                */}
           {/* ------------------------------------------------------------------- */}
-          {activeTab === 'auditee' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div
-                style={{
-                  padding: '0.85rem 1.15rem',
-                  borderRadius: '10px',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.85rem'
-                }}
-              >
-                <div style={{ padding: '0.5rem', borderRadius: '8px', background: '#10b981', color: '#fff' }}>
-                  {isDoc ? <Users size={20} /> : <Ship size={20} />}
-                </div>
-                <div>
-                  <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#10b981', margin: 0 }}>
-                    {isDoc
-                      ? 'Peran Kepala Departemen Darat & Direksi (Standar DOC Kantor):'
-                      : 'Mandat Nakhoda sesuai ISM Code Klausul 5 (Standar SMC Kapal):'}
-                  </h4>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-main)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
-                    {isDoc
-                      ? 'Kepala Departemen darat (Crewing, Superintendent Teknis, Logistik & Pengadaan, HSSE) bertindak sebagai Auditee Utama di kantor pusat. Bertanggung jawab membuktikan kepatuhan SOP divisi, menyediakan bukti kualifikasi kru, pengadaan suku cadang kritis, menyusun tindakan koreksi (CAPA), dan menghadiri Rapat Tinjauan Manajemen.'
-                      : 'Nakhoda memegang kewenangan mutlak (overriding authority) di atas kapal untuk keselamatan jiwa dan perlindungan lingkungan laut. Selaku Auditee Utama di kapal, Nakhoda mendampingi uji fisik 74 klausul, memimpin perbaikan langsung di kapal, dan mengunggah foto eviden ke DPA.'}
-                  </p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {(isDoc ? docDepartmentSteps : smcNakhodaSteps).map(step => (
-                  <div
-                    key={step.step}
-                    className="glass-card"
-                    style={{
-                      padding: '1rem 1.25rem',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-subtle)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            background: '#10b981',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.8rem',
-                            fontWeight: 900
-                          }}
-                        >
-                          {step.step}
-                        </span>
-                        <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>{step.title}</strong>
-                      </div>
-                      <span className="badge badge-success" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
-                        {step.ismRef}
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0', lineHeight: 1.45 }}>
-                      {step.description}
-                    </p>
-
-                    <div style={{ background: 'var(--bg-surface-elevated)', borderRadius: '8px', padding: '0.65rem 0.85rem', marginTop: '0.35rem' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                        Daftar Aksi Auditee:
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                        {step.actions.map((act, i) => (
-                          <li key={i}>{act}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.74rem', color: '#10b981', fontWeight: 700, marginTop: '0.2rem' }}>
-                      <CheckCircle2 size={13} />
-                      <span>Hasil / Output Dokumen: {step.output}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {(activeTab === 'auditee') && (
+            <RoleFlowAuditeeTab
+              docDepartmentSteps={docDepartmentSteps}
+              isDoc={isDoc}
+              smcNakhodaSteps={smcNakhodaSteps}
+            />
           )}
 
           {/* ------------------------------------------------------------------- */}
           {/* TAB 3: RACI MATRIX                                                  */}
           {/* ------------------------------------------------------------------- */}
-          {activeTab === 'matrix' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                Matriks RACI menggambarkan pembagian wewenang dan tanggung jawab dalam pelaksanaan{' '}
-                <strong>{isDoc ? 'Audit DOC Kantor Pusat PT. PBK' : 'Audit SMC Kapal Armada'}</strong>:
-                <br />
-                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                  R = Responsible (Pelaksana) | A = Accountable (Pengambil Keputusan Utama) | C = Consulted (Penasihat/Diskusi) | I = Informed (Penerima Laporan)
-                </span>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }} className="table-hover">
-                  <thead>
-                    <tr style={{ background: 'var(--bg-surface-elevated)', borderBottom: '2px solid var(--border-subtle)' }}>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'left', fontWeight: 800 }}>Tahap Siklus</th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'left', fontWeight: 800 }}>Aktivitas Kunci</th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'left', fontWeight: 800, color: isDoc ? '#d97706' : '#0284c7' }}>
-                        {isDoc ? '🏢 Auditor & DPA' : '🏢 DPA (Kantor Darat)'}
-                      </th>
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'left', fontWeight: 800, color: '#10b981' }}>
-                        {isDoc ? '👥 Divisi Darat (HR/Teknis/Logistik)' : '🚢 Nakhoda (Kapal Onboard)'}
-                      </th>
-                      {isDoc && (
-                        <th style={{ padding: '0.65rem 0.85rem', textAlign: 'left', fontWeight: 800, color: '#8b5cf6' }}>
-                          🏛️ Direksi Perusahaan
-                        </th>
-                      )}
-                      <th style={{ padding: '0.65rem 0.85rem', textAlign: 'center', fontWeight: 800 }}>Regulasi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(isDoc ? docRaciMatrix : smcRaciMatrix).map((row, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-                        <td style={{ padding: '0.65rem 0.85rem', fontWeight: 700 }}>{row.phase}</td>
-                        <td style={{ padding: '0.65rem 0.85rem' }}>{row.task}</td>
-                        <td style={{ padding: '0.65rem 0.85rem', color: isDoc ? '#b45309' : '#0369a1', fontWeight: 600 }}>{row.dpa}</td>
-                        <td style={{ padding: '0.65rem 0.85rem', color: '#047857', fontWeight: 600 }}>{row.auditee}</td>
-                        {isDoc && (
-                          <td style={{ padding: '0.65rem 0.85rem', color: '#6d28d9', fontWeight: 600 }}>{row.mgmt}</td>
-                        )}
-                        <td style={{ padding: '0.65rem 0.85rem', textAlign: 'center' }}>
-                          <span className="badge badge-neutral" style={{ fontSize: '0.68rem' }}>{row.regulation}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {(activeTab === 'matrix') && (
+            <RoleFlowMatrixTab
+              docRaciMatrix={docRaciMatrix}
+              isDoc={isDoc}
+              smcRaciMatrix={smcRaciMatrix}
+            />
           )}
         </div>
 
         {/* ===================================================================== */}
         {/* MODAL FOOTER                                                          */}
         {/* ===================================================================== */}
-        <div
-          style={{
-            padding: '0.85rem 1.5rem',
-            background: 'var(--bg-surface-elevated)',
-            borderTop: '1px solid var(--border-subtle)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem'
-          }}
-        >
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-            Standar Acuan:{' '}
-            <strong>
-              {isDoc
-                ? 'BKI F23.14.05-2025 Rev 06 & IMO ISM Code Resolution A.741(18) (13 Seksi DOC Kantor)'
-                : 'BKI F23.14.06-2024 Rev 05 & IMO ISM Code Resolution A.741(18) (74 Klausul SMC Shipboard)'}
-            </strong>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
-            style={{ fontWeight: 700 }}
-          >
-            Tutup Panduan
-          </button>
-        </div>
+        <RoleFlowFooter
+          isDoc={isDoc}
+          onClose={onClose}
+        />
       </div>
     </div>
   );
