@@ -542,15 +542,17 @@ button, input, select, textarea {
 
 .header-search-icon {
   position: absolute;
-  left: 0.8rem;
+  left: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
+  z-index: 2;
 }
 
-.header-search-input {
-  padding-left: 2.3rem;
-  padding-right: 2rem;
+.header-search-input,
+.input-control.header-search-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.2rem !important;
   font-size: 0.825rem;
 }
 

@@ -46,6 +46,7 @@ export const STORAGE_KEYS = {
   masterSurveyTypes: 'pms_masterSurveyTypes',
   vesselTypes: 'pms_vesselTypes',
   portLocations: 'pms_portLocations',
+  apiKeysConfig: 'pms_api_keys',
 };
 
 /**
@@ -60,7 +61,7 @@ export const PERSISTED_FIELDS = [
   'spareparts', 'requisitions', 'costs', 'vesselBudgets', 'crew', 'leaves',
   'drills', 'crewCertificates', 'shipDocuments', 'certificateCategories',
   'documentTemplates', 'notificationSettings', 'notificationLogs', 'users',
-  'audits', 'auditFindings', 'siteConfig', 'sidebarOverrides',
+  'audits', 'auditFindings', 'siteConfig', 'sidebarOverrides', 'apiKeysConfig',
 ];
 
 /** Kunci localStorage untuk sebuah field state. */

@@ -29,6 +29,7 @@ import {
   UserCog,
   Palette,
   Shield,
+  Terminal,
   X
 } from 'lucide-react';
 
@@ -128,6 +129,13 @@ export const Sidebar = () => {
       icon: Shield,
       badge: 'RBAC',
       badgeType: 'warning'
+    },
+    {
+      id: 'developer_api',
+      label: 'Developer & API Keys',
+      icon: Terminal,
+      badge: 'Dev',
+      badgeType: 'purple'
     }
   ];
 

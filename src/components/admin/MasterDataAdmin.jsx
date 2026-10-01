@@ -665,12 +665,19 @@ export const MasterDataAdmin = () => {
       bg: 'rgba(132, 204, 22, 0.15)',
       border: 'rgba(132, 204, 22, 0.35)',
       desc: 'Verifikasi biaya docking, purchasing sparepart kapal, dan audit pengeluaran armada.'
+    },
+    'Developer': {
+      color: '#8b5cf6',
+      bg: 'rgba(139, 92, 246, 0.15)',
+      border: 'rgba(139, 92, 246, 0.35)',
+      desc: 'Akses teknis sistem, integrasi API key gateway, webhook, pengujian endpoint, dan manajemen data master.'
     }
   };
 
   const PRESET_AVATARS = [
     { label: 'Captain / Nakhoda', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80' },
     { label: 'Super Admin', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80' },
+    { label: 'Developer / IT', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80' },
     { label: 'Fleet Manager', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80' },
     { label: 'Chief Engineer', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=120&q=80' },
     { label: 'Crew / ABK', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80' },

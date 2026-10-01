@@ -173,6 +173,7 @@ export const Header = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-control header-search-input"
+              style={{ paddingLeft: '2.5rem', paddingRight: '2.2rem' }}
             />
             {searchQuery && (
               <button
@@ -211,6 +212,7 @@ export const Header = () => {
               aria-label="Ganti Peran"
             >
               <option value="Super Admin">Super Admin</option>
+              <option value="Developer">Developer / IT Engineer</option>
               <option value="Fleet Manager">Fleet Manager</option>
               <option value="Admin Kapal / Nakhoda">Admin Kapal / Nakhoda</option>
               <option value="Teknisi / Chief Engineer">Teknisi / Chief Engineer</option>

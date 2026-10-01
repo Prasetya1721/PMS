@@ -23,7 +23,8 @@ const ALL_MODULES = [
   { id: 'crew', label: 'Manajemen Kru & Personalia', desc: 'Data nakhoda, ABK, KKM, mutasi kru, dan absensi harian' },
   { id: 'notifications', label: 'Reminder & Notifikasi WA', desc: 'Pengingat otomatis sertifikat expired dan servis mesin lewat WA' },
   { id: 'reports', label: 'Laporan & Ekspor Data', desc: 'Ekspor laporan operasional bulanan format PDF & Excel' },
-  { id: 'master', label: 'Data Master (Admin)', desc: 'Pengaturan master kapal, jenis peralatan, dan template dokumen' }
+  { id: 'master', label: 'Data Master (Admin)', desc: 'Pengaturan master kapal, jenis peralatan, dan template dokumen' },
+  { id: 'developer_api', label: 'Developer & Konfigurasi API', desc: 'Pengaturan API Key gateway WA, email, AIS kapal, cuaca, dan webhook developer' }
 ];
 
 export const SidebarManagementAdmin = () => {

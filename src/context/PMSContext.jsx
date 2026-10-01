@@ -22,7 +22,8 @@ import {
   INITIAL_SHIP_DOCUMENTS,
   INITIAL_NOTIFICATION_SETTINGS,
   INITIAL_NOTIFICATION_LOGS,
-  INITIAL_USERS
+  INITIAL_USERS,
+  INITIAL_API_KEYS
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
 // Lima fungsi notifikasi dipindah ke ./logic/ dengan dependensi closure induk
@@ -52,6 +53,7 @@ import {
 } from '../data/auditMasterData';
 import * as DEMO_DATA from '../data/sampleSeedData';
 import { calculateNCRange } from '../utils/auditTimeUtils';
+import { sendWhatsAppViaGateway, normalizePhoneNumber } from '../services/whatsappService';
 import {
   DEFAULT_EMAIL_GATEWAY,
   buildEmailPayload,
@@ -150,6 +152,45 @@ export const PMSProvider = ({ children }) => {
   const [notificationSettings, setNotificationSettings] = useState(() => load('notificationSettings', INITIAL_NOTIFICATION_SETTINGS));
   const [notificationLogs, setNotificationLogs] = useState(() => load('notificationLogs', INITIAL_NOTIFICATION_LOGS));
   const [users, setUsers] = useState(() => load('users', INITIAL_USERS));
+  const [apiKeysConfig, setApiKeysConfig] = useState(() => {
+    let loaded = load('apiKeysConfig', null);
+    if (!loaded) {
+      try {
+        const raw = localStorage.getItem('pms_api_keys');
+        if (raw) loaded = JSON.parse(raw);
+      } catch {}
+    }
+    if (loaded && typeof loaded === 'object') {
+      const merged = { ...INITIAL_API_KEYS, ...loaded };
+      if (merged.whatsapp && !merged.whatsapp.apiUrl && merged.whatsapp.endpoint) {
+        merged.whatsapp.apiUrl = merged.whatsapp.endpoint;
+      }
+      return merged;
+    }
+    const init = { ...INITIAL_API_KEYS };
+    const storedNotif = load('notificationSettings', INITIAL_NOTIFICATION_SETTINGS);
+    if (storedNotif?.autoSend?.whatsappGateway) {
+      init.whatsapp = {
+        ...init.whatsapp,
+        provider: storedNotif.autoSend.whatsappGateway.provider || init.whatsapp.provider,
+        apiUrl: storedNotif.autoSend.whatsappGateway.apiUrl || init.whatsapp.apiUrl,
+        apiKey: storedNotif.autoSend.whatsappGateway.apiKey || init.whatsapp.apiKey,
+        secretKey: storedNotif.autoSend.whatsappGateway.secretKey || init.whatsapp.secretKey || '',
+        senderPhone: storedNotif.autoSend.whatsappGateway.senderPhone || init.whatsapp.senderPhone,
+      };
+    }
+    if (storedNotif?.autoSend?.emailGateway) {
+      init.email = {
+        ...init.email,
+        provider: storedNotif.autoSend.emailGateway.provider || init.email.provider,
+        apiUrl: storedNotif.autoSend.emailGateway.apiUrl || init.email.apiUrl,
+        apiKey: storedNotif.autoSend.emailGateway.apiKey || init.email.apiKey,
+        fromEmail: storedNotif.autoSend.emailGateway.fromEmail || init.email.fromEmail,
+        fromName: storedNotif.autoSend.emailGateway.fromName || init.email.fromName,
+      };
+    }
+    return init;
+  });
   const [audits, setAudits] = useState(() => {
     // Migration: user requested default audit session kosong dan bersih
     const migrationKey = 'pms_audits_clean_v4';
@@ -2289,8 +2330,20 @@ export const PMSProvider = ({ children }) => {
   const sendEmailReminder = async (item, type = 'crew_cert', options = {}) =>
     sendEmailReminderRaw(item, type, options, notificationSettings, vessels, resolveEmailRecipients, setNotificationLogs, showToast);
 
-  const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}) =>
-    sendWhatsAppReminderRaw(item, type, options, notificationSettings, vessels, crew, setNotificationLogs, showToast);
+  const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}) => {
+    const effectiveGateway = {
+      ...(apiKeysConfig?.whatsapp || {}),
+      ...(notificationSettings?.autoSend?.whatsappGateway || {})
+    };
+    const effectiveSettings = {
+      ...notificationSettings,
+      autoSend: {
+        ...(notificationSettings?.autoSend || {}),
+        whatsappGateway: effectiveGateway
+      }
+    };
+    return sendWhatsAppReminderRaw(item, type, options, effectiveSettings, vessels, crew, setNotificationLogs, showToast);
+  };
 
   const exportMultiIntervalICS = (filterOffset = null) =>
     exportMultiIntervalICSRaw(filterOffset, notificationSettings, vessels, crewCertificates, shipDocuments, showToast);
@@ -2358,6 +2411,102 @@ export const PMSProvider = ({ children }) => {
       ...shipDocuments.map(d => ({ ...d, itemCategory: 'ship_doc' }))
     ];
 
+    const waGateway = {
+      ...(apiKeysConfig?.whatsapp || {}),
+      ...(notificationSettings.autoSend?.whatsappGateway || {})
+    };
+
+    const defaultTargetPhone = (waGateway.senderPhone && waGateway.senderPhone !== '081250000000')
+      ? waGateway.senderPhone
+      : (notificationSettings?.autoSend?.fallbackPhone || '08993507999');
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const timeStr = notificationSettings.autoSend?.scheduleTime || '08:00';
+    const runKey = `${todayStr}_${timeStr}`;
+
+    const waEnabled = notificationSettings.autoSend?.channels?.whatsapp !== false;
+    const emailEnabled = notificationSettings.autoSend?.channels?.email !== false;
+    const emailGateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
+
+    if (allItems.length === 0) {
+      const cleanPhone = normalizePhoneNumber(defaultTargetPhone);
+      let waStatus = 'Delivered (Bot Heartbeat)';
+      let waChannel = 'WhatsApp Auto (Status Bot)';
+
+      if (waEnabled && waGateway?.apiKey) {
+        const pingMsg = `*🤖 NOTIFIKASI AUTO-SEND BOT PMS PT. PELAYARAN BAHARIMAS KALIMANTAN*\n\n` +
+          `Yth. Tim Operasional & Admin Armada,\n` +
+          `Bot otomatis telah berhasil mengeksekusi jadwal pemindaian harian pada *Pukul ${timeStr} WIB*.\n\n` +
+          `📋 *Hasil Pemindaian Dokumen:*\n` +
+          `• Total Dokumen Dipindai: *0 Dokumen* (Database sertifikat armada masih kosong/bersih).\n` +
+          `• Status Bot: *BERJALAN NORMAL*\n` +
+          `• WhatsApp Gateway: *TERHUBUNG (${waGateway.provider || 'Wablas API'})*\n\n` +
+          `_Petunjuk:_ Untuk memindai dokumen riil dengan masa kadaluarsa (H-1, H-7, H-30), silakan tambahkan dokumen kapal atau klik tombol 'Muat Demo' di header aplikasi.\n\n` +
+          `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
+
+        try {
+          const gwRes = await sendWhatsAppViaGateway({
+            apiUrl: waGateway.apiUrl,
+            apiKey: waGateway.apiKey,
+            secretKey: waGateway.secretKey,
+            phone: cleanPhone,
+            message: pingMsg,
+            provider: waGateway.provider || 'Wablas API'
+          });
+          if (gwRes.success) {
+            waStatus = `Delivered (${waGateway.provider || 'Wablas API'})`;
+            waChannel = `WhatsApp API (${waGateway.provider || 'Wablas API'})`;
+          } else {
+            waStatus = `Failed: ${gwRes.message || gwRes.error}`;
+            waChannel = `WhatsApp API (Gagal)`;
+          }
+        } catch (err) {
+          waStatus = `Failed: ${err.message}`;
+          waChannel = `WhatsApp API (Gagal)`;
+        }
+
+        const newLog = {
+          id: makeId('notif-auto-heartbeat'),
+          timestamp: new Date().toLocaleString('id-ID'),
+          channel: waChannel,
+          target: `Admin Armada (+${cleanPhone})`,
+          vesselName: 'Fleet Ops',
+          subject: `[Auto Bot ${timeStr} WIB] Laporan Status Bot Harian`,
+          message: pingMsg,
+          status: waStatus,
+          thresholdTriggered: 'Auto Heartbeat'
+        };
+        setNotificationLogs(prev => [newLog, ...prev]);
+      }
+
+      setNotificationSettings(prev => {
+        const updated = {
+          ...prev,
+          autoSend: {
+            ...prev.autoSend,
+            lastRunDate: runKey
+          }
+        };
+        localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+        return updated;
+      });
+
+      if (waStatus.startsWith('Delivered')) {
+        showToast(
+          `🤖 Bot Otomatis Berhasil Berjalan (${timeStr} WIB)! Pesan laporan status telah dikirim ke WhatsApp Anda (+${cleanPhone}).`,
+          'success'
+        );
+        try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
+      } else {
+        showToast(
+          `⚠️ Bot berjalan (${timeStr} WIB) tapi WhatsApp gagal dikirim: ${waStatus}`,
+          'warning'
+        );
+      }
+      return [];
+    }
+
     const matchedDispatches = [];
 
     activeThresholds.forEach(th => {
@@ -2378,34 +2527,160 @@ export const PMSProvider = ({ children }) => {
       });
     });
 
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const timeStr = notificationSettings.autoSend?.scheduleTime || '08:00';
-    const runKey = `${todayStr}_${timeStr}`;
+    if (matchedDispatches.length === 0) {
+      const cleanPhone = normalizePhoneNumber(defaultTargetPhone);
+      let waStatus = 'Delivered (Fleet Safe)';
+      let waChannel = 'WhatsApp Auto (Status Aman)';
 
-    const waEnabled = notificationSettings.autoSend?.channels?.whatsapp !== false;
-    const emailEnabled = notificationSettings.autoSend?.channels?.email !== false;
-    const emailGateway = { ...DEFAULT_EMAIL_GATEWAY, ...(notificationSettings.autoSend?.emailGateway || {}) };
+      if (waEnabled && waGateway?.apiKey) {
+        const safeMsg = `*📋 LAPORAN HARIAN STATUS DOKUMEN ARMADA - SISTEM PMS BAHARIMAS*\n\n` +
+          `Yth. Tim Operasional & Admin Armada,\n` +
+          `Bot otomatis telah selesai memindai *${allItems.length} dokumen & sertifikat armada* pada jadwal *Pukul ${timeStr} WIB*.\n\n` +
+          `✅ *Hasil Pemindaian:* Seluruh dokumen kapal dan sertifikat kru dalam kondisi *AMAN / AKTIF* (tidak ada dokumen yang jatuh tempo pada interval kritis hari ini).\n\n` +
+          `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
+
+        try {
+          const gwRes = await sendWhatsAppViaGateway({
+            apiUrl: waGateway.apiUrl,
+            apiKey: waGateway.apiKey,
+            secretKey: waGateway.secretKey,
+            phone: cleanPhone,
+            message: safeMsg,
+            provider: waGateway.provider || 'Wablas API'
+          });
+          if (gwRes.success) {
+            waStatus = `Delivered (${waGateway.provider || 'Wablas API'})`;
+            waChannel = `WhatsApp API (${waGateway.provider || 'Wablas API'})`;
+          } else {
+            waStatus = `Failed: ${gwRes.message || gwRes.error}`;
+            waChannel = `WhatsApp API (Gagal)`;
+          }
+        } catch (err) {
+          waStatus = `Failed: ${err.message}`;
+          waChannel = `WhatsApp API (Gagal)`;
+        }
+
+        const newLog = {
+          id: makeId('notif-auto-safe-summary'),
+          timestamp: new Date().toLocaleString('id-ID'),
+          channel: waChannel,
+          target: `Admin Armada (+${cleanPhone})`,
+          vesselName: 'Fleet Ops',
+          subject: `[Auto Bot ${timeStr} WIB] Semua Dokumen Armada Aman`,
+          message: safeMsg,
+          status: waStatus,
+          thresholdTriggered: 'Armada Aman'
+        };
+        setNotificationLogs(prev => [newLog, ...prev]);
+      }
+
+      setNotificationSettings(prev => {
+        const updated = {
+          ...prev,
+          autoSend: {
+            ...prev.autoSend,
+            lastRunDate: runKey
+          }
+        };
+        localStorage.setItem('pms_notificationSettings', JSON.stringify(updated));
+        return updated;
+      });
+
+      if (waStatus.startsWith('Delivered')) {
+        showToast(
+          `🤖 Bot Otomatis Berhasil Berjalan (${timeStr} WIB)! Seluruh ${allItems.length} dokumen aman. Laporan status dikirim ke +${cleanPhone}.`,
+          'success'
+        );
+        try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
+      } else {
+        showToast(
+          `ℹ️ Pemindaian selesai (${timeStr} WIB): Semua ${allItems.length} dokumen aman.`,
+          'info'
+        );
+      }
+      return [];
+    }
 
     const newLogs = [];
+    let waDeliveredCount = 0;
+    let waFailedCount = 0;
+
     for (const m of matchedDispatches) {
       const v = vessels.find(ship => ship.id === m.item.vesselId);
       const recipient = m.item.crewName || `Nakhoda & Admin ${v?.name || ''}`;
       const wantsWA = waEnabled && (m.threshold.notifyChannels || []).includes('WhatsApp');
       const wantsEmail = emailEnabled && (m.threshold.notifyChannels || []).includes('Email');
+
       if (wantsWA) {
+        let targetPhone = m.item.whatsapp || m.item.phone;
+        if (!targetPhone && m.item.itemCategory === 'crew_cert') {
+          const cr = crew.find(c => c.id === m.item.crewId);
+          targetPhone = cr?.whatsapp || cr?.phone;
+        }
+        if (!targetPhone) {
+          targetPhone = defaultTargetPhone;
+        }
+        const cleanPhone = normalizePhoneNumber(targetPhone);
+
+        const prefix = m.threshold.days === 1 ? '*🚨 PERINGATAN DARURAT H-1 (HARI TERAKHIR)*'
+          : m.threshold.days === 7 ? '*⚠️ PERINGATAN KRITIS H-1 MINGGU (H-7)*'
+          : m.threshold.days === 30 ? '*🔔 PEMBERITAHUAN JATUH TEMPO H-1 BULAN (H-30)*'
+          : m.threshold.days === 365 ? '*📋 PERSIAPAN ANGGARAN DINI H-1 TAHUN (H-365)*'
+          : `*📌 PENGINGAT JATUH TEMPO H-${m.threshold.days} HARI*`;
+
+        const waText = `${prefix} - SISTEM PMS PT. PELAYARAN BAHARIMAS KALIMANTAN\n\n` +
+          `Kepada: *${recipient}*\n` +
+          `Dokumen: *${m.item.name}* (No: ${m.item.certificateNo || m.item.documentNo || '-'})\n` +
+          `Kapal: *${v?.name || 'Fleet'}*\n` +
+          `Tanggal Jatuh Tempo: *${m.item.expiryDate}* (${m.item.daysUntilExpiry} hari lagi).\n\n` +
+          `Pemberitahuan otomatis bot PMS. Harap segera memproses perpanjangan sebelum batas toleransi habis.\n\n` +
+          `_Pusat Pengendali Armada PMS PT. Pelayaran Baharimas Kalimantan_`;
+
+        let waStatus = 'Delivered (Direct)';
+        let waChannel = `WhatsApp Auto (${m.threshold.label})`;
+
+        if (waGateway?.apiKey) {
+          try {
+            const gwRes = await sendWhatsAppViaGateway({
+              apiUrl: waGateway.apiUrl,
+              apiKey: waGateway.apiKey,
+              secretKey: waGateway.secretKey,
+              phone: cleanPhone,
+              message: waText,
+              provider: waGateway.provider || 'Wablas API'
+            });
+            if (gwRes.success) {
+              waStatus = `Delivered (${waGateway.provider || 'Wablas API'})`;
+              waChannel = `WhatsApp API (${waGateway.provider || 'Wablas API'})`;
+              waDeliveredCount++;
+            } else {
+              waStatus = `Failed: ${gwRes.message || gwRes.error}`;
+              waChannel = `WhatsApp API (Gagal)`;
+              waFailedCount++;
+            }
+          } catch (err) {
+            waStatus = `Failed: ${err.message}`;
+            waChannel = `WhatsApp API (Gagal)`;
+            waFailedCount++;
+          }
+        } else {
+          waStatus = 'Queued (Gateway API Key Belum Diisi)';
+          waChannel = `WhatsApp (${m.threshold.label})`;
+        }
+
         newLogs.push({
           id: makeId(`notif-auto-wa-${m.item.id}-${m.threshold.days}`),
           timestamp: new Date().toLocaleString('id-ID'),
-          channel: `WhatsApp Auto (${m.threshold.label})`,
-          target: recipient,
+          channel: waChannel,
+          target: `${recipient} (+${cleanPhone})`,
           vesselName: v?.name || 'Fleet',
           subject: `[Auto Bot ${m.threshold.label}] ${m.item.name}`,
-          message: `Pemberitahuan Otomatis ${m.threshold.label}: Dokumen ${m.item.name} akan jatuh tempo pada ${m.item.expiryDate} (${m.item.daysUntilExpiry} hari lagi).`,
-          status: 'Delivered',
+          message: waText,
+          status: waStatus,
           thresholdTriggered: m.threshold.label
         });
       }
+
       if (wantsEmail) {
         const toList = resolveEmailRecipients(m.item, m.item.itemCategory || 'ship_doc', { offsetDays: m.threshold.days });
         const subject = `[PMS ${m.threshold.label}] ${m.item.name} — ${v?.name || 'Fleet'} (Jatuh tempo ${m.item.expiryDate})`;
@@ -2476,11 +2751,17 @@ export const PMSProvider = ({ children }) => {
       return `${t.label}: ${count}`;
     }).join(' • ');
 
+    const waReportText = waDeliveredCount > 0
+      ? ` • ${waDeliveredCount} WA terkirim via Gateway`
+      : waFailedCount > 0
+      ? ` • ${waFailedCount} WA gagal terkirim (cek API Key)`
+      : '';
+
     showToast(
       isManual
-        ? `🤖 Eksekusi Manual Selesai! ${matchedDispatches.length} item diproses (${breakdownText}). Log riwayat telah diperbarui.`
-        : `🤖 Eksekusi Otomatis Berhasil (${timeStr} WIB)! ${matchedDispatches.length} item diproses (${breakdownText}).`,
-      'success'
+        ? `🤖 Eksekusi Manual Selesai! ${matchedDispatches.length} item diproses (${breakdownText})${waReportText}. Log riwayat telah diperbarui.`
+        : `🤖 Eksekusi Otomatis Berhasil (${timeStr} WIB)! ${matchedDispatches.length} item diproses (${breakdownText})${waReportText}.`,
+      waFailedCount > 0 && waDeliveredCount === 0 ? 'warning' : 'success'
     );
 
     return matchedDispatches;
@@ -2522,6 +2803,57 @@ export const PMSProvider = ({ children }) => {
       return log;
     }));
     showToast(`Peringatan berhasil dieskalasi ke Fleet Manager!`, 'warning');
+  };
+
+  const updateApiKeysConfig = (updatedMap) => {
+    setApiKeysConfig(prev => {
+      const merged = { ...prev, ...updatedMap };
+      if (merged.whatsapp && !merged.whatsapp.apiUrl && merged.whatsapp.endpoint) {
+        merged.whatsapp.apiUrl = merged.whatsapp.endpoint;
+      }
+      localStorage.setItem('pms_api_keys', JSON.stringify(merged));
+
+      // Bi-directional sync with notificationSettings for WA & Email gateways
+      if (updatedMap.whatsapp || updatedMap.email) {
+        setNotificationSettings(prevNotif => {
+          const newNotif = {
+            ...prevNotif,
+            autoSend: {
+              ...prevNotif.autoSend,
+              whatsappGateway: {
+                ...prevNotif.autoSend?.whatsappGateway,
+                ...(updatedMap.whatsapp ? {
+                  provider: updatedMap.whatsapp.provider || prevNotif.autoSend?.whatsappGateway?.provider,
+                  apiUrl: updatedMap.whatsapp.apiUrl || updatedMap.whatsapp.endpoint || prevNotif.autoSend?.whatsappGateway?.apiUrl,
+                  apiKey: updatedMap.whatsapp.apiKey !== undefined ? updatedMap.whatsapp.apiKey : prevNotif.autoSend?.whatsappGateway?.apiKey,
+                  secretKey: updatedMap.whatsapp.secretKey !== undefined ? updatedMap.whatsapp.secretKey : prevNotif.autoSend?.whatsappGateway?.secretKey,
+                  senderPhone: updatedMap.whatsapp.senderPhone || prevNotif.autoSend?.whatsappGateway?.senderPhone,
+                } : {})
+              },
+              emailGateway: {
+                ...prevNotif.autoSend?.emailGateway,
+                ...(updatedMap.email ? {
+                  provider: updatedMap.email.provider || prevNotif.autoSend?.emailGateway?.provider,
+                  apiUrl: updatedMap.email.apiUrl || prevNotif.autoSend?.emailGateway?.apiUrl,
+                  apiKey: updatedMap.email.apiKey !== undefined ? updatedMap.email.apiKey : prevNotif.autoSend?.emailGateway?.apiKey,
+                  fromEmail: updatedMap.email.fromEmail || prevNotif.autoSend?.emailGateway?.fromEmail,
+                  fromName: updatedMap.email.fromName || prevNotif.autoSend?.emailGateway?.fromName,
+                } : {})
+              }
+            }
+          };
+          localStorage.setItem('pms_notificationSettings', JSON.stringify(newNotif));
+          return newNotif;
+        });
+      }
+
+      return merged;
+    });
+  };
+
+  const resetApiKeysConfig = () => {
+    setApiKeysConfig(INITIAL_API_KEYS);
+    localStorage.setItem('pms_api_keys', JSON.stringify(INITIAL_API_KEYS));
   };
 
   // Clear all operational & master dummy data to clean state
@@ -2942,6 +3274,9 @@ export const PMSProvider = ({ children }) => {
         toggleThresholdChannel,
         updateAutoSendConfig,
         setTestScheduleTimeNowPlusOneMinute,
+        apiKeysConfig,
+        updateApiKeysConfig,
+        resetApiKeysConfig,
         resetToSeedData,
         clearAllData,
         loadDemoData,

@@ -50,10 +50,16 @@ export const ROLE_DEFINITIONS = {
     badgeClass: 'badge-purple',
     color: '#8b5cf6',
   },
+  'Developer': {
+    label: 'Developer / IT Engineer',
+    shortLabel: 'Developer',
+    description: 'Akses penuh seluruh modul, integrasi API Key, konfigurasi gateway, webhook, data master, dan sistem',
+    badgeClass: 'badge-purple',
+    color: '#8b5cf6',
+  },
 };
 
-// Matriks Hak Akses Modul per Peran (12 Modul)
-// 'dashboard' | 'fleet' | 'audit' | 'documents' | 'equipment' | 'maintenance' | 'spareparts' | 'costs' | 'crew' | 'notifications' | 'reports' | 'master'
+// Matriks Hak Akses Modul per Peran
 export const ROLE_PERMISSIONS = {
   'Super Admin': [
     'dashboard',
@@ -70,6 +76,24 @@ export const ROLE_PERMISSIONS = {
     'master',
     'settings',
     'sidebar_management',
+    'developer_api',
+  ],
+  'Developer': [
+    'dashboard',
+    'fleet',
+    'audit',
+    'documents',
+    'equipment',
+    'maintenance',
+    'spareparts',
+    'costs',
+    'crew',
+    'notifications',
+    'reports',
+    'master',
+    'settings',
+    'sidebar_management',
+    'developer_api',
   ],
   'Fleet Manager': [
     'dashboard',
@@ -135,7 +159,7 @@ export const ROLE_PERMISSIONS = {
  */
 export const hasAccess = (role, moduleId) => {
   if (!role) return false;
-  if (role === 'Super Admin') return true;
+  if (role === 'Super Admin' || role === 'Developer') return true;
   const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   const allowed = ROLE_PERMISSIONS[role] || [];
   return allowed.includes(moduleId) || allowed.includes(baseModule);
@@ -150,7 +174,7 @@ export const hasAccess = (role, moduleId) => {
  */
 export const hasAccessWithOverrides = (role, moduleId, sidebarOverrides) => {
   if (!role) return false;
-  if (role === 'Super Admin') return true;
+  if (role === 'Super Admin' || role === 'Developer') return true;
   const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   // If overrides exist for this role, use them instead of default
   if (sidebarOverrides && sidebarOverrides[role] && Array.isArray(sidebarOverrides[role])) {
@@ -178,12 +202,16 @@ export const getAllowedTabs = (role) => {
  */
 export const canPerformAction = (role, action) => {
   if (!role) return false;
-  if (role === 'Super Admin') return true;
+  if (role === 'Super Admin' || role === 'Developer') return true;
 
   switch (action) {
+    case 'configure_api_keys':
+    case 'manage_developer_tools':
+      return role === 'Super Admin' || role === 'Developer';
+
     case 'manage_users':
     case 'edit_master_data':
-      return role === 'Super Admin';
+      return role === 'Super Admin' || role === 'Developer';
 
     case 'edit_budget':
     case 'edit_vessel_budget':
@@ -200,7 +228,7 @@ export const canPerformAction = (role, action) => {
       return true; // Semua kru boleh mengajukan cuti
 
     case 'manage_bot_gateway':
-      return role === 'Super Admin' || role === 'Fleet Manager';
+      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Developer';
 
     case 'create_audit_session':
     case 'delete_audit_session':

@@ -298,5 +298,104 @@ export const INITIAL_USERS = [
     "title": "Finance & Logistics Purchasing",
     "shipAccess": "All",
     "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80"
+  },
+  {
+    "id": "u-8",
+    "name": "Alex Pratama, S.Kom",
+    "email": "dev@baharimas.co.id",
+    "password": "123",
+    "role": "Developer",
+    "title": "Lead Software & Systems Engineer",
+    "shipAccess": "All",
+    "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"
   }
 ];
+
+// 17. Konfigurasi Awal API Keys & Gateway Developer
+export const INITIAL_API_KEYS = {
+  whatsapp: {
+    id: 'whatsapp',
+    serviceName: 'WhatsApp Gateway API',
+    category: 'communication',
+    provider: 'Wablas API',
+    apiUrl: 'https://kalsel.wablas.com/api/send-message',
+    apiKey: '',
+    senderPhone: '081250000000',
+    status: 'ready',
+    docsUrl: 'https://wablas.com/api-documentation',
+    description: 'Gateway pengiriman pengingat jatuh tempo sertifikat dan work order kapal via WhatsApp otomatis'
+  },
+  email: {
+    id: 'email',
+    serviceName: 'Email Gateway Notification',
+    category: 'communication',
+    provider: 'Backend REST API',
+    apiUrl: '/api/notifications/email',
+    apiKey: '',
+    fromEmail: 'noreply@baharimas.co.id',
+    fromName: 'PMS Baharimas Kalimantan',
+    status: 'ready',
+    docsUrl: 'https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API',
+    description: 'Layanan dispatch email otomatis untuk notifikasi audit ISM, alert dokumen expired, dan purchase request'
+  },
+  aisTracking: {
+    id: 'aisTracking',
+    serviceName: 'Marine AIS Vessel Tracking',
+    category: 'navigation',
+    provider: 'MarineTraffic API',
+    apiUrl: 'https://services.marinetraffic.com/api/exportvessels/v:8',
+    apiKey: '',
+    intervalMinutes: 15,
+    status: 'standby',
+    docsUrl: 'https://www.marinetraffic.com/en/ais-api-services',
+    description: 'Pelacakan posisi satelit koordinat GPS lintang-bujur dan kecepatan armada kapal secara real-time'
+  },
+  marineWeather: {
+    id: 'marineWeather',
+    serviceName: 'Maritime Weather & MetOcean',
+    category: 'weather',
+    provider: 'StormGlass Maritime',
+    apiUrl: 'https://api.stormglass.io/v2/weather/point',
+    apiKey: '',
+    units: 'metric',
+    status: 'standby',
+    docsUrl: 'https://stormglass.io/documentation/',
+    description: 'Data prakiraan cuaca maritim, kecepatan angin, gelombang laut, dan arus rute pelayaran Pontianak'
+  },
+  aiAssistant: {
+    id: 'aiAssistant',
+    serviceName: 'AI Diagnostic & ISM Assistant',
+    category: 'ai',
+    provider: 'Google Gemini Pro API',
+    apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
+    apiKey: '',
+    model: 'gemini-1.5-pro',
+    temperature: 0.2,
+    status: 'standby',
+    docsUrl: 'https://ai.google.dev/docs',
+    description: 'Model AI untuk diagnosa troubleshooting kerusakan mesin kapal dan pencarian klausul ISM Code otomatis'
+  },
+  bkiExchange: {
+    id: 'bkiExchange',
+    serviceName: 'BKI Digital Data Exchange',
+    category: 'compliance',
+    provider: 'Biro Klasifikasi Indonesia API',
+    apiUrl: 'https://api.bki.co.id/v1/certificates/verify',
+    apiKey: '',
+    companyCode: 'PBK-7712',
+    status: 'standby',
+    docsUrl: 'https://bki.co.id',
+    description: 'Integrasi digital verifikasi sertifikat klasifikasi lambung, mesin, dan status survey berkala BKI'
+  },
+  webhookSecret: {
+    id: 'webhookSecret',
+    serviceName: 'Inbound Webhook & Callback Secret',
+    category: 'webhook',
+    provider: 'HMAC SHA-256 Secret',
+    apiUrl: 'https://pms.baharimas.co.id/api/webhooks',
+    apiKey: 'whsec_pbk_98a7f6e5d4c3b2a1e0f9',
+    status: 'active',
+    docsUrl: 'https://en.wikipedia.org/wiki/HMAC',
+    description: 'Kunci rahasia verifikasi signature webhook dari sistem ERP eksternal, perbankan, dan telemetri IoT kapal'
+  }
+};

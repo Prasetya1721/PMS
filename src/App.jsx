@@ -24,6 +24,7 @@ const ReportGenerator        = lazy(() => import('./components/reports/ReportGen
 const MasterDataAdmin        = lazy(() => import('./components/admin/MasterDataAdmin').then(m => ({ default: m.MasterDataAdmin })));
 const SiteSettingsAdmin      = lazy(() => import('./components/admin/SiteSettingsAdmin').then(m => ({ default: m.SiteSettingsAdmin })));
 const SidebarManagementAdmin = lazy(() => import('./components/admin/SidebarManagementAdmin').then(m => ({ default: m.SidebarManagementAdmin })));
+const DeveloperApiKeyAdmin    = lazy(() => import('./components/developer/DeveloperApiKeyAdmin').then(m => ({ default: m.DeveloperApiKeyAdmin })));
 const AuditManager           = lazy(() => import('./components/audit/AuditManager').then(m => ({ default: m.AuditManager })));
 
 // Spinner saat modul sedang didownload
@@ -189,6 +190,8 @@ const AppContent = () => {
         return <SiteSettingsAdmin />;
       case 'sidebar_management':
         return <SidebarManagementAdmin />;
+      case 'developer_api':
+        return <DeveloperApiKeyAdmin />;
       default:
         return <FleetOverview />;
     }

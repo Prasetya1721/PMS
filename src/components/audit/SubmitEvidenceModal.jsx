@@ -34,7 +34,7 @@ export const SubmitEvidenceModal = ({ finding, onClose }) => {
     currentUser
   } = usePMS();
 
-  const isAuditorOrDPA = currentUser?.role === 'Super Admin' || currentUser?.role === 'Fleet Manager';
+  const isAuditorOrDPA = currentUser?.role === 'Super Admin' || currentUser?.role === 'Fleet Manager' || currentUser?.role === 'Developer';
   const isShipCrew = !isAuditorOrDPA;
 
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -136,6 +136,7 @@ export const LoginPage = () => {
     ? cfg.quickAccounts
     : [
         { name: 'Capt. Robert Sitorus', role: 'Super Admin', email: 'admin@baharimas.co.id' },
+        { name: 'Alex Pratama (Dev)', role: 'Developer', email: 'dev@baharimas.co.id' },
         { name: 'Ir. H. Gunawan', role: 'Fleet Manager', email: 'fleet.ops@baharimas.co.id' },
         { name: 'Capt. Hendra Gunawan', role: 'Admin Kapal / Nakhoda', email: 'nakhoda@baharimas.co.id' },
         { name: 'Ir. Bambang Wijaya (KKM)', role: 'Teknisi / Chief Engineer', email: 'kkm@baharimas.co.id' },

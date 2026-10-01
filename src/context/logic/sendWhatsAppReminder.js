@@ -1,37 +1,41 @@
 /**
  * sendWhatsAppReminder.js
- * Diekstrak dari PMSContext.jsx (baris 2254-2427).
- * Sumber: Kirim pengingat jatuh tempo lewat WhatsApp (gateway atau tautan wa.me) dan catat log
+ * Diekstrak dari PMSContext.jsx.
+ * Sumber: Kirim pengingat jatuh tempo lewat WhatsApp (gateway API atau tautan wa.me) dan catat log
  *
  * Dependensi closure induk diangkat menjadi PARAMETER eksplisit:
  *   notificationSettings, vessels, crew, setNotificationLogs, showToast
  */
 import { calculateNCRange } from '../../utils/auditTimeUtils';
 import { makeId } from '../../utils/idUtils';
+import { normalizePhoneNumber, sendWhatsAppViaGateway } from '../../services/whatsappService';
+
 export const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {}, notificationSettings, vessels, crew, setNotificationLogs, showToast) => {
     let phone = '6281200000000';
     let recipientName = 'Crew / Admin';
     const offsetDays = options.offsetDays !== undefined ? Number(options.offsetDays) : (item.daysUntilExpiry || 30);
 
-    const v = vessels.find(ship => ship.id === item.vesselId);
+    const v = vessels?.find(ship => ship.id === item.vesselId);
     const vesselName = v?.name || 'Fleet';
+    const gateway = notificationSettings?.autoSend?.whatsappGateway;
+    const defaultFallbackPhone = options.phone || options.recipientPhone || gateway?.senderPhone || '6281288991122';
 
     if (type === 'crew_cert') {
-      const targetCrew = crew.find(c => c.id === item.crewId);
-      phone = targetCrew?.whatsapp || '6281288991122';
-      recipientName = targetCrew?.name || item.crewName;
+      const targetCrew = crew?.find(c => c.id === item.crewId);
+      phone = options.phone || options.recipientPhone || targetCrew?.whatsapp || defaultFallbackPhone;
+      recipientName = options.recipientName || targetCrew?.name || item.crewName || 'Pelaut Baharimas';
     } else if (type === 'ship_doc') {
-      recipientName = `Admin Kapal & Nakhoda ${vesselName}`;
-      phone = '6281288991122';
+      recipientName = options.recipientName || `Admin Kapal & Nakhoda ${vesselName}`;
+      phone = options.phone || options.recipientPhone || defaultFallbackPhone;
     } else if (type === 'work_order') {
-      recipientName = item.assignedTo || 'Teknisi / Chief Engineer';
-      phone = '6281288991122';
+      recipientName = options.recipientName || item.assignedTo || 'Teknisi / Chief Engineer';
+      phone = options.phone || options.recipientPhone || defaultFallbackPhone;
     } else if (type === 'audit_nc_open') {
       recipientName = options.recipientName || item.assignedTo || `Nakhoda & KKM ${item.targetName || vesselName}`;
-      phone = options.phone || '6281288991122';
+      phone = options.phone || options.recipientPhone || defaultFallbackPhone;
     } else if (type === 'audit_nc_close') {
       recipientName = options.recipientName || 'DPA & Marine Superintendent PBK';
-      phone = options.phone || '6281288991122';
+      phone = options.phone || options.recipientPhone || defaultFallbackPhone;
     }
 
     let headerPrefix = '*🔔 PEMBERITAHUAN JATUH TEMPO DOKUMEN*';
@@ -132,25 +136,51 @@ export const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {
       }
     }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const cleanPhone = normalizePhoneNumber(phone);
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
 
-    const gateway = notificationSettings.autoSend?.whatsappGateway;
     let deliveryStatus = 'Delivered';
     let channelLabel = 'WhatsApp Direct';
 
     // Direct API Gateway dispatch if API key provided and requested
-    if (options.useGatewayApi && gateway?.apiKey && gateway?.apiUrl) {
-      try {
-        await fetch(gateway.apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': gateway.apiKey },
-          body: JSON.stringify({ phone: cleanPhone, message: msg })
+    if (options.useGatewayApi) {
+      if (gateway?.apiKey) {
+        const gwResult = await sendWhatsAppViaGateway({
+          apiUrl: gateway.apiUrl,
+          apiKey: gateway.apiKey,
+          secretKey: gateway.secretKey,
+          phone: cleanPhone,
+          message: msg,
+          provider: gateway.provider || 'Wablas API'
         });
-        deliveryStatus = `Delivered (${gateway.provider})`;
-        channelLabel = `WhatsApp API (${gateway.provider})`;
-      } catch (err) {
-        console.warn('API Gateway send error, falling back to URL:', err);
+
+        if (gwResult.success) {
+          deliveryStatus = `Delivered (${gateway.provider || 'Wablas API'})`;
+          channelLabel = `WhatsApp API (${gateway.provider || 'Wablas API'})`;
+          if (!options.silent) {
+            showToast(`✅ Pesan WhatsApp berhasil dikirim ke +${cleanPhone} via ${gateway.provider || 'Wablas API'}!`, 'success');
+          }
+        } else {
+          deliveryStatus = `Failed (${gwResult.error || gwResult.message})`;
+          channelLabel = `WhatsApp API (Gagal)`;
+          if (!options.silent) {
+            showToast(`⚠️ Gateway WhatsApp: ${gwResult.message}`, 'error');
+            if (typeof window !== 'undefined' && window.confirm(`Pengiriman otomatis via Gateway Wablas gagal:\n"${gwResult.message}"\n\nBuka WhatsApp Web / App secara manual ke nomor ${cleanPhone}?`)) {
+              window.open(waUrl, '_blank');
+            }
+          }
+        }
+      } else {
+        deliveryStatus = 'Failed: API Key Wablas belum dikonfigurasi';
+        channelLabel = 'WhatsApp API (Belum Dikonfigurasi)';
+        if (!options.silent) {
+          showToast('⚠️ API Key Wablas belum dikonfigurasi. Silakan buka menu Developer & API Keys.', 'warning');
+        }
+      }
+    } else {
+      if (!options.silent) {
+        window.open(waUrl, '_blank');
+        showToast(`Pesan WhatsApp telah disiapkan & dibuka ke ${recipientName} (${urgencyBadge})`, 'success');
       }
     }
 
@@ -159,7 +189,7 @@ export const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {
       id: makeId('notif'),
       timestamp: new Date().toLocaleString('id-ID'),
       channel: channelLabel,
-      target: `${recipientName} (${phone})`,
+      target: `${recipientName} (+${cleanPhone})`,
       vesselName: item.targetName || vesselName,
       subject: type === 'audit_nc_open'
         ? `Notifikasi NC Open: ${item.findingNo} (${item.targetName || vesselName})`
@@ -172,13 +202,5 @@ export const sendWhatsAppReminder = async (item, type = 'crew_cert', options = {
     };
 
     setNotificationLogs(prev => [newLog, ...prev]);
-
-    if (!options.silent) {
-      if (!options.useGatewayApi || !gateway?.apiKey) {
-        window.open(waUrl, '_blank');
-      }
-      showToast(`Pesan WhatsApp telah disiapkan & dibuka ke ${recipientName} (${urgencyBadge})`, 'success');
-    }
-
     return newLog;
   };

@@ -432,6 +432,58 @@ export const NotificationCenter = () => {
     });
   };
 
+  // Send Test Simulator WhatsApp (Otomatis via Gateway atau Manual via Web/App)
+  const [simWaSending, setSimWaSending] = useState(false);
+  const [simWaReport, setSimWaReport] = useState(null);
+
+  const handleSendSimulatorWhatsApp = async (useGateway = true) => {
+    if (!simRecipient) {
+      showToast('Masukkan nomor WhatsApp tujuan simulator.', 'warning');
+      return;
+    }
+    const days = parseInt(simInterval, 10);
+    const mockItem = {
+      id: 'sim-doc-01',
+      name: 'Surat Laut & Keselamatan Konstruksi Kapal Barang',
+      documentNo: 'PK.001/14/09/BKI-2026',
+      vesselId: vessels[0]?.id || 'v-001',
+      targetName: vessels[0]?.name || 'KM. RP 2020',
+      expiryDate: '18 Oktober 2026',
+      daysUntilExpiry: days,
+      issuer: 'Kantor Kesyahbandaran & BKI Pontianak'
+    };
+
+    if (useGateway) {
+      setSimWaSending(true);
+      setSimWaReport(null);
+      try {
+        const log = await sendWhatsAppReminder(mockItem, 'ship_doc', {
+          offsetDays: days,
+          phone: simRecipient,
+          recipientPhone: simRecipient,
+          customMessage: simMessage,
+          useGatewayApi: true
+        });
+        setSimWaReport(log);
+      } catch (err) {
+        setSimWaReport({
+          status: `Failed (${err.message})`,
+          message: err.message
+        });
+      } finally {
+        setSimWaSending(false);
+      }
+    } else {
+      await sendWhatsAppReminder(mockItem, 'ship_doc', {
+        offsetDays: days,
+        phone: simRecipient,
+        recipientPhone: simRecipient,
+        customMessage: simMessage,
+        useGatewayApi: false
+      });
+    }
+  };
+
   // Request native browser desktop notifications
   const handleRequestBrowserNotification = async () => {
     if ('Notification' in window) {
@@ -465,6 +517,8 @@ export const NotificationCenter = () => {
       <NotifCenterEngineBanner
         notificationSettings={notificationSettings}
         setTestScheduleTimeNowPlusOneMinute={setTestScheduleTimeNowPlusOneMinute}
+        runAutoDispatchNotifications={runAutoDispatchNotifications}
+        allItemsCount={allItems.length}
         theme={theme}
         updateAutoSendConfig={updateAutoSendConfig}
       />
@@ -540,6 +594,9 @@ export const NotificationCenter = () => {
         <NotifTabSimulator
           currentTimeStr={currentTimeStr}
           handleSendSimulatorEmail={handleSendSimulatorEmail}
+          handleSendSimulatorWhatsApp={handleSendSimulatorWhatsApp}
+          simWaSending={simWaSending}
+          simWaReport={simWaReport}
           notificationSettings={notificationSettings}
           setSimChannel={setSimChannel}
           setSimEmailBody={setSimEmailBody}
