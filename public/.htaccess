@@ -1,0 +1,64 @@
+# ==============================================================================
+# PMS Armada - Konfigurasi Server Hostinger (Apache / LiteSpeed)
+# Berkas ini otomatis disalin ke dist/ saat `npm run build` dijalankan.
+# Upload isi direktori dist/ ke root domain (biasanya public_html/) di Hostinger.
+# ==============================================================================
+
+# 1. Nonaktifkan Directory Listing
+Options -Indexes
+
+# 2. SPA Routing Fallback (Redirect semua request yang bukan file/folder ke index.html)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Jangan redirect index.html
+  RewriteRule ^index\.html$ - [L]
+
+  # Jika berkas atau direktori fisik ada, layani langsung
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Fallback semua rute SPA ke index.html
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# 3. Security Headers
+<IfModule mod_headers.c>
+  # Cegah MIME type sniffing
+  Header set X-Content-Type-Options "nosniff"
+
+  # Cegah clickjacking (framing)
+  Header set X-Frame-Options "DENY"
+
+  # Kendalikan informasi referrer
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Batasi API peramban yang tidak dibutuhkan (kamera, mic, geolokasi)
+  Header set Permissions-Policy "camera=(), microphone=(), geolocation=(), browsing-topics=()"
+
+  # Content Security Policy (sinkron dengan konfigurasi Vercel)
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://images.unsplash.com https:; connect-src 'self' https:; frame-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self';"
+</IfModule>
+
+# 4. Cache Control
+<IfModule mod_headers.c>
+  # File HTML (SPA entry point): JANGAN di-cache permanen supaya update aplikasi langsung aktif
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Aset statis ter-hash di /assets/ (JS, CSS): Cache 1 tahun (immutable)
+  <If "%{REQUEST_URI} =~ m#^/assets/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+</IfModule>
+
+# 5. Kompresi Gzip / Deflate
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+  AddOutputFilterByType DEFLATE application/javascript application/x-javascript application/json application/xml
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
