@@ -45,9 +45,9 @@ export const Header = () => {
 
   const totalUrgent = overdueWOCount + expiredDocsCount + openNCCount;
 
-  // Izin aksi pembersihan data — hanya Super Admin atau peran dengan hak edit master data
-  const canClearData = canPerformAction(currentRole, 'edit_master_data') ||
-    hasAccessWithOverrides(currentRole, 'master_data', sidebarOverrides);
+  // Izin aksi pembersihan data — hanya Developer
+  const canClearData = canPerformAction(currentRole, 'reset_all_data');
+  const canLoadDemo = canPerformAction(currentRole, 'load_demo_data');
 
   const handleLoadDemo = async () => {
     const ok = await confirm({
@@ -242,16 +242,18 @@ export const Header = () => {
             )}
           </button>
 
-          {/* Tombol Muat Data Demo (Desktop) */}
-          <button
-            onClick={handleLoadDemo}
-            className="btn btn-secondary btn-sm header-reset-btn desktop-reset"
-            title="Muat data contoh / demo armada maritim"
-            type="button"
-          >
-            <Database size={14} color="#10b981" />
-            <span className="header-action-label">Muat Demo</span>
-          </button>
+          {/* Tombol Muat Data Demo (Desktop) — Hanya Developer */}
+          {canLoadDemo && (
+            <button
+              onClick={handleLoadDemo}
+              className="btn btn-secondary btn-sm header-reset-btn desktop-reset"
+              title="Muat data contoh / demo armada maritim"
+              type="button"
+            >
+              <Database size={14} color="#10b981" />
+              <span className="header-action-label">Muat Demo</span>
+            </button>
+          )}
 
           {/* Tombol Bersihkan Semua Data (Desktop) — Hanya peran berwenang */}
           {canClearData && (
@@ -297,15 +299,17 @@ export const Header = () => {
           >
             {renderVesselOptions()}
           </select>
-          <button
-            onClick={handleLoadDemo}
-            className="mobile-reset-btn"
-            title="Muat data contoh / demo armada"
-            type="button"
-            aria-label="Muat Data Demo"
-          >
-            <Database size={13} color="#10b981" />
-          </button>
+          {canLoadDemo && (
+            <button
+              onClick={handleLoadDemo}
+              className="mobile-reset-btn"
+              title="Muat data contoh / demo armada"
+              type="button"
+              aria-label="Muat Data Demo"
+            >
+              <Database size={13} color="#10b981" />
+            </button>
+          )}
           {canClearData && (
             <button
               onClick={handleClearData}

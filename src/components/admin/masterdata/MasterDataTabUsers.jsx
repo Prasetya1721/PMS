@@ -10,6 +10,7 @@ import { Download, Edit2, Eye, EyeOff, Key, Mail, Phone, RefreshCw, Search, Tras
 export const MasterDataTabUsers = ({
   ROLE_CONFIGS,
   allUserList,
+  canAction,
   currentUser,
   deleteUser,
   filteredUsers,
@@ -52,15 +53,17 @@ export const MasterDataTabUsers = ({
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={resetUsers}
-                    className="btn btn-secondary btn-sm"
-                    title="Reset akun ke data default sistem"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                  >
-                    <RefreshCw size={14} />
-                    <span>Reset Akun Bawaan</span>
-                  </button>
+                  {canAction && canAction('reset_users') && (
+                    <button
+                      onClick={resetUsers}
+                      className="btn btn-secondary btn-sm"
+                      title="Reset akun ke data default sistem"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <RefreshCw size={14} />
+                      <span>Reset Akun Bawaan</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleExportUsersCSV}
                     className="btn btn-secondary btn-sm"
@@ -420,32 +423,34 @@ export const MasterDataTabUsers = ({
                                     <Key size={14} />
                                   </button>
 
-                                  <button
-                                    onClick={async () => {
-                                      if (isMe) {
-                                        showToast('Gagal: Anda tidak dapat menghapus akun yang sedang aktif digunakan!', 'error');
-                                        return;
-                                      }
-                                      const lanjut = await confirm({
-                                        variant: 'danger',
-                                        title: 'Hapus Akun Pengguna',
-                                        subtitle: 'Akun yang dihapus tidak dapat dikembalikan',
-                                        message: `Apakah Anda yakin ingin menghapus akun pengguna "${u.name}"?`
-                                      });
-                                      if (lanjut) deleteUser(u.id);
-                                    }}
-                                    disabled={isMe}
-                                    className="btn-icon"
-                                    title={isMe ? 'Akun Anda sedang aktif' : 'Hapus Pengguna'}
-                                    style={{
-                                      padding: '0.35rem',
-                                      color: isMe ? 'var(--text-subtle)' : '#ef4444',
-                                      cursor: isMe ? 'not-allowed' : 'pointer',
-                                      opacity: isMe ? 0.3 : 1
-                                    }}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  {canAction && canAction('delete_user') && (
+                                    <button
+                                      onClick={async () => {
+                                        if (isMe) {
+                                          showToast('Gagal: Anda tidak dapat menghapus akun yang sedang aktif digunakan!', 'error');
+                                          return;
+                                        }
+                                        const lanjut = await confirm({
+                                          variant: 'danger',
+                                          title: 'Hapus Akun Pengguna',
+                                          subtitle: 'Akun yang dihapus tidak dapat dikembalikan',
+                                          message: `Apakah Anda yakin ingin menghapus akun pengguna "${u.name}"?`
+                                        });
+                                        if (lanjut) deleteUser(u.id);
+                                      }}
+                                      disabled={isMe}
+                                      className="btn-icon"
+                                      title={isMe ? 'Akun Anda sedang aktif' : 'Hapus Pengguna'}
+                                      style={{
+                                        padding: '0.35rem',
+                                        color: isMe ? 'var(--text-subtle)' : '#ef4444',
+                                        cursor: isMe ? 'not-allowed' : 'pointer',
+                                        opacity: isMe ? 0.3 : 1
+                                      }}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

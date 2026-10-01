@@ -12,6 +12,7 @@ export const MasterDataHeaderBanner = ({
   allDocList,
   allUserList,
   auditReport,
+  canAction,
   certificateCategories,
   documentTemplates,
   handleDownloadBackupJSON,
@@ -64,26 +65,30 @@ export const MasterDataHeaderBanner = ({
 
               {/* Quick Actions */}
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={handleOpenClearAllModal}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.35)', cursor: 'pointer' }}
-                  title="Kosongkan seluruh data untuk pengujian input manual"
-                >
-                  <Trash2 size={14} />
-                  <span>Kosongkan Seluruh Data</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenLoadDemoModal}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)', cursor: 'pointer' }}
-                  title="Muat kembali data demo maritim lengkap"
-                >
-                  <Database size={14} />
-                  <span>Muat Data Demo</span>
-                </button>
+                {canAction && canAction('reset_all_data') && (
+                  <button
+                    type="button"
+                    onClick={handleOpenClearAllModal}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.35)', cursor: 'pointer' }}
+                    title="Kosongkan seluruh data untuk pengujian input manual"
+                  >
+                    <Trash2 size={14} />
+                    <span>Kosongkan Seluruh Data</span>
+                  </button>
+                )}
+                {canAction && canAction('load_demo_data') && (
+                  <button
+                    type="button"
+                    onClick={handleOpenLoadDemoModal}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.35)', cursor: 'pointer' }}
+                    title="Muat kembali data demo maritim lengkap"
+                  >
+                    <Database size={14} />
+                    <span>Muat Data Demo</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowSyncModal(true)}

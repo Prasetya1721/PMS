@@ -65,6 +65,7 @@ export const SiteSettingsAdmin = () => {
     siteConfig,
     updateSiteConfig,
     resetSiteConfig,
+    canAction,
     showToast,
     confirm,
     setActiveTab: setNavTab
@@ -233,6 +234,7 @@ export const SiteSettingsAdmin = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
       {/* Top Header */}
       <SiteSettingsHeader
+        canAction={canAction}
         handleResetBaharimas={handleResetBaharimas}
         handleSave={handleSave}
         isSaved={isSaved}

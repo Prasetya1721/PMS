@@ -115,4 +115,51 @@ describe('Developer Access & API Key Configuration', () => {
     expect(devOption).toBeTruthy();
     expect(devOption.value).toBe('Developer');
   });
+
+  describe('Fungsi Berbahaya — Pembatasan Khusus Developer', () => {
+    const dangerousDevOnlyActions = ['reset_all_data', 'load_demo_data', 'reset_users', 'reset_site_config'];
+    const dangerousAdminActions = ['delete_vessel', 'delete_user'];
+    const nonPrivilegedRoles = ['Fleet Manager', 'Admin Kapal / Nakhoda', 'Teknisi / Chief Engineer', 'Crew / ABK', 'HR / Personalia', 'Finance'];
+
+    it('membatasi reset_all_data, load_demo_data, reset_users, reset_site_config HANYA untuk Developer', () => {
+      dangerousDevOnlyActions.forEach(action => {
+        // Developer diizinkan
+        expect(canPerformAction('Developer', action)).toBe(true);
+        // Super Admin juga diizinkan (early return in canPerformAction)
+        expect(canPerformAction('Super Admin', action)).toBe(true);
+        // Semua role operasional DITOLAK
+        nonPrivilegedRoles.forEach(role => {
+          expect(canPerformAction(role, action)).toBe(false);
+        });
+      });
+    });
+
+    it('membatasi delete_vessel dan delete_user hanya untuk Super Admin dan Developer', () => {
+      dangerousAdminActions.forEach(action => {
+        expect(canPerformAction('Developer', action)).toBe(true);
+        expect(canPerformAction('Super Admin', action)).toBe(true);
+        nonPrivilegedRoles.forEach(role => {
+          expect(canPerformAction(role, action)).toBe(false);
+        });
+      });
+    });
+
+    it('Developer memiliki akses ke SEMUA aksi tanpa terkecuali', () => {
+      const allActions = [
+        ...dangerousDevOnlyActions,
+        ...dangerousAdminActions,
+        'configure_api_keys', 'manage_developer_tools',
+        'add_certificate', 'edit_certificate', 'delete_certificate',
+        'manage_users', 'edit_master_data',
+        'edit_budget', 'approve_po', 'record_actual_expense',
+        'create_audit_session', 'delete_audit_session', 'close_audit_nc',
+        'approve_leave', 'submit_leave',
+        'create_work_order', 'create_purchase_request',
+        'manage_bot_gateway',
+      ];
+      allActions.forEach(action => {
+        expect(canPerformAction('Developer', action)).toBe(true);
+      });
+    });
+  });
 });

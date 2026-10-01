@@ -7,6 +7,7 @@ import React from 'react';
 import { Check, Palette, RotateCcw, Save, Shield } from 'lucide-react';
 
 export const SiteSettingsHeader = ({
+  canAction,
   handleResetBaharimas,
   handleSave,
   isSaved,
@@ -83,29 +84,31 @@ export const SiteSettingsHeader = ({
                 <span>Manajemen Sidebar →</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleResetBaharimas}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '0.55rem 1rem',
-                  borderRadius: '8px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  color: '#334155',
-                  fontSize: '0.825rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
-              >
-                <RotateCcw size={15} />
-                <span>Reset Standar Baharimas</span>
-              </button>
+              {canAction && canAction('reset_site_config') && (
+                <button
+                  type="button"
+                  onClick={handleResetBaharimas}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#334155',
+                    fontSize: '0.825rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                >
+                  <RotateCcw size={15} />
+                  <span>Reset Standar Baharimas</span>
+                </button>
+              )}
 
               <button
                 type="button"

@@ -250,6 +250,10 @@ export const PMSProvider = ({ children }) => {
   };
 
   const resetSiteConfig = () => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'reset_site_config')) {
+      showToast('Akses ditolak: Hanya Developer yang berwenang mereset konfigurasi situs.', 'error');
+      return;
+    }
     setSiteConfig(DEFAULT_SITE_CONFIG);
     localStorage.setItem('pms_siteConfig', JSON.stringify(DEFAULT_SITE_CONFIG));
     showToast('Konfigurasi dikembalikan ke standar PT. Baharimas.', 'info');
@@ -1437,6 +1441,10 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteUser = (userId) => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'delete_user')) {
+      showToast('Akses ditolak: Hanya Super Admin dan Developer yang berwenang menghapus akun pengguna.', 'error');
+      return false;
+    }
     if (currentUser && currentUser.id === userId) {
       showToast('Gagal: Anda tidak dapat menghapus akun yang sedang aktif digunakan!', 'error');
       return false;
@@ -1453,6 +1461,10 @@ export const PMSProvider = ({ children }) => {
   };
 
   const resetUsers = () => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'reset_users')) {
+      showToast('Akses ditolak: Hanya Developer yang berwenang mereset daftar pengguna.', 'error');
+      return;
+    }
     setUsers(INITIAL_USERS);
     localStorage.setItem('pms_users', JSON.stringify(INITIAL_USERS));
     showToast('Daftar pengguna berhasil direset ke akun bawaan!', 'info');
@@ -1578,6 +1590,10 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteVessel = (vesselId) => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'delete_vessel')) {
+      showToast('Akses ditolak: Hanya Super Admin dan Developer yang berwenang menghapus kapal.', 'error');
+      return;
+    }
     const vessel = vessels.find(v => v.id === vesselId);
     setVessels(prev => {
       const next = prev.filter(v => v.id !== vesselId);
@@ -2873,6 +2889,10 @@ export const PMSProvider = ({ children }) => {
 
   // Clear all operational & master dummy data to clean state
   const clearAllData = () => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'reset_all_data')) {
+      showToast('Akses ditolak: Hanya Developer yang berwenang mengosongkan seluruh data sistem.', 'error');
+      return;
+    }
     setVessels([]);
     setEquipment([]);
     setSchedules([]);
@@ -2922,6 +2942,10 @@ export const PMSProvider = ({ children }) => {
 
   // Load demo seed data for evaluation / review
   const loadDemoData = () => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'load_demo_data')) {
+      showToast('Akses ditolak: Hanya Developer yang berwenang memuat data demo ke sistem.', 'error');
+      return;
+    }
     const dVessels = DEMO_DATA.INITIAL_VESSELS || [];
     const dEquip = DEMO_DATA.INITIAL_EQUIPMENT || [];
     const dSched = DEMO_DATA.INITIAL_MAINTENANCE_SCHEDULES || [];

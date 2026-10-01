@@ -205,10 +205,26 @@ export const canPerformAction = (role, action) => {
   if (role === 'Super Admin' || role === 'Developer') return true;
 
   switch (action) {
+    // ── Fungsi BERBAHAYA — Hanya Developer ──────────────────────────────
+    // Operasi destruktif yang bisa menghapus/menimpa seluruh database.
+    // Dibatasi hanya Developer untuk mencegah kecelakaan data di produksi.
+    case 'reset_all_data':       // clearAllData() — hapus semua data ke 0
+    case 'load_demo_data':       // loadDemoData() — timpa data dengan data demo
+    case 'reset_users':          // resetUsers() — reset semua akun ke bawaan
+    case 'reset_site_config':    // resetSiteConfig() — reset konfigurasi situs
+      return role === 'Developer';
+
+    // ── Fungsi Hapus Data Penting — Super Admin + Developer ─────────────
+    case 'delete_vessel':        // Hapus kapal dari armada
+    case 'delete_user':          // Hapus akun pengguna dari sistem
+      return role === 'Super Admin' || role === 'Developer';
+
+    // ── API & Developer Tools ──────────────────────────────────────────
     case 'configure_api_keys':
     case 'manage_developer_tools':
       return role === 'Super Admin' || role === 'Developer';
 
+    // ── Sertifikat & Dokumen Kapal ─────────────────────────────────────
     case 'add_certificate':
     case 'add_ship_document':
     case 'edit_certificate':
@@ -217,10 +233,12 @@ export const canPerformAction = (role, action) => {
     case 'delete_ship_document':
       return role === 'Super Admin' || role === 'Developer';
 
+    // ── Manajemen Pengguna & Master Data ───────────────────────────────
     case 'manage_users':
     case 'edit_master_data':
       return role === 'Super Admin' || role === 'Developer';
 
+    // ── Keuangan & Anggaran ────────────────────────────────────────────
     case 'edit_budget':
     case 'edit_vessel_budget':
     case 'approve_po':
@@ -229,15 +247,18 @@ export const canPerformAction = (role, action) => {
     case 'record_actual_expense':
       return role === 'Super Admin' || role === 'Finance';
 
+    // ── SDM / Kru ──────────────────────────────────────────────────────
     case 'approve_leave':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'HR / Personalia';
 
     case 'submit_leave':
       return true; // Semua kru boleh mengajukan cuti
 
+    // ── Notifikasi & Gateway ───────────────────────────────────────────
     case 'manage_bot_gateway':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Developer';
 
+    // ── Audit ISM/SMC ──────────────────────────────────────────────────
     case 'create_audit_session':
     case 'delete_audit_session':
     case 'create_audit_finding':
@@ -254,6 +275,7 @@ export const canPerformAction = (role, action) => {
       // Auditee (Nakhoda, KKM, DPA, Admin) berhak mengirimkan bukti perbaikan fisik/dokumen
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
 
+    // ── Work Order & Logistik ──────────────────────────────────────────
     case 'create_work_order':
       return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
 

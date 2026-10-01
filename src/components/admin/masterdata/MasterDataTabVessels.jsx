@@ -9,6 +9,7 @@ import { usePMS } from '../../../context/PMSContext';
 
 export const MasterDataTabVessels = ({
   auditReport,
+  canAction,
   deleteMasterPort,
   deleteMasterVesselType,
   deleteVessel,
@@ -197,47 +198,51 @@ export const MasterDataTabVessels = ({
                               >
                                 <Edit2 size={13} />
                               </button>
-                              {deletingVesselId === v.id ? (
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteVessel(v.id);
-                                      setDeletingVesselId(null);
-                                    }}
-                                    className="btn btn-danger btn-sm"
-                                    style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
-                                    title="Konfirmasi Hapus"
-                                  >
-                                    Yakin?
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setDeletingVesselId(null);
-                                    }}
-                                    className="btn btn-secondary btn-sm"
-                                    style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer' }}
-                                    title="Batal"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingVesselId(v.id);
-                                  }}
-                                  className="btn btn-secondary btn-sm"
-                                  title="Hapus Kapal"
-                                  style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                              {canAction && canAction('delete_vessel') && (
+                                <>
+                                  {deletingVesselId === v.id ? (
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteVessel(v.id);
+                                          setDeletingVesselId(null);
+                                        }}
+                                        className="btn btn-danger btn-sm"
+                                        style={{ padding: '0.25rem 0.45rem', fontSize: '0.7rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                        title="Konfirmasi Hapus"
+                                      >
+                                        Yakin?
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeletingVesselId(null);
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '0.25rem 0.4rem', fontSize: '0.7rem', borderRadius: '4px', cursor: 'pointer' }}
+                                        title="Batal"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingVesselId(v.id);
+                                      }}
+                                      className="btn btn-secondary btn-sm"
+                                      title="Hapus Kapal"
+                                      style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>

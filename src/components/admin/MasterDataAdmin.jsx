@@ -98,6 +98,7 @@ export const MasterDataAdmin = () => {
     deleteUser,
     resetUsers,
     currentUser,
+    canAction,
     theme,
     showToast
   } = usePMS();
@@ -699,6 +700,7 @@ export const MasterDataAdmin = () => {
         handleDownloadBackupJSON={handleDownloadBackupJSON}
         handleOpenClearAllModal={handleOpenClearAllModal}
         handleOpenLoadDemoModal={handleOpenLoadDemoModal}
+        canAction={canAction}
         handleReaudit={handleReaudit}
         isReauditing={isReauditing}
         masterSurveyTypes={masterSurveyTypes}
@@ -726,6 +728,7 @@ export const MasterDataAdmin = () => {
       {(activeTab === 'vessels') && (
         <MasterDataTabVessels
           auditReport={auditReport}
+          canAction={canAction}
           deleteMasterPort={deleteMasterPort}
           deleteMasterVesselType={deleteMasterVesselType}
           deleteVessel={deleteVessel}
@@ -870,6 +873,7 @@ export const MasterDataAdmin = () => {
         <MasterDataTabUsers
           ROLE_CONFIGS={ROLE_CONFIGS}
           allUserList={allUserList}
+          canAction={canAction}
           currentUser={currentUser}
           deleteUser={deleteUser}
           filteredUsers={filteredUsers}
