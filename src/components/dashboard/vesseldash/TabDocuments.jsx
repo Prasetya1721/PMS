@@ -22,7 +22,9 @@ export const TabDocuments = ({
 }) => {
   // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
   // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
-  const confirm = usePMS().confirm;
+  const { confirm, canAction } = usePMS();
+  const canAddCert = canAction ? canAction('add_certificate') : false;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -35,19 +37,21 @@ export const TabDocuments = ({
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
-                    onClick={() => {
-                      setEditingShipDoc(null);
-                      setShowAddDocModal(true);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                  >
-                    <Plus size={14} />
-                    <span>Tambah Sertifikat Baru</span>
-                  </button>
-                </div>
+                {canAddCert && (
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      onClick={() => {
+                        setEditingShipDoc(null);
+                        setShowAddDocModal(true);
+                      }}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Plus size={14} />
+                      <span>Tambah Sertifikat Baru</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Category Filter Tabs */}
@@ -244,15 +248,17 @@ export const TabDocuments = ({
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', alignItems: 'center' }}>
-                                  <button
-                                    onClick={() => setEditingShipDoc(d)}
-                                    className="btn btn-secondary btn-sm"
-                                    title="Edit Data & Tanggal Dokumen Ini"
-                                    style={{ padding: '0.35rem 0.55rem' }}
-                                  >
-                                    <Edit2 size={13} />
-                                    <span>Edit</span>
-                                  </button>
+                                  {canAddCert && (
+                                    <button
+                                      onClick={() => setEditingShipDoc(d)}
+                                      className="btn btn-secondary btn-sm"
+                                      title="Edit Data & Tanggal Dokumen Ini"
+                                      style={{ padding: '0.35rem 0.55rem' }}
+                                    >
+                                      <Edit2 size={13} />
+                                      <span>Edit</span>
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => openGoogleCalendar(d)}
                                     className="btn btn-secondary btn-sm"
@@ -271,22 +277,24 @@ export const TabDocuments = ({
                                     <Send size={13} />
                                     <span>WA</span>
                                   </button>
-                                  <button
-                                    onClick={async () => {
-                                      const lanjut = await confirm({
-                                        variant: 'danger',
-                                        title: 'Hapus Sertifikat',
-                                        subtitle: 'Dokumen yang dihapus tidak dapat dikembalikan',
-                                        message: `Hapus sertifikat "${d.name}" (${d.documentNo}) dari ${currentShip.name}?`
-                                      });
-                                      if (lanjut) deleteShipDocument(d.id);
-                                    }}
-                                    className="btn btn-secondary btn-sm"
-                                    title="Hapus Dokumen"
-                                    style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
+                                  {canAddCert && (
+                                    <button
+                                      onClick={async () => {
+                                        const lanjut = await confirm({
+                                          variant: 'danger',
+                                          title: 'Hapus Sertifikat',
+                                          subtitle: 'Dokumen yang dihapus tidak dapat dikembalikan',
+                                          message: `Hapus sertifikat "${d.name}" (${d.documentNo}) dari ${currentShip.name}?`
+                                        });
+                                        if (lanjut) deleteShipDocument(d.id);
+                                      }}
+                                      className="btn btn-secondary btn-sm"
+                                      title="Hapus Dokumen"
+                                      style={{ padding: '0.35rem 0.55rem', color: '#ef4444' }}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -297,7 +305,11 @@ export const TabDocuments = ({
                           <td colSpan="10" style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
                             <FileCheck size={36} color="var(--text-subtle)" style={{ margin: '0 auto 0.75rem' }} />
                             <p style={{ fontWeight: 600, fontSize: '0.95rem' }}>Tidak ada sertifikat dalam kategori ini.</p>
-                            <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>Klik "Tambah Sertifikat Baru" untuk mencatat sertifikat baru untuk kapal ini.</p>
+                            <p style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                              {canAddCert
+                                ? 'Klik "Tambah Sertifikat Baru" untuk mencatat sertifikat baru untuk kapal ini.'
+                                : 'Hanya Super Admin yang berwenang menambah atau mencatat sertifikat baru.'}
+                            </p>
                           </td>
                         </tr>
                       )}

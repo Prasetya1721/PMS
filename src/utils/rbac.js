@@ -209,6 +209,14 @@ export const canPerformAction = (role, action) => {
     case 'manage_developer_tools':
       return role === 'Super Admin' || role === 'Developer';
 
+    case 'add_certificate':
+    case 'add_ship_document':
+    case 'edit_certificate':
+    case 'edit_ship_document':
+    case 'delete_certificate':
+    case 'delete_ship_document':
+      return role === 'Super Admin' || role === 'Developer';
+
     case 'manage_users':
     case 'edit_master_data':
       return role === 'Super Admin' || role === 'Developer';

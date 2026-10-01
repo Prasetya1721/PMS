@@ -21,7 +21,8 @@ export const DocTrackerTable = ({
 }) => {
   // Dialog konfirmasi in-app (pengganti window.confirm) — infrastruktur aplikasi,
   // bukan data yang dioper induk, jadi diambil dari context dan tidak lewat props.
-  const confirm = usePMS().confirm;
+  const { confirm, canAction } = usePMS();
+  const canAddCert = canAction ? canAction('add_certificate') : false;
   return (
     <div className="glass-card" style={{ overflow: 'hidden' }}>
             <div className="table-container">
@@ -52,6 +53,7 @@ export const DocTrackerTable = ({
                         <p style={{ fontSize: '0.85rem', maxWidth: '420px', margin: '0 auto 1.25rem auto' }}>
                           Database dokumen armada saat ini kosong. Silakan klik tombol di bawah untuk mulai menginput dokumen kapal atau sertifikat kru secara manual.
                         </p>
+                        {canAddCert ? (
                         <button
                           type="button"
                           onClick={() => setShowAddDocModal(true)}
@@ -61,6 +63,11 @@ export const DocTrackerTable = ({
                           <Plus size={14} />
                           <span>+ Tambah Dokumen / Sertifikat Pertama</span>
                         </button>
+                        ) : (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.5rem auto 0 auto' }}>
+                            Hanya akun Super Admin yang memiliki kewenangan menambah dokumen atau sertifikat kapal.
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -233,7 +240,7 @@ export const DocTrackerTable = ({
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', alignItems: 'center' }}>
-                            {item.itemCategory === 'Surat Legal Kapal' && (
+                            {item.itemCategory === 'Surat Legal Kapal' && canAddCert && (
                               <button
                                 onClick={() => setEditingDoc(item)}
                                 className="btn btn-secondary btn-sm"
@@ -277,7 +284,7 @@ export const DocTrackerTable = ({
                               <Send size={13} />
                               <span>WA</span>
                             </button>
-                            {item.itemCategory === 'Surat Legal Kapal' && (
+                            {item.itemCategory === 'Surat Legal Kapal' && canAddCert && (
                               <button
                                 onClick={async () => {
                                   const lanjut = await confirm({

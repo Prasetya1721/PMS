@@ -7,6 +7,7 @@ import {
   Shield,
   Anchor,
   ShieldCheck,
+  ShieldAlert,
   Building2,
   HeartPulse,
   CheckCircle2,
@@ -71,6 +72,7 @@ export const DocumentFormModal = ({
   if (!isOpen) return null;
 
   const {
+    canAction,
     certificateCategories: contextCategories,
     addCertificateCategory,
     deleteCertificateCategory,
@@ -452,6 +454,9 @@ export const DocumentFormModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (canAction && !canAction('add_certificate')) {
+      return;
+    }
     if (!formData.name.trim()) return;
 
     const trimmedName = formData.name.trim();
@@ -646,6 +651,39 @@ export const DocumentFormModal = ({
       }
     }
   }, [allCategoryList, formData.category]);
+
+  const canAddCert = canAction ? canAction('add_certificate') : false;
+
+  if (!canAddCert) {
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(2, 6, 23, 0.85)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1100,
+        padding: '1.25rem'
+      }}>
+        <div className="glass-card" style={{ maxWidth: '460px', width: '100%', textAlign: 'center', padding: '2.5rem 2rem', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem auto' }}>
+            <ShieldAlert size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.6rem' }}>
+            Akses Terbatas: Super Admin
+          </h3>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.75rem', lineHeight: 1.6 }}>
+            Hanya pengguna dengan peran <strong>Super Admin</strong> yang memiliki hak akses untuk menambah atau mendaftarkan sertifikat / dokumen kapal baru.
+          </p>
+          <button type="button" onClick={onClose} className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
+            Tutup
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

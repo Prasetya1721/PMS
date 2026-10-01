@@ -1588,6 +1588,11 @@ export const PMSProvider = ({ children }) => {
   };
 
   const addShipDocument = (docData) => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'add_certificate')) {
+      showToast('Akses ditolak: Hanya Super Admin yang berwenang menambah atau mencatat sertifikat kapal.', 'error');
+      return null;
+    }
+
     const expiry = docData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const issue = docData.issueDate || new Date().toISOString().split('T')[0];
     const todayRef = new Date('2026-09-09T00:00:00Z');
@@ -1645,6 +1650,11 @@ export const PMSProvider = ({ children }) => {
   };
 
   const updateShipDocument = (docId, updatedFields) => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'edit_certificate')) {
+      showToast('Akses ditolak: Hanya Super Admin yang berwenang mengubah data sertifikat kapal.', 'error');
+      return null;
+    }
+
     setShipDocuments(prev => {
       const next = prev.map(d => {
         if (d.id === docId) {
@@ -1675,6 +1685,11 @@ export const PMSProvider = ({ children }) => {
   };
 
   const deleteShipDocument = (docId) => {
+    if (!canPerformAction(currentRole || currentUser?.role, 'delete_certificate')) {
+      showToast('Akses ditolak: Hanya Super Admin yang berwenang menghapus sertifikat kapal.', 'error');
+      return;
+    }
+
     setShipDocuments(prev => {
       const next = prev.filter(d => d.id !== docId);
       localStorage.setItem('pms_shipDocuments', JSON.stringify(next));

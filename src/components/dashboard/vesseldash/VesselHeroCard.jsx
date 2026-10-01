@@ -4,6 +4,7 @@
  * Sumber: Kartu profil kapal: foto, status, tombol aksi cepat
  */
 import React from 'react';
+import { usePMS } from '../../../context/PMSContext';
 import { Camera, Compass, Edit3, FileCheck, FileText, Package, ShieldCheck, ShoppingBag, Users, Wrench } from 'lucide-react';
 
 export const VesselHeroCard = ({
@@ -28,6 +29,8 @@ export const VesselHeroCard = ({
   theme,
   vessels,
 }) => {
+  const { canAction } = usePMS();
+  const canAddCert = canAction ? canAction('add_certificate') : false;
   return (
     <div className="glass-card no-print" style={{ overflow: 'hidden' }}>
             <div className="vessel-hero-grid">
@@ -183,10 +186,12 @@ export const VesselHeroCard = ({
                     <Users size={14} />
                     <span>Tambah Kru</span>
                   </button>
+                  {canAddCert && (
                   <button onClick={() => setShowAddDocModal(true)} className="btn btn-secondary btn-sm">
                     <FileCheck size={14} />
                     <span>Tambah Sertifikat BKI</span>
                   </button>
+                  )}
                   <button
                     onClick={() => setShowParticularsModal(true)}
                     className="btn btn-secondary btn-sm"

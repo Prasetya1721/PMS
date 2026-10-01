@@ -61,6 +61,23 @@ describe('Developer Access & API Key Configuration', () => {
     expect(canPerformAction('HR / Personalia', 'configure_api_keys')).toBe(false);
   });
 
+  it('membatasi tambah, ubah, dan hapus sertifikat kapal hanya untuk Super Admin dan Developer', () => {
+    // Super Admin & Developer diizinkan
+    expect(canPerformAction('Super Admin', 'add_certificate')).toBe(true);
+    expect(canPerformAction('Super Admin', 'add_ship_document')).toBe(true);
+    expect(canPerformAction('Super Admin', 'edit_certificate')).toBe(true);
+    expect(canPerformAction('Super Admin', 'delete_certificate')).toBe(true);
+    expect(canPerformAction('Developer', 'add_certificate')).toBe(true);
+
+    // Semua peran operasional lain DITOLAK
+    expect(canPerformAction('Fleet Manager', 'add_certificate')).toBe(false);
+    expect(canPerformAction('Admin Kapal / Nakhoda', 'add_certificate')).toBe(false);
+    expect(canPerformAction('Teknisi / Chief Engineer', 'add_certificate')).toBe(false);
+    expect(canPerformAction('Crew / ABK', 'add_certificate')).toBe(false);
+    expect(canPerformAction('HR / Personalia', 'add_certificate')).toBe(false);
+    expect(canPerformAction('Finance', 'add_certificate')).toBe(false);
+  });
+
   it('membuka semua akses modul dan semua aksi untuk akun Developer (full unrestricted access)', () => {
     const testModules = ['dashboard', 'fleet', 'audit', 'documents', 'equipment', 'maintenance', 'spareparts', 'costs', 'crew', 'notifications', 'reports', 'master', 'settings', 'sidebar_management', 'developer_api'];
     testModules.forEach(mod => {

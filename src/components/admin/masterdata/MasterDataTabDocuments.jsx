@@ -4,6 +4,7 @@
  * Sumber: Tab 4: master dokumen & sertifikat
  */
 import React from 'react';
+import { usePMS } from '../../../context/PMSContext';
 import { Download, Edit2, FileText, Plus, Search, Trash2, UserCheck } from 'lucide-react';
 
 export const MasterDataTabDocuments = ({
@@ -27,6 +28,8 @@ export const MasterDataTabDocuments = ({
   setShowDocModal,
   vessels,
 }) => {
+  const { canAction } = usePMS();
+  const canAddCert = canAction ? canAction('add_certificate') : false;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -49,6 +52,7 @@ export const MasterDataTabDocuments = ({
                     <Download size={14} />
                     <span>Ekspor CSV</span>
                   </button>
+                  {canAddCert && (
                   <button
                     onClick={() => {
                       setEditingDoc(null);
@@ -59,6 +63,7 @@ export const MasterDataTabDocuments = ({
                     <Plus size={14} />
                     <span>Tambah Dokumen Baru</span>
                   </button>
+                  )}
                 </div>
               </div>
 
@@ -249,6 +254,7 @@ export const MasterDataTabDocuments = ({
                               </span>
                             </td>
                             <td style={{ textAlign: 'right' }}>
+                              {canAddCert ? (
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
                                 <button
                                   onClick={() => {
@@ -304,6 +310,9 @@ export const MasterDataTabDocuments = ({
                                   </button>
                                 )}
                               </div>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>-</span>
+                              )}
                             </td>
                           </tr>
                         );

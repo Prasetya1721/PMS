@@ -4,6 +4,7 @@
  * Sumber: Kepala halaman Pelacak Sertifikat Kru & Surat Kapal beserta tombol aksi (tambah dokumen, ekspor, sinkronisasi)
  */
 import React from 'react';
+import { usePMS } from '../../../context/PMSContext';
 import { Calendar, CalendarPlus, Clock, Plus, ShieldAlert } from 'lucide-react';
 
 export const DocTrackerHeader = ({
@@ -15,6 +16,8 @@ export const DocTrackerHeader = ({
   setEditingDoc,
   setShowAddDocModal,
 }) => {
+  const { canAction } = usePMS();
+  const canAddCert = canAction ? canAction('add_certificate') : false;
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
@@ -27,6 +30,7 @@ export const DocTrackerHeader = ({
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {canAddCert && (
               <button
                 onClick={() => {
                   setEditingDoc(null);
@@ -38,6 +42,7 @@ export const DocTrackerHeader = ({
                 <Plus size={14} />
                 <span>Tambah Dokumen / Sertifikat</span>
               </button>
+              )}
               <button onClick={() => exportMultiIntervalICS()} className="btn btn-secondary btn-sm" title="Ekspor .ics multi-alarm untuk Google Calendar">
                 <CalendarPlus size={14} />
                 <span>Ekspor Kalender (.ics)</span>
