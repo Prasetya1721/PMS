@@ -19,7 +19,7 @@
  *   if (!(await confirm({ title: 'Hapus?', message: '...' }))) return;
  *   doSomethingDestructive();
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Trash2, Info, LogOut, RotateCcw } from 'lucide-react';
 
 // Ikon dipetakan dari nama string supaya pemanggil tidak perlu mengimpor komponen
@@ -42,6 +42,8 @@ const VARIANTS = {
 
 export const ConfirmDialog = ({ request, onResolve }) => {
   const confirmBtnRef = useRef(null);
+  const typedInputRef = useRef(null);
+  const [typed, setTyped] = useState('');
 
   // Escape = batal. Dipasang hanya saat dialog terbuka, jadi tidak ada listener
   // permanen yang bisa bentrok dengan modal lain.
@@ -52,9 +54,15 @@ export const ConfirmDialog = ({ request, onResolve }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [request, onResolve]);
 
-  // Fokuskan tombol konfirmasi supaya Enter langsung bekerja.
+  // Setiap dialog baru mulai dari ketikan kosong; tanpa ini, kata yang diketik pada
+  // dialog sebelumnya akan lolos syarat pada dialog destruktif berikutnya.
+  useEffect(() => { setTyped(''); }, [request]);
+
+  // Fokuskan kolom ketikan bila ada, selain itu tombol konfirmasi — supaya Enter
+  // langsung bekerja tanpa pengguna harus klik dulu.
   useEffect(() => {
-    if (request && confirmBtnRef.current) confirmBtnRef.current.focus();
+    if (request && typedInputRef.current) typedInputRef.current.focus();
+    else if (request && confirmBtnRef.current) confirmBtnRef.current.focus();
   }, [request]);
 
   if (!request) return null;
@@ -62,6 +70,13 @@ export const ConfirmDialog = ({ request, onResolve }) => {
   const variant = VARIANTS[request.variant] || VARIANTS.warning;
   const confirmColor = request.confirmColor || variant.confirmColor;
   const Icon = ICONS[request.icon] || ICONS[variant.icon] || AlertTriangle;
+
+  // Gerbang ketik-teks: dipakai aksi paling merusak (membersihkan seluruh data).
+  // Tombol konfirmasi mati sampai pengguna mengetik kata yang diminta — mencegah
+  // penghapusan karena klik refleks.
+  const needsTyped = typeof request.requireText === 'string' && request.requireText.length > 0;
+  const typedOk = !needsTyped || typed.trim().toUpperCase() === request.requireText.toUpperCase();
+  const canConfirm = typedOk;
 
   return (
     <div
@@ -132,6 +147,35 @@ export const ConfirmDialog = ({ request, onResolve }) => {
           <p style={{ fontSize: '0.875rem', lineHeight: '1.55', color: 'var(--text-main)', margin: 0, whiteSpace: 'pre-line' }}>
             {request.message}
           </p>
+
+          {needsTyped && (
+            <div style={{ marginTop: '1.25rem' }}>
+              <label
+                htmlFor="confirm-typed-input"
+                style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem' }}
+              >
+                Ketik <strong style={{ color: confirmColor, fontFamily: 'ui-monospace, monospace' }}>{request.requireText}</strong> untuk mengaktifkan tombol konfirmasi
+              </label>
+              <input
+                id="confirm-typed-input"
+                ref={typedInputRef}
+                type="text"
+                value={typed}
+                autoComplete="off"
+                onChange={(e) => setTyped(e.target.value)}
+                aria-describedby="confirm-typed-hint"
+                className="input-control mono"
+                style={{ width: '100%', fontWeight: 700, letterSpacing: '0.08em' }}
+              />
+              <span
+                id="confirm-typed-hint"
+                aria-live="polite"
+                style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.75rem', color: typedOk ? '#10b981' : 'var(--text-muted)' }}
+              >
+                {typedOk ? 'Teks cocok — tombol konfirmasi aktif.' : `Belum cocok (${typed.trim().length} karakter).`}
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{
@@ -153,11 +197,12 @@ export const ConfirmDialog = ({ request, onResolve }) => {
           <button
             ref={confirmBtnRef}
             type="button"
+            disabled={!canConfirm}
             onClick={() => onResolve(true)}
             className="btn"
             style={{
-              background: confirmColor,
-              color: '#ffffff',
+              background: canConfirm ? confirmColor : 'var(--bg-surface-elevated, #1e293b)',
+              color: canConfirm ? '#ffffff' : 'var(--text-muted)',
               border: 'none',
               fontWeight: 700,
               display: 'inline-flex',
@@ -165,7 +210,8 @@ export const ConfirmDialog = ({ request, onResolve }) => {
               gap: '0.45rem',
               padding: '0.55rem 1.25rem',
               borderRadius: '6px',
-              cursor: 'pointer',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.6,
               minWidth: '90px'
             }}
           >

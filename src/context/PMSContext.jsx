@@ -479,25 +479,64 @@ export const PMSProvider = ({ children }) => {
   };
 
   // 1. Equipment Actions
-  const updateRunningHours = (equipmentId, addedOrTotalHours, isAbsolute = false) => {
-    setEquipment(prev => prev.map(eq => {
-      if (eq.id !== equipmentId) return eq;
-      const newHours = isAbsolute ? Number(addedOrTotalHours) : eq.runningHours + Number(addedOrTotalHours);
-      const hoursToNext = eq.nextServiceHours - newHours;
-      let newStatus = 'Normal';
-      if (hoursToNext <= 0) {
-        newStatus = 'Overdue';
-      } else if (hoursToNext <= 200) {
-        newStatus = 'Due Soon';
-      }
+  // `options.allowDecrease` membuka jalur sah untuk nilai yang turun — reset setelah
+  // overhaul. Tanpa jalur ini, kondisi nyata kapal tidak bisa dicatat; dengan jalur ini,
+  // penurunan hanya bisa terjadi lewat alur yang meminta alasan tertulis.
+  const updateRunningHours = (equipmentId, addedOrTotalHours, isAbsolute = false, options = {}) => {
+    const eq = equipment.find(e => e.id === equipmentId);
+    if (!eq) {
+      return { success: false, reason: 'Equipment tidak ditemukan' };
+    }
 
-      return {
-        ...eq,
-        runningHours: newHours,
-        status: newStatus
+    const currentHours = eq.runningHours || 0;
+    const inputHours = Number(addedOrTotalHours);
+    const newHours = isAbsolute ? inputHours : currentHours + inputHours;
+
+    // Validasi 1: nilai harus > 0 — kecuali reset setelah overhaul, di mana nol adalah
+    // nilai yang sah karena mesin benar-benar dikembalikan ke titik awal.
+    if (inputHours < 0) {
+      return { success: false, reason: 'Jam kerja tidak boleh negatif' };
+    }
+    if (inputHours === 0 && !options.allowDecrease) {
+      return { success: false, reason: 'Jam kerja harus lebih dari 0' };
+    }
+
+    // Validasi 2: mode total (odometer) — nilai baru harus > nilai saat ini,
+    // kecuali lewat jalur reset setelah overhaul yang sudah dikonfirmasi.
+    if (isAbsolute && !options.allowDecrease) {
+      if (newHours <= currentHours) {
+        if (newHours === currentHours) {
+          return { success: false, reason: 'Nilai sama dengan jam kerja saat ini — tidak ada perubahan bermakna' };
+        } else {
+          return { 
+            success: false, 
+            reason: `Nilai baru (${newHours}) lebih kecil dari jam kerja saat ini (${currentHours}). Running hours wajib monoton meningkat per ISM Code. Gunakan opsi "Reset setelah overhaul" jika ini benar.` 
+          };
+        }
+      }
+    }
+
+    // Validasi 3: mode add — batas wajar, minta konfirmasi kalau > 1000
+    if (!isAbsolute && inputHours > 1000) {
+      return { 
+        success: false, 
+        reason: `Penambahan ${inputHours} jam melebihi batas wajar (1000 jam). Kemungkinan salah ketik. Konfirmasi untuk melanjutkan.`,
+        needsConfirm: true,
+        inputHours,
+        isAbsolute
       };
-    }));
-    showToast(`Running hours berhasil diperbarui untuk equipment!`, 'success');
+    }
+
+    const hoursToNext = eq.nextServiceHours - newHours;
+    let newStatus = 'Normal';
+    if (hoursToNext <= 0) {
+      newStatus = 'Overdue';
+    } else if (hoursToNext <= 200) {
+      newStatus = 'Due Soon';
+    }
+
+    setEquipment(prev => prev.map(e => e.id === equipmentId ? { ...e, runningHours: newHours, status: newStatus } : e));
+    return { success: true, newHours, newStatus };
   };
 
   const addEquipment = (equipmentData) => {

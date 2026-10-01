@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
+import { hasAccessWithOverrides, canPerformAction } from '../../utils/rbac';
 import {
   Ship,
   UserCheck,
@@ -10,7 +11,10 @@ import {
   Sun,
   Moon,
   Menu,
-  X
+  X,
+  Database,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 export const Header = () => {
@@ -25,17 +29,75 @@ export const Header = () => {
     overdueWOCount,
     expiredDocsCount,
     openNCCount,
-    resetToSeedData,
+    loadDemoData,
+    clearAllData,
+    exportFullDatabaseBackup,
+    confirm,
     setActiveTab,
     theme,
     toggleTheme,
     toggleMobileSidebar,
-    isMobileSidebarOpen
+    isMobileSidebarOpen,
+    sidebarOverrides
   } = usePMS();
 
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const totalUrgent = overdueWOCount + expiredDocsCount + openNCCount;
+
+  // Izin aksi pembersihan data — hanya Super Admin atau peran dengan hak edit master data
+  const canClearData = canPerformAction(currentRole, 'edit_master_data') ||
+    hasAccessWithOverrides(currentRole, 'master_data', sidebarOverrides);
+
+  const handleLoadDemo = async () => {
+    const ok = await confirm({
+      variant: 'info',
+      icon: 'reset',
+      title: 'Muat Data Demo Armada?',
+      subtitle: 'Memuat data percontohan armada, peralatan, dan dokumen',
+      message: 'Sistem akan memuat data percontohan resmi PT. Pelayaran Baharimas Kalimantan (17 kapal armada, peralatan mesin, log harian, sertifikat STCW & statutoria, dan audit ISM/BKI).\n\nData yang belum tersimpan akan tertimpa. Lanjutkan?',
+      confirmLabel: 'Muat Demo',
+      cancelLabel: 'Batal'
+    });
+    if (ok && loadDemoData) {
+      loadDemoData();
+    }
+  };
+
+  const handleClearData = async () => {
+    // 1. Gerbang keamanan ketik HAPUS (aksi paling merusak di aplikasi)
+    const confirmed = await confirm({
+      variant: 'danger',
+      icon: 'danger',
+      title: 'Bersihkan Seluruh Data Sistem?',
+      subtitle: 'Tindakan ini menghapus seluruh basis data operasional',
+      message: 'Perhatian: Seluruh data kapal armada, peralatan mesin, jam operasi, sertifikat, work order, dan temuan audit akan dihapus permanen ke kondisi 0 data.\n\nKetik HAPUS untuk mengonfirmasi pembersihan data.',
+      requireText: 'HAPUS',
+      confirmLabel: 'Bersihkan Semua Data',
+      cancelLabel: 'Batal'
+    });
+
+    if (!confirmed) return;
+
+    // 2. Tawarkan ekspor backup pengaman sebelum benar-benar dihapus
+    const wantBackup = await confirm({
+      variant: 'info',
+      icon: 'info',
+      title: 'Simpan Salinan Cadangan (Backup)?',
+      subtitle: 'Pengamanan arsip sebelum database dikosongkan',
+      message: 'Apakah Anda ingin mengunduh salinan cadangan database (format JSON) sebelum data dibersihkan? File cadangan dapat dipulihkan sewaktu-waktu dari menu Data Master.',
+      confirmLabel: 'Unduh Cadangan & Bersihkan',
+      cancelLabel: 'Bersihkan Tanpa Cadangan'
+    });
+
+    if (wantBackup && exportFullDatabaseBackup) {
+      exportFullDatabaseBackup();
+    }
+
+    if (clearAllData) {
+      clearAllData();
+    }
+  };
 
   // Render Vessel Select Options Helper
   const renderVesselOptions = () => (
@@ -178,16 +240,30 @@ export const Header = () => {
             )}
           </button>
 
-          {/* Reset Seed Button (Desktop) */}
+          {/* Tombol Muat Data Demo (Desktop) */}
           <button
-            onClick={resetToSeedData}
+            onClick={handleLoadDemo}
             className="btn btn-secondary btn-sm header-reset-btn desktop-reset"
-            title="Reset ke data awal maritim"
+            title="Muat data contoh / demo armada maritim"
             type="button"
           >
-            <RefreshCw size={14} />
-            <span className="header-action-label">Reset Data</span>
+            <Database size={14} color="#10b981" />
+            <span className="header-action-label">Muat Demo</span>
           </button>
+
+          {/* Tombol Bersihkan Semua Data (Desktop) — Hanya peran berwenang */}
+          {canClearData && (
+            <button
+              onClick={handleClearData}
+              className="btn btn-secondary btn-sm header-reset-btn desktop-reset"
+              title="Kosongkan seluruh data operasional ke kondisi 0"
+              style={{ color: '#ef4444' }}
+              type="button"
+            >
+              <Trash2 size={14} />
+              <span className="header-action-label">Bersihkan Data</span>
+            </button>
+          )}
 
           {/* Urgent Notification Bell */}
           <button
@@ -220,14 +296,26 @@ export const Header = () => {
             {renderVesselOptions()}
           </select>
           <button
-            onClick={resetToSeedData}
+            onClick={handleLoadDemo}
             className="mobile-reset-btn"
-            title="Reset data percontohan"
+            title="Muat data contoh / demo armada"
             type="button"
-            aria-label="Reset Data"
+            aria-label="Muat Data Demo"
           >
-            <RefreshCw size={13} />
+            <Database size={13} color="#10b981" />
           </button>
+          {canClearData && (
+            <button
+              onClick={handleClearData}
+              className="mobile-reset-btn"
+              title="Bersihkan semua data sistem"
+              type="button"
+              aria-label="Bersihkan Semua Data"
+              style={{ color: '#ef4444' }}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
         </div>
       </div>
 

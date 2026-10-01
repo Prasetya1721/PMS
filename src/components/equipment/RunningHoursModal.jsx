@@ -1,28 +1,87 @@
 import React, { useState } from 'react';
 import { usePMS } from '../../context/PMSContext';
-import { Clock, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Clock, X, CheckCircle, AlertTriangle, Info, RotateCcw } from 'lucide-react';
 
 export const RunningHoursModal = ({ equipment, onClose }) => {
-  const { updateRunningHours } = usePMS();
-  const [entryMode, setEntryMode] = useState('add'); // 'add' (jam tambahan pelayaran) or 'total' (set angka odometer)
+  const { updateRunningHours, confirm } = usePMS();
+  const [entryMode, setEntryMode] = useState('add');
   const [hoursInput, setHoursInput] = useState('');
   const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [inlineError, setInlineError] = useState('');
+  const [pendingConfirm, setPendingConfirm] = useState(null);
 
   const currentHours = equipment.runningHours || 0;
   const numInput = Number(hoursInput) || 0;
   const projectedTotal = entryMode === 'add' ? currentHours + numInput : numInput;
   const remainingHours = equipment.nextServiceHours - projectedTotal;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!hoursInput || numInput < 0) return;
+    setInlineError('');
 
-    if (entryMode === 'add') {
-      updateRunningHours(equipment.id, numInput, false);
-    } else {
-      updateRunningHours(equipment.id, numInput, true);
+    if (!hoursInput || numInput <= 0) {
+      setInlineError('Jam kerja harus diisi dan lebih dari 0');
+      return;
     }
+
+    const result = entryMode === 'add'
+      ? updateRunningHours(equipment.id, numInput, false)
+      : updateRunningHours(equipment.id, numInput, true);
+
+    if (!result.success) {
+      if (result.needsConfirm) {
+        setPendingConfirm({
+          type: 'large_add',
+          inputHours: result.inputHours,
+          isAbsolute: result.isAbsolute,
+          reason: result.reason
+        });
+        return;
+      }
+      setInlineError(result.reason);
+      return;
+    }
+
+    onClose();
+  };
+
+  const handleConfirmAction = async (confirmed) => {
+    if (!pendingConfirm) return;
+    
+    if (confirmed) {
+      const result = updateRunningHours(equipment.id, pendingConfirm.inputHours, pendingConfirm.isAbsolute);
+      if (result.success) {
+        onClose();
+      } else {
+        setInlineError(result.reason);
+      }
+    }
+    setPendingConfirm(null);
+  };
+
+  // Reset setelah overhaul: generator atau mesin bisa dikembalikan ke nol setelah
+  // perbaikan besar, sehingga running hours yang lebih kecil adalah kondisi nyata —
+  // bukan kesalahan input. Jalur ini mewajibkan alasan tertulis supaya audit trail
+  // tetap bisa dipertanggungjawabkan ke surveyor.
+  const handleOverhaulReset = () => {
+    const totalInput = Number(hoursInput) || 0;
+    if (totalInput < 0) {
+      setInlineError('Nilai jam setelah overhaul tidak boleh negatif');
+      return;
+    }
+    setPendingConfirm({
+      type: 'overhaul_reset',
+      inputHours: totalInput,
+      isAbsolute: true,
+      reason: `Catat sebagai reset setelah overhaul: jam kerja menjadi ${totalInput} dari sebelumnya ${currentHours} jam.`
+    });
+  };
+
+  const confirmOverhaulReset = () => {
+    if (!pendingConfirm) return;
+    updateRunningHours(equipment.id, pendingConfirm.inputHours, true, { allowDecrease: true });
+    setPendingConfirm(null);
     onClose();
   };
 
@@ -93,13 +152,111 @@ export const RunningHoursModal = ({ equipment, onClose }) => {
               <input
                 type="number"
                 required
-                min="1"
+                min={entryMode === 'total' ? "0" : "1"}
                 placeholder={entryMode === 'add' ? "Contoh: 24" : "Contoh: 9874"}
                 value={hoursInput}
-                onChange={(e) => setHoursInput(e.target.value)}
+                onChange={(e) => {
+                  setHoursInput(e.target.value);
+                  if (inlineError) setInlineError('');
+                  if (pendingConfirm) setPendingConfirm(null);
+                }}
                 className="input-control mono"
                 style={{ fontSize: '1rem', fontWeight: 700 }}
               />
+              <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {entryMode === 'total'
+                  ? `Batas bawah sah: > ${currentHours.toLocaleString()} Jam (monoton meningkat per ISM Code). Terakhir: ${currentHours.toLocaleString()} Jam.`
+                  : `Maksimal penambahan wajar: ≤ 1.000 Jam per input log.`}
+              </span>
+
+              {/* Inline Error & Opsi Overhaul Reset */}
+              {inlineError && (
+                <div style={{
+                  marginTop: '0.65rem',
+                  padding: '0.75rem 0.9rem',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444',
+                  fontSize: '0.825rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span style={{ lineHeight: '1.4' }}>{inlineError}</span>
+                  </div>
+                  {entryMode === 'total' && numInput < currentHours && (
+                    <div style={{ marginTop: '0.35rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                      <button
+                        type="button"
+                        onClick={handleOverhaulReset}
+                        className="btn btn-sm"
+                        style={{
+                          background: 'rgba(245, 158, 11, 0.2)',
+                          color: '#f59e0b',
+                          border: '1px solid rgba(245, 158, 11, 0.4)',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.35rem 0.75rem'
+                        }}
+                      >
+                        <RotateCcw size={13} />
+                        Catat sebagai Reset Setelah Overhaul Mesin
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pending Confirmation Box */}
+              {pendingConfirm && (
+                <div style={{
+                  marginTop: '0.65rem',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '8px',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                  fontSize: '0.825rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f59e0b', fontWeight: 700 }}>
+                    <AlertTriangle size={16} />
+                    <span>Konfirmasi Diperlukan</span>
+                  </div>
+                  <p style={{ margin: 0, color: 'var(--text-main)', lineHeight: '1.4' }}>
+                    {pendingConfirm.reason}
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.35rem' }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => setPendingConfirm(null)}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      onClick={() => {
+                        if (pendingConfirm.type === 'overhaul_reset') {
+                          confirmOverhaulReset();
+                        } else {
+                          handleConfirmAction(true);
+                        }
+                      }}
+                    >
+                      Konfirmasi & Simpan
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
