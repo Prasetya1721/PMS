@@ -30,7 +30,7 @@ describe('Header - Pemisahan Tombol Muat Demo & Bersihkan Data', () => {
       ],
       selectedVesselId: 'all',
       setSelectedVesselId: mockSetSelectedVesselId,
-      currentRole: 'Super Admin',
+      currentRole: 'Developer',
       setCurrentRole: mockSetCurrentRole,
       searchQuery: '',
       setSearchQuery: mockSetSearchQuery,
@@ -61,7 +61,7 @@ describe('Header - Pemisahan Tombol Muat Demo & Bersihkan Data', () => {
     const demoBtns = screen.getAllByRole('button', { name: /demo/i });
     expect(demoBtns.length).toBe(2);
 
-    // Tombol Bersihkan Data ada di desktop dan mobile untuk Super Admin (total 2)
+    // Tombol Bersihkan Data ada di desktop dan mobile untuk Developer (total 2)
     const clearBtns = screen.getAllByRole('button', { name: /bersih|kosongkan/i });
     expect(clearBtns.length).toBe(2);
   });
@@ -157,5 +157,16 @@ describe('Header - Pemisahan Tombol Muat Demo & Bersihkan Data', () => {
 
     const clearBtns = screen.queryAllByRole('button', { name: /bersih|kosongkan/i });
     expect(clearBtns.length).toBe(0);
+  });
+
+  it('menyembunyikan tombol destruktif bersihkan data dan muat demo untuk Super Admin (hanya editor konten)', () => {
+    mockContextValue.currentRole = 'Super Admin';
+    render(<Header />);
+
+    const clearBtns = screen.queryAllByRole('button', { name: /bersih|kosongkan/i });
+    expect(clearBtns.length).toBe(0);
+
+    const demoBtns = screen.queryAllByRole('button', { name: /demo/i });
+    expect(demoBtns.length).toBe(0);
   });
 });

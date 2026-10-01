@@ -23,8 +23,7 @@ const ALL_MODULES = [
   { id: 'crew', label: 'Manajemen Kru & Personalia', desc: 'Data nakhoda, ABK, KKM, mutasi kru, dan absensi harian' },
   { id: 'notifications', label: 'Reminder & Notifikasi WA', desc: 'Pengingat otomatis sertifikat expired dan servis mesin lewat WA' },
   { id: 'reports', label: 'Laporan & Ekspor Data', desc: 'Ekspor laporan operasional bulanan format PDF & Excel' },
-  { id: 'master', label: 'Data Master (Admin)', desc: 'Pengaturan master kapal, jenis peralatan, dan template dokumen' },
-  { id: 'developer_api', label: 'Developer & Konfigurasi API', desc: 'Pengaturan API Key gateway WA, email, AIS kapal, cuaca, dan webhook developer' }
+  { id: 'master', label: 'Data Master (Admin)', desc: 'Pengaturan master kapal, jenis peralatan, dan template dokumen' }
 ];
 
 export const SidebarManagementAdmin = () => {
@@ -39,8 +38,8 @@ export const SidebarManagementAdmin = () => {
   const [localOverrides, setLocalOverrides] = useState({ ...sidebarOverrides });
   const [isSaved, setIsSaved] = useState(false);
 
-  // Exclude Super Admin since Super Admin always has 100% full access
-  const roles = Object.keys(ROLE_DEFINITIONS).filter(r => r !== 'Super Admin');
+  // Exclude Developer since Developer holds absolute top system authority
+  const roles = Object.keys(ROLE_DEFINITIONS).filter(r => r !== 'Developer');
 
   const isModuleEnabledForRole = (role, moduleId) => {
     const defaultPerms = ROLE_PERMISSIONS[role] || [];
@@ -214,7 +213,7 @@ export const SidebarManagementAdmin = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           <AlertCircle size={18} color="#2563eb" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: '0.825rem', color: '#1e3a8a', lineHeight: 1.5 }}>
-            <strong>Super Admin</strong> memiliki akses absolut ke 100% modul sistem dan tidak dapat dinonaktifkan demi keamanan. Centang atau hapus centang di bawah untuk mengatur visibilitas modul bagi masing-masing peran staf lainnya.
+            <strong>Developer</strong> memegang otoritas tertinggi sistem dengan akses mutlak dan tidak dikonfigurasi melalui tabel ini. Centang atau hapus centang di bawah untuk mengatur visibilitas modul bagi Super Admin dan masing-masing peran staf lainnya.
           </span>
         </div>
         <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1d4ed8', padding: '0.2rem 0.65rem', borderRadius: '9999px', fontWeight: 700 }}>

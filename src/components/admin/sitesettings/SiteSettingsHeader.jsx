@@ -58,31 +58,33 @@ export const SiteSettingsHeader = ({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {/* Quick link button to separate Sidebar Management */}
-              <button
-                type="button"
-                onClick={() => setNavTab('sidebar_management')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  padding: '0.55rem 1rem',
-                  borderRadius: '8px',
-                  border: '1px solid #bfdbfe',
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  fontSize: '0.825rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
-                onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
-                title="Buka Halaman Terpisah Manajemen Hak Akses Sidebar"
-              >
-                <Shield size={15} />
-                <span>Manajemen Sidebar →</span>
-              </button>
+              {/* Quick link button to separate Sidebar Management (Hanya Developer) */}
+              {canAction && canAction('manage_sidebar') && (
+                <button
+                  type="button"
+                  onClick={() => setNavTab('sidebar_management')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid #bfdbfe',
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    fontSize: '0.825rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
+                  title="Buka Halaman Terpisah Manajemen Hak Akses Sidebar"
+                >
+                  <Shield size={15} />
+                  <span>Manajemen Sidebar →</span>
+                </button>
+              )}
 
               {canAction && canAction('reset_site_config') && (
                 <button

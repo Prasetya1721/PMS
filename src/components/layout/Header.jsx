@@ -45,6 +45,9 @@ export const Header = () => {
 
   const totalUrgent = overdueWOCount + expiredDocsCount + openNCCount;
 
+  // Role Switcher hanya ada di mode dev / test untuk keperluan pengujian fitur dan error
+  const isDevMode = Boolean(import.meta.env?.DEV || import.meta.env?.MODE === 'test');
+
   // Izin aksi pembersihan data — hanya Developer
   const canClearData = canPerformAction(currentRole, 'reset_all_data');
   const canLoadDemo = canPerformAction(currentRole, 'load_demo_data');
@@ -201,26 +204,28 @@ export const Header = () => {
             {showMobileSearch ? <X size={17} /> : <Search size={17} />}
           </button>
 
-          {/* Role Switcher (Desktop & Tablet) */}
-          <div className="header-role-container">
-            <UserCheck size={15} color="#06b6d4" />
-            <span className="header-role-label">Peran:</span>
-            <select
-              value={currentRole}
-              onChange={(e) => setCurrentRole(e.target.value)}
-              className="header-role-select"
-              aria-label="Ganti Peran"
-            >
-              <option value="Super Admin">Super Admin</option>
-              <option value="Developer">Developer / IT Engineer</option>
-              <option value="Fleet Manager">Fleet Manager</option>
-              <option value="Admin Kapal / Nakhoda">Admin Kapal / Nakhoda</option>
-              <option value="Teknisi / Chief Engineer">Teknisi / Chief Engineer</option>
-              <option value="Crew / ABK">Crew / ABK</option>
-              <option value="HR / Personalia">HR / Personalia</option>
-              <option value="Finance">Finance</option>
-            </select>
-          </div>
+          {/* Role Switcher (Desktop & Tablet) — Hanya aktif di mode development untuk testing fitur & error */}
+          {isDevMode && (
+            <div className="header-role-container" title="Mode Dev: Ganti peran untuk menguji fitur & error">
+              <UserCheck size={15} color="#06b6d4" />
+              <span className="header-role-label">Peran:</span>
+              <select
+                value={currentRole}
+                onChange={(e) => setCurrentRole(e.target.value)}
+                className="header-role-select"
+                aria-label="Ganti Peran"
+              >
+                <option value="Developer">Developer (Otoritas Tertinggi)</option>
+                <option value="Super Admin">Super Admin (Editor Konten)</option>
+                <option value="Fleet Manager">Fleet Manager</option>
+                <option value="Admin Kapal / Nakhoda">Admin Kapal / Nakhoda</option>
+                <option value="Teknisi / Chief Engineer">Teknisi / Chief Engineer</option>
+                <option value="Crew / ABK">Crew / ABK</option>
+                <option value="HR / Personalia">HR / Personalia</option>
+                <option value="Finance">Finance</option>
+              </select>
+            </div>
+          )}
 
           {/* Theme Toggle Button (Light / Dark Mode) */}
           <button

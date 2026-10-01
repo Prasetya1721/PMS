@@ -30,7 +30,7 @@ export const NotifTabSettings = ({
   toggleThresholdChannel,
   updateAutoSendConfig,
 }) => {
-  const { setActiveTab } = usePMS();
+  const { setActiveTab, currentRole } = usePMS();
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1.5rem' }}>
@@ -70,58 +70,60 @@ export const NotifTabSettings = ({
           updateAutoSendConfig={updateAutoSendConfig}
         />
 
-        {/* Info Box: Konfigurasi API Gateway dipusatkan di Menu Developer */}
-        <div className="glass-card" style={{
-          padding: '1.25rem',
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(2, 132, 199, 0.06))',
-          border: '1px solid rgba(139, 92, 246, 0.25)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'rgba(139, 92, 246, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#a78bfa',
-              flexShrink: 0
-            }}>
-              <Terminal size={16} />
+        {/* Info Box: Konfigurasi API Gateway dipusatkan di Menu Developer (Hanya tampil untuk Developer) */}
+        {currentRole === 'Developer' && (
+          <div className="glass-card" style={{
+            padding: '1.25rem',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(2, 132, 199, 0.06))',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'rgba(139, 92, 246, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#a78bfa',
+                flexShrink: 0
+              }}>
+                <Terminal size={16} />
+              </div>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>
+                  Konfigurasi Gateway Terpusat di Menu Developer
+                </h4>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Pengaturan API Token, endpoint URL, dan uji koneksi untuk WhatsApp & Email Gateway kini dikelola terpusat di menu <strong>Developer & API Keys</strong>.
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>
-                Konfigurasi Gateway Terpusat di Menu Developer
-              </h4>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Pengaturan API Token, endpoint URL, dan uji koneksi untuk WhatsApp & Email Gateway kini dikelola terpusat di menu <strong>Developer & API Keys</strong>.
-              </p>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('developer_api')}
-            className="btn btn-secondary btn-sm"
-            style={{
-              alignSelf: 'flex-start',
-              fontSize: '0.78rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              color: '#a78bfa',
-              borderColor: 'rgba(139, 92, 246, 0.3)'
-            }}
-          >
-            <KeyRound size={13} />
-            <span>Buka Konfigurasi Developer & API Keys</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('developer_api')}
+              className="btn btn-secondary btn-sm"
+              style={{
+                alignSelf: 'flex-start',
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: '#a78bfa',
+                borderColor: 'rgba(139, 92, 246, 0.3)'
+              }}
+            >
+              <KeyRound size={13} />
+              <span>Buka Konfigurasi Developer & API Keys</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

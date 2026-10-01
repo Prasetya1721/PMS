@@ -230,12 +230,22 @@ export const INITIAL_NOTIFICATION_LOGS = [];
 // 16. Akun Login Pengguna (Users) - Dipertahankan untuk Uji Coba Semua Peran (Password Demo: 123)
 export const INITIAL_USERS = [
   {
+    "id": "u-8",
+    "name": "Alex Pratama, S.Kom",
+    "email": "dev@baharimas.co.id",
+    "password": "123",
+    "role": "Developer",
+    "title": "Lead Software & Systems Engineer (Otoritas Tertinggi)",
+    "shipAccess": "All",
+    "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"
+  },
+  {
     "id": "u-1",
     "name": "Capt. Robert Sitorus, M.Mar",
     "email": "admin@baharimas.co.id",
     "password": "123",
     "role": "Super Admin",
-    "title": "Head of Fleet Operations",
+    "title": "Head of Fleet Operations (Editor Konten)",
     "shipAccess": "All",
     "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
   },
@@ -298,16 +308,6 @@ export const INITIAL_USERS = [
     "title": "Finance & Logistics Purchasing",
     "shipAccess": "All",
     "avatar": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=120&q=80"
-  },
-  {
-    "id": "u-8",
-    "name": "Alex Pratama, S.Kom",
-    "email": "dev@baharimas.co.id",
-    "password": "123",
-    "role": "Developer",
-    "title": "Lead Software & Systems Engineer",
-    "shipAccess": "All",
-    "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80"
   }
 ];
 

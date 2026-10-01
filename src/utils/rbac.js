@@ -1,10 +1,17 @@
 // Role-Based Access Control (RBAC) Configuration for PT. Pelayaran Baharimas Kalimantan
 
 export const ROLE_DEFINITIONS = {
+  'Developer': {
+    label: 'Developer (Otoritas Tertinggi)',
+    shortLabel: 'Developer',
+    description: 'Otoritas tertinggi sistem: akses mutlak seluruh modul, konfigurasi sistem, API key, database, manajemen RBAC, dan kontrol teknis penuh',
+    badgeClass: 'badge-purple',
+    color: '#8b5cf6',
+  },
   'Super Admin': {
-    label: 'Super Admin',
+    label: 'Super Admin (Editor Konten)',
     shortLabel: 'Super Admin',
-    description: 'Akses penuh seluruh modul, data master, administrasi pengguna, dan sistem',
+    description: 'Pengelolaan dan pengeditan konten operasional: mengelola data kapal, dokumen, sertifikat, personel, dan penyesuaian teks portal sistem',
     badgeClass: 'badge-danger',
     color: '#ef4444',
   },
@@ -50,34 +57,10 @@ export const ROLE_DEFINITIONS = {
     badgeClass: 'badge-purple',
     color: '#8b5cf6',
   },
-  'Developer': {
-    label: 'Developer / IT Engineer',
-    shortLabel: 'Developer',
-    description: 'Akses penuh seluruh modul, integrasi API Key, konfigurasi gateway, webhook, data master, dan sistem',
-    badgeClass: 'badge-purple',
-    color: '#8b5cf6',
-  },
 };
 
 // Matriks Hak Akses Modul per Peran
 export const ROLE_PERMISSIONS = {
-  'Super Admin': [
-    'dashboard',
-    'fleet',
-    'audit',
-    'documents',
-    'equipment',
-    'maintenance',
-    'spareparts',
-    'costs',
-    'crew',
-    'notifications',
-    'reports',
-    'master',
-    'settings',
-    'sidebar_management',
-    'developer_api',
-  ],
   'Developer': [
     'dashboard',
     'fleet',
@@ -94,6 +77,19 @@ export const ROLE_PERMISSIONS = {
     'settings',
     'sidebar_management',
     'developer_api',
+  ],
+  'Super Admin': [
+    'dashboard',
+    'fleet',
+    'documents',
+    'equipment',
+    'maintenance',
+    'spareparts',
+    'crew',
+    'notifications',
+    'reports',
+    'master',
+    'settings',
   ],
   'Fleet Manager': [
     'dashboard',
@@ -159,7 +155,12 @@ export const ROLE_PERMISSIONS = {
  */
 export const hasAccess = (role, moduleId) => {
   if (!role) return false;
-  if (role === 'Super Admin' || role === 'Developer') return true;
+  // developer_api dan sidebar_management eksklusif hanya untuk peran Developer
+  if (moduleId === 'developer_api' || moduleId === 'sidebar_management') {
+    return role === 'Developer';
+  }
+  // Developer adalah otoritas tertinggi sistem dengan akses mutlak tanpa batasan
+  if (role === 'Developer') return true;
   const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   const allowed = ROLE_PERMISSIONS[role] || [];
   return allowed.includes(moduleId) || allowed.includes(baseModule);
@@ -174,7 +175,12 @@ export const hasAccess = (role, moduleId) => {
  */
 export const hasAccessWithOverrides = (role, moduleId, sidebarOverrides) => {
   if (!role) return false;
-  if (role === 'Super Admin' || role === 'Developer') return true;
+  // developer_api dan sidebar_management eksklusif hanya untuk peran Developer
+  if (moduleId === 'developer_api' || moduleId === 'sidebar_management') {
+    return role === 'Developer';
+  }
+  // Developer adalah otoritas tertinggi sistem dengan akses mutlak tanpa batasan
+  if (role === 'Developer') return true;
   const baseModule = moduleId.startsWith('audit_') ? 'audit' : moduleId;
   // If overrides exist for this role, use them instead of default
   if (sidebarOverrides && sidebarOverrides[role] && Array.isArray(sidebarOverrides[role])) {
@@ -202,61 +208,54 @@ export const getAllowedTabs = (role) => {
  */
 export const canPerformAction = (role, action) => {
   if (!role) return false;
-  if (role === 'Super Admin' || role === 'Developer') return true;
+  // Developer adalah otoritas tertinggi sistem dengan hak akses mutlak tanpa batasan
+  if (role === 'Developer') return true;
 
   switch (action) {
-    // ── Fungsi BERBAHAYA — Hanya Developer ──────────────────────────────
-    // Operasi destruktif yang bisa menghapus/menimpa seluruh database.
-    // Dibatasi hanya Developer untuk mencegah kecelakaan data di produksi.
-    case 'reset_all_data':       // clearAllData() — hapus semua data ke 0
-    case 'load_demo_data':       // loadDemoData() — timpa data dengan data demo
-    case 'reset_users':          // resetUsers() — reset semua akun ke bawaan
-    case 'reset_site_config':    // resetSiteConfig() — reset konfigurasi situs
+    // ── Fungsi Operasi Destruktif & Sistem — HANYA Developer ──────────
+    // Super Admin diturunkan dan tidak diizinkan melakukan tindakan destruktif ini
+    case 'reset_all_data':         // clearAllData() — hapus semua data ke 0
+    case 'load_demo_data':         // loadDemoData() — timpa data dengan data demo
+    case 'reset_users':            // resetUsers() — reset semua akun ke bawaan
+    case 'reset_site_config':      // resetSiteConfig() — reset konfigurasi situs
+    case 'delete_vessel':          // Hapus kapal dari armada
+    case 'delete_user':            // Hapus akun pengguna dari sistem
+    case 'delete_certificate':     // Hapus sertifikat kapal
+    case 'delete_ship_document':   // Hapus dokumen kapal
+    case 'configure_api_keys':     // Konfigurasi API keys gateway
+    case 'manage_developer_tools':   // Tool pengembang
+    case 'manage_sidebar':         // Konfigurasi matriks sidebar RBAC
       return role === 'Developer';
 
-    // ── Fungsi Hapus Data Penting — Super Admin + Developer ─────────────
-    case 'delete_vessel':        // Hapus kapal dari armada
-    case 'delete_user':          // Hapus akun pengguna dari sistem
-      return role === 'Super Admin' || role === 'Developer';
-
-    // ── API & Developer Tools ──────────────────────────────────────────
-    case 'configure_api_keys':
-    case 'manage_developer_tools':
-      return role === 'Super Admin' || role === 'Developer';
-
-    // ── Sertifikat & Dokumen Kapal ─────────────────────────────────────
+    // ── Manajemen Konten & Data (Super Admin & Developer) ──────────────
+    // Super Admin bertugas membantu edit konten, data kapal, dokumen, dan personel
     case 'add_certificate':
     case 'add_ship_document':
     case 'edit_certificate':
     case 'edit_ship_document':
-    case 'delete_certificate':
-    case 'delete_ship_document':
-      return role === 'Super Admin' || role === 'Developer';
-
-    // ── Manajemen Pengguna & Master Data ───────────────────────────────
-    case 'manage_users':
     case 'edit_master_data':
+    case 'manage_users':           // Tambah & edit data profil pengguna (tanpa hak hapus/reset)
       return role === 'Super Admin' || role === 'Developer';
 
     // ── Keuangan & Anggaran ────────────────────────────────────────────
     case 'edit_budget':
     case 'edit_vessel_budget':
     case 'approve_po':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Finance';
+      return role === 'Fleet Manager' || role === 'Finance' || role === 'Developer';
 
     case 'record_actual_expense':
-      return role === 'Super Admin' || role === 'Finance';
+      return role === 'Finance' || role === 'Developer';
 
     // ── SDM / Kru ──────────────────────────────────────────────────────
     case 'approve_leave':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'HR / Personalia';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'HR / Personalia' || role === 'Developer';
 
     case 'submit_leave':
       return true; // Semua kru boleh mengajukan cuti
 
     // ── Notifikasi & Gateway ───────────────────────────────────────────
     case 'manage_bot_gateway':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Developer';
+      return role === 'Fleet Manager' || role === 'Developer';
 
     // ── Audit ISM/SMC ──────────────────────────────────────────────────
     case 'create_audit_session':
@@ -268,35 +267,35 @@ export const canPerformAction = (role, action) => {
     case 'close_audit_nc':
     case 'reopen_audit_nc':
     case 'access_doc_audit':
-      // Wewenang khusus DPA / Lead Auditor / Manajemen Darat
-      return role === 'Super Admin' || role === 'Fleet Manager';
+      // Wewenang khusus DPA / Lead Auditor / Manajemen Darat & Developer
+      return role === 'Fleet Manager' || role === 'Developer';
 
     case 'submit_audit_evidence':
       // Auditee (Nakhoda, KKM, DPA, Admin) berhak mengirimkan bukti perbaikan fisik/dokumen
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Developer';
 
     // ── Work Order & Logistik ──────────────────────────────────────────
     case 'create_work_order':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Developer';
 
     case 'create_purchase_request':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Finance';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Finance' || role === 'Developer';
 
     case 'create_crew_requisition':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Crew / ABK';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Crew / ABK' || role === 'Developer';
 
     case 'create_ship_requisition':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Developer';
 
     case 'approve_requisition_ship':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Developer';
 
     case 'approve_requisition_shore':
     case 'transfer_warehouse_stock':
-      return role === 'Super Admin' || role === 'Fleet Manager';
+      return role === 'Fleet Manager' || role === 'Developer';
 
     case 'receive_onboard_goods':
-      return role === 'Super Admin' || role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Crew / ABK';
+      return role === 'Fleet Manager' || role === 'Admin Kapal / Nakhoda' || role === 'Teknisi / Chief Engineer' || role === 'Crew / ABK' || role === 'Developer';
 
     default:
       return false;

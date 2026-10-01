@@ -71,7 +71,20 @@ import {
 } from '../utils/rbac';
 import { makeId } from '../utils/idUtils';
 
-const PMSContext = createContext();
+// Persistent Singleton React Context across Vite Hot Module Replacement (HMR)
+// Mencegah error "usePMS must be used within a PMSProvider" saat file diubah/disimpan di mode development
+const PMS_CONTEXT_KEY = '__BAHARIMAS_PMS_CONTEXT_INSTANCE__';
+const PMSContext = (typeof window !== 'undefined' && window[PMS_CONTEXT_KEY])
+  ? window[PMS_CONTEXT_KEY]
+  : (typeof globalThis !== 'undefined' && globalThis[PMS_CONTEXT_KEY])
+    ? globalThis[PMS_CONTEXT_KEY]
+    : createContext(null);
+
+if (typeof window !== 'undefined') {
+  window[PMS_CONTEXT_KEY] = PMSContext;
+} else if (typeof globalThis !== 'undefined') {
+  globalThis[PMS_CONTEXT_KEY] = PMSContext;
+}
 
 // Inisialisasi versi storage — purge otomatis jika versi berubah
 initStorageVersion();
