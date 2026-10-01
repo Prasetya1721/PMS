@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
@@ -404,8 +405,17 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
     showToast('Teks ringkasan permintaan berhasil disalin ke clipboard!', 'info');
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  useEffect(() => {
+    document.body.classList.add('work-order-printing-active');
+    document.body.classList.add('maritime-modal-printing-active');
+    return () => {
+      document.body.classList.remove('work-order-printing-active');
+      document.body.classList.remove('maritime-modal-printing-active');
+    };
+  }, []);
+
+  const modalContent = (
+    <div className="modal-overlay print-modal-portal work-order-portal" onClick={onClose}>
       <div
         className="modal-dialog modal-dialog-large"
         onClick={(e) => e.stopPropagation()}
@@ -503,4 +513,8 @@ export const WorkOrderModal = ({ workOrder, vesselId, onClose }) => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

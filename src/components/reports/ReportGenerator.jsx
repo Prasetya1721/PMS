@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
@@ -94,14 +94,32 @@ export const ReportGenerator = () => {
     }
   };
 
+  useEffect(() => {
+    const handleBeforePrint = () => document.body.classList.add('fleet-report-printing-active');
+    const handleAfterPrint = () => document.body.classList.remove('fleet-report-printing-active');
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+      document.body.classList.remove('fleet-report-printing-active');
+    };
+  }, []);
+
   const handlePrint = () => {
-    window.print();
+    document.body.classList.add('fleet-report-printing-active');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('fleet-report-printing-active');
+      }, 500);
+    }, 50);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Pusat Laporan & Ekspor Data Armada</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -122,7 +140,7 @@ export const ReportGenerator = () => {
       </div>
 
       {/* Report Type Selector Cards */}
-      <div className="grid-cols-4">
+      <div className="grid-cols-4 no-print">
         {[
           { id: 'maintenance', title: 'Laporan Planned Maintenance', icon: Wrench, desc: 'Rekap work order, jam kerja, kepatuhan teknisi' },
           { id: 'documents', title: 'Laporan Dokumen & Sertifikat', icon: FileCheck, desc: 'Radar masa berlaku surat kapal & STCW kru' },

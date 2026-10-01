@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePMS } from '../../context/PMSContext';
 import { BaharimasEmblem } from '../common/BaharimasLogo';
 import {
@@ -140,8 +141,17 @@ export const SafeManningMatrixModal = ({ selectedVesselId, onClose }) => {
     }, 150);
   };
 
-  return (
-    <div className="modal-overlay" style={{
+  useEffect(() => {
+    document.body.classList.add('safe-manning-printing-active');
+    document.body.classList.add('maritime-modal-printing-active');
+    return () => {
+      document.body.classList.remove('safe-manning-printing-active');
+      document.body.classList.remove('maritime-modal-printing-active');
+    };
+  }, []);
+
+  const modalContent = (
+    <div className="modal-overlay print-modal-portal safe-manning-portal" style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       background: 'rgba(10, 16, 30, 0.85)',
@@ -194,4 +204,8 @@ export const SafeManningMatrixModal = ({ selectedVesselId, onClose }) => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

@@ -13,7 +13,7 @@ export const TechnicalWOFormActions = ({
   onClose,
 }) => {
   return (
-    <div style={{
+    <div className="no-print" style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',

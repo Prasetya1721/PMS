@@ -1620,18 +1620,27 @@ input[type="datetime-local"] {
     overflow: visible !important;
   }
 
-  /* 1. SEMBUNYIKAN KONTEN APLIKASI BACKGROUND JIKA SEDANG MENCETAK MODAL / SHEET RESMI */
+  /* 1. ISOLASI MODAL CETAK: SEMBUNYIKAN SELURUH APLIKASI BACKGROUND JIKA MODAL CETAK TERBUKA */
+  body.maritime-modal-printing-active #root,
+  body.maritime-modal-printing-active .app-container,
   body.audit-report-printing-active #root,
   body.audit-report-printing-active .app-container,
-  body.particulars-printing-active #root > .app-container > aside,
-  body.particulars-printing-active #root > .app-container > header,
-  body:has(.maritime-print-sheet) #root > .app-container > aside,
-  body:has(.maritime-print-sheet) #root > .app-container > header,
-  body:has(.maritime-print-sheet) #root > .app-container > nav,
-  body:has(.maritime-print-sheet) .sidebar,
-  body:has(.maritime-print-sheet) .top-navbar,
-  body:has(.maritime-print-sheet) .urgency-banner,
-  body:has(.maritime-print-sheet) .navbar {
+  body.safe-manning-printing-active #root,
+  body.safe-manning-printing-active .app-container,
+  body.crit-equip-printing-active #root,
+  body.crit-equip-printing-active .app-container,
+  body.technical-wo-printing-active #root,
+  body.technical-wo-printing-active .app-container,
+  body.work-order-printing-active #root,
+  body.work-order-printing-active .app-container,
+  body:has(.modal-overlay.print-modal-portal) #root,
+  body:has(.modal-overlay.print-modal-portal) .app-container,
+  body:has(.safe-manning-portal) #root,
+  body:has(.safe-manning-portal) .app-container,
+  body:has(.technical-wo-portal) #root,
+  body:has(.technical-wo-portal) .app-container,
+  body:has(.work-order-portal) #root,
+  body:has(.work-order-portal) .app-container {
     display: none !important;
     visibility: hidden !important;
     height: 0 !important;
@@ -1641,15 +1650,73 @@ input[type="datetime-local"] {
     overflow: hidden !important;
   }
 
-  /* 2. SEMBUNYIKAN SEMUA TOMBOL, NAVIGASI, & KONTROL LAYAR */
+  /* 2. ISOLASI CETAK IN-PAGE (Report Generator & Ship Particulars): SEMBUNYIKAN CHROME & HEADER */
+  body.particulars-printing-active .app-header,
+  body.particulars-printing-active .top-header,
+  body.particulars-printing-active .sidebar,
+  body.particulars-printing-active .mobile-bottom-nav,
+  body.particulars-printing-active .urgency-banner,
+  body.particulars-printing-active .vessel-hero-card,
+  body.particulars-printing-active .main-content > header,
+  body.particulars-printing-active .page-body > * > *:not(:has(.particulars-sheet)),
+  body.fleet-report-printing-active .app-header,
+  body.fleet-report-printing-active .top-header,
+  body.fleet-report-printing-active .sidebar,
+  body.fleet-report-printing-active .mobile-bottom-nav,
+  body.fleet-report-printing-active .urgency-banner,
+  body.fleet-report-printing-active .main-content > header,
+  body.fleet-report-printing-active .page-body > * > *:not(:has(.fleet-report-print-sheet)),
+  body:has(.maritime-print-sheet) .app-header,
+  body:has(.maritime-print-sheet) .top-header,
+  body:has(.maritime-print-sheet) .sidebar,
+  body:has(.maritime-print-sheet) .mobile-bottom-nav,
+  body:has(.maritime-print-sheet) .urgency-banner,
+  body:has(.maritime-print-sheet) .vessel-hero-card,
+  body:has(.maritime-print-sheet) .main-content > header,
+  body:has(.maritime-print-sheet) .app-container > aside,
+  body:has(.maritime-print-sheet) .app-container > nav {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Layout container untuk cetak in-page */
+  body.particulars-printing-active .app-container,
+  body.particulars-printing-active .main-content,
+  body.particulars-printing-active .page-body,
+  body.fleet-report-printing-active .app-container,
+  body.fleet-report-printing-active .main-content,
+  body.fleet-report-printing-active .page-body {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  /* 3. SEMBUNYIKAN SEMUA TOMBOL, NAVIGASI, & KONTROL LAYAR WEB */
   .no-print,
-  aside,
-  header,
-  nav,
-  .sidebar,
-  .urgency-banner,
+  .app-header,
+  .top-header,
   .top-navbar,
   .navbar,
+  header,
+  .sidebar,
+  aside,
+  nav,
+  .mobile-bottom-nav,
+  .urgency-banner,
+  .vessel-hero-card,
   button,
   .tab-btn,
   .btn,
@@ -1660,11 +1727,20 @@ input[type="datetime-local"] {
   textarea {
     display: none !important;
     visibility: hidden !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
-  /* 3. FLATTEN MODAL OVERLAY & CONTAINER UNTUK SEMUA SHEET CETAK MARITIM */
+  /* 4. FLATTEN MODAL OVERLAY & CONTAINER UNTUK SEMUA SHEET CETAK MARITIM */
   .modal-overlay,
   .modal-overlay.audit-report-portal,
+  .modal-overlay.safe-manning-portal,
+  .modal-overlay.technical-wo-portal,
+  .modal-overlay.work-order-portal,
+  .modal-overlay.print-modal-portal,
   .modal-overlay:has(.maritime-print-sheet),
   .modal-overlay:has(.particulars-sheet),
   .modal-overlay:has(.technical-wo-print-sheet),
@@ -1690,7 +1766,7 @@ input[type="datetime-local"] {
   }
 
   /* Sembunyikan modal overlay lain yang TIDAK memiliki dokumen cetak aktif */
-  .modal-overlay:not(:has(.maritime-print-sheet, .particulars-sheet, .technical-wo-print-sheet, .safe-manning-print-sheet, .critical-equipment-print-sheet, .fleet-report-print-sheet, .audit-report-sheet)):not(.audit-report-portal) {
+  .modal-overlay:not(:has(.maritime-print-sheet, .particulars-sheet, .technical-wo-print-sheet, .safe-manning-print-sheet, .critical-equipment-print-sheet, .fleet-report-print-sheet, .audit-report-sheet)):not(.audit-report-portal):not(.safe-manning-portal):not(.technical-wo-portal):not(.work-order-portal):not(.print-modal-portal) {
     display: none !important;
   }
 

@@ -71,7 +71,7 @@ export const MaintenanceList = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
             Planned Maintenance System (PMS) & Technical Work Orders
@@ -104,7 +104,7 @@ export const MaintenanceList = () => {
 
       {/* Overdue Warning Banner if any equipment has reached service target */}
       {overdueEquipment.length > 0 && (
-        <div style={{
+        <div className="no-print" style={{
           padding: '1rem 1.25rem',
           borderRadius: '12px',
           background: 'rgba(239, 68, 68, 0.1)',

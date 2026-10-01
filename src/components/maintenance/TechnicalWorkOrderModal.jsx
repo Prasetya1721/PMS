@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { usePMS } from '../../context/PMSContext';
 import { TechnicalWOModalHeader } from './techwo/TechnicalWOModalHeader';
 import { TechnicalWOJobIdentity } from './techwo/TechnicalWOJobIdentity';
@@ -272,8 +273,17 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
     onClose();
   };
 
-  return (
-    <div className="modal-overlay" style={{
+  useEffect(() => {
+    document.body.classList.add('technical-wo-printing-active');
+    document.body.classList.add('maritime-modal-printing-active');
+    return () => {
+      document.body.classList.remove('technical-wo-printing-active');
+      document.body.classList.remove('maritime-modal-printing-active');
+    };
+  }, []);
+
+  const modalContent = (
+    <div className="modal-overlay print-modal-portal technical-wo-portal" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -415,4 +425,8 @@ export const TechnicalWorkOrderModal = ({ workOrder, initialVesselId, onClose })
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

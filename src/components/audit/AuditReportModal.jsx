@@ -46,8 +46,10 @@ export const AuditReportModal = ({
   // Attach body class for print isolation
   useEffect(() => {
     document.body.classList.add('audit-report-printing-active');
+    document.body.classList.add('maritime-modal-printing-active');
     return () => {
       document.body.classList.remove('audit-report-printing-active');
+      document.body.classList.remove('maritime-modal-printing-active');
     };
   }, []);
 

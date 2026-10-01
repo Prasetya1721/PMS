@@ -15,7 +15,7 @@ export const CrewManagerHeader = ({
   setShowManningModal,
 }) => {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Manajemen Awak Kapal (Crew & Kehadiran)</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>

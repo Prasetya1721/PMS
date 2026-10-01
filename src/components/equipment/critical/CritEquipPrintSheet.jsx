@@ -3,7 +3,8 @@
  * Diekstrak dari CriticalEquipmentView.jsx (baris 473-826).
  * Sumber: Modal cetak resmi Log Uji Peralatan Kritis & Siap Darurat ISM Code 10.3
  */
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, ShieldAlert, X } from 'lucide-react';
 import { BaharimasEmblem } from '../../common/BaharimasLogo';
 
@@ -14,8 +15,17 @@ export const CritEquipPrintSheet = ({
   setShowPrintModal,
   vesselTests,
 }) => {
-  return (
-    <div className="modal-overlay" style={{
+  useEffect(() => {
+    document.body.classList.add('crit-equip-printing-active');
+    document.body.classList.add('maritime-modal-printing-active');
+    return () => {
+      document.body.classList.remove('crit-equip-printing-active');
+      document.body.classList.remove('maritime-modal-printing-active');
+    };
+  }, []);
+
+  const modalContent = (
+    <div className="modal-overlay print-modal-portal" style={{
               position: 'fixed',
               top: 0, left: 0, right: 0, bottom: 0,
               background: 'rgba(10, 16, 30, 0.85)',
@@ -368,4 +378,8 @@ export const CritEquipPrintSheet = ({
               </div>
             </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

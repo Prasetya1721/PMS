@@ -10,7 +10,7 @@ export const WorkOrderFormFooter = ({
   onClose,
 }) => {
   return (
-    <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <button type="button" onClick={onClose} className="btn btn-secondary">
                     Batal
                   </button>

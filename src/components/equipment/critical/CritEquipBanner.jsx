@@ -11,7 +11,7 @@ export const CritEquipBanner = ({
   setShowTestModal,
 }) => {
   return (
-    <div className="glass-card" style={{
+    <div className="glass-card no-print" style={{
             padding: '1.25rem 1.5rem',
             borderRadius: '12px',
             border: '1px solid rgba(239, 68, 68, 0.35)',

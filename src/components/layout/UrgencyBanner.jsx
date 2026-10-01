@@ -10,7 +10,7 @@ export const UrgencyBanner = () => {
   }
 
   return (
-    <div className="urgency-banner">
+    <div className="urgency-banner no-print">
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <ShieldAlert size={18} color="#ef4444" />
         <div>

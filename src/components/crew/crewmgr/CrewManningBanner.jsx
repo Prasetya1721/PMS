@@ -13,7 +13,7 @@ export const CrewManningBanner = ({
   vessels,
 }) => {
   return (
-    <div style={{
+    <div className="no-print" style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

@@ -44,7 +44,13 @@ Kru / Akomodasi: ${particulars.crewComplement || '-'}
   };
 
   useEffect(() => {
+    const handleBeforePrint = () => document.body.classList.add('particulars-printing-active');
+    const handleAfterPrint = () => document.body.classList.remove('particulars-printing-active');
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
     return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
       document.body.classList.remove('particulars-printing-active');
     };
   }, []);
