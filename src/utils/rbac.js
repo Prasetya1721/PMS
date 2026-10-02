@@ -225,6 +225,7 @@ export const canPerformAction = (role, action) => {
     case 'configure_api_keys':     // Konfigurasi API keys gateway
     case 'manage_developer_tools':   // Tool pengembang
     case 'manage_sidebar':         // Konfigurasi matriks sidebar RBAC
+    case 'manage_subscription':    // Kontrol lisensi, running text langganan & remote web
       return role === 'Developer';
 
     // ── Manajemen Konten & Data (Super Admin & Developer) ──────────────

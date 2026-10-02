@@ -203,19 +203,45 @@ body, .app-container, .main-content, .glass-card, .pms-table, header, aside, .in
 }
 
 /* Light Theme Contrast Safeguards for nested bold elements */
+[data-theme='light'] .glass-card {
+  color: #0f172a !important;
+}
+
 [data-theme='light'] .glass-card strong[style*="color: #fff"],
 [data-theme='light'] .glass-card strong[style*="color: #ffffff"],
 [data-theme='light'] .glass-card span[style*="color: #fff"]:not(.badge):not(.btn *),
 [data-theme='light'] .glass-card span[style*="color: #ffffff"]:not(.badge):not(.btn *),
-[data-theme='light'] .glass-card h1[style*="color: #fff"],
-[data-theme='light'] .glass-card h2[style*="color: #fff"],
-[data-theme='light'] .glass-card h3[style*="color: #fff"],
-[data-theme='light'] .glass-card h4[style*="color: #fff"],
-[data-theme='light'] .glass-card h1[style*="color: #ffffff"],
-[data-theme='light'] .glass-card h2[style*="color: #ffffff"],
-[data-theme='light'] .glass-card h3[style*="color: #ffffff"],
-[data-theme='light'] .glass-card h4[style*="color: #ffffff"] {
+[data-theme='light'] .glass-card h1,
+[data-theme='light'] .glass-card h2,
+[data-theme='light'] .glass-card h3,
+[data-theme='light'] .glass-card h4,
+[data-theme='light'] .glass-card h5 {
   color: #0f172a !important;
+}
+
+[data-theme='light'] .glass-card label,
+[data-theme='light'] .form-label {
+  color: #0f172a !important;
+  font-weight: 700;
+}
+
+[data-theme='light'] .glass-card label[style*="#ffffff"],
+[data-theme='light'] .glass-card label[style*="#fff"] {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .glass-card label[style*="#fca5a5"] {
+  color: #b91c1c !important;
+}
+
+[data-theme='light'] .glass-card label[style*="#bae6fd"] {
+  color: #0369a1 !important;
+}
+
+[data-theme='light'] .glass-card h4[style*="#fef3c7"],
+[data-theme='light'] .glass-card h4[style*="#fde68a"],
+[data-theme='light'] .glass-card h5[style*="#fde68a"] {
+  color: #92400e !important;
 }
 
 /* Hero Fleet Overview banner adaptation in Light Mode */
@@ -1587,6 +1613,503 @@ input[type="datetime-local"] {
 }
 
 /* ========================================================================= */
+/* SUBSCRIPTION RUNNING TEXT MARQUEE TICKER                                  */
+/* ========================================================================= */
+.subscription-marquee-container {
+  width: 100%;
+  position: relative;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.subscription-marquee-container.severity-warning {
+  background: linear-gradient(90deg, #78350f 0%, #b45309 25%, #d97706 50%, #b45309 75%, #78350f 100%);
+  color: #fffbeb;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.45);
+}
+
+.subscription-marquee-container.severity-danger {
+  background: linear-gradient(90deg, #7f1d1d 0%, #b91c1c 25%, #ef4444 50%, #b91c1c 75%, #7f1d1d 100%);
+  color: #fef2f2;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.6);
+  animation: pulseSubscriptionBorder 2.5s infinite ease-in-out;
+}
+
+.subscription-marquee-container.severity-info {
+  background: linear-gradient(90deg, #1e3a8a 0%, #1d4ed8 50%, #1e3a8a 100%);
+  color: #eff6ff;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+@keyframes pulseSubscriptionBorder {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(239, 68, 68, 0.65), 0 0 15px rgba(239, 68, 68, 0.4);
+  }
+}
+
+.subscription-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.subscription-marquee-track {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0 1.25rem;
+  position: relative;
+  cursor: default;
+  mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 25px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 25px), transparent 100%);
+}
+
+.subscription-marquee-content {
+  display: inline-block;
+  padding-left: 100%;
+  animation: subscriptionTickerMove 35s linear infinite;
+  white-space: nowrap;
+  letter-spacing: 0.015em;
+}
+
+.subscription-marquee-content:hover {
+  animation-play-state: paused;
+}
+
+@keyframes subscriptionTickerMove {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+.subscription-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.subscription-btn-pay {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+}
+
+.subscription-btn-pay:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.subscription-btn-dev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.35);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.subscription-btn-dev:hover {
+  background: rgba(139, 92, 246, 0.55);
+}
+
+.subscription-btn-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subscription-btn-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* ========================================================================= */
+/* SUBSCRIPTION & DEVELOPER CONTROL PANEL STYLING                            */
+/* Complete contrast & theme adaptation for Dark and Light mode              */
+/* ========================================================================= */
+
+.subscription-panel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Card Containers */
+.subscription-card {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--text-main);
+  transition: all 0.2s ease;
+}
+
+[data-theme='light'] .subscription-card {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Sub-card inside tabs */
+.subscription-subcard {
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+[data-theme='light'] .subscription-subcard {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Section Headings */
+.subscription-section-heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fef3c7;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+[data-theme='light'] .subscription-section-heading {
+  color: #92400e !important; /* Deep rich amber for high contrast in light mode */
+}
+
+/* Form Labels - CRITICAL FIX FOR LIGHT THEME */
+.subscription-form-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.825rem;
+  margin-bottom: 0.35rem;
+  color: #f1f5f9;
+}
+
+[data-theme='light'] .subscription-form-label {
+  color: #0f172a !important; /* Crisp dark navy slate in light mode */
+  font-weight: 700 !important;
+}
+
+/* Helper text below inputs */
+.subscription-help-text {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  display: block;
+  margin-top: 0.3rem;
+  line-height: 1.45;
+}
+
+[data-theme='light'] .subscription-help-text {
+  color: #475569 !important; /* Crisp slate-600 */
+}
+
+/* Checkbox Toggle Container */
+.subscription-toggle-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .subscription-toggle-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Toggle Checkbox Labels */
+.subscription-toggle-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+[data-theme='light'] .subscription-toggle-label {
+  color: #0f172a !important; /* DARK NAVY INSTEAD OF WHITE ON WHITE */
+}
+
+.subscription-toggle-danger-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fca5a5;
+  cursor: pointer;
+}
+
+[data-theme='light'] .subscription-toggle-danger-label {
+  color: #b91c1c !important; /* CRISP BOLD RED IN LIGHT MODE */
+}
+
+/* Metric Stats Cards at top of Subscription Panel */
+.subscription-metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='light'] .subscription-metric-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.subscription-metric-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+[data-theme='light'] .subscription-metric-label {
+  color: #64748b !important;
+}
+
+.subscription-metric-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-top: 0.2rem;
+  color: #ffffff;
+}
+
+[data-theme='light'] .subscription-metric-value {
+  color: #0f172a !important;
+}
+
+/* Sub-Tab Navigation Buttons */
+.subscription-nav-tab {
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.825rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subscription-nav-tab.active {
+  font-weight: 800;
+  background: #f59e0b;
+  color: #0f172a;
+  border: 1px solid #f59e0b;
+}
+
+.subscription-nav-tab.inactive {
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .subscription-nav-tab.inactive {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme='light'] .subscription-nav-tab.inactive:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Variable Token Chips */
+.subscription-token-btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fde68a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.subscription-token-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b;
+}
+
+[data-theme='light'] .subscription-token-btn {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  color: #92400e !important;
+}
+
+/* Remote Sync Guide Blocks */
+.subscription-guide-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.1rem;
+}
+
+[data-theme='light'] .subscription-guide-card {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* Modal specific card adaptation */
+.subscription-dev-modal-card {
+  background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+  color: #f8fafc;
+}
+
+[data-theme='light'] .subscription-dev-modal-card {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25) !important;
+}
+
+.subscription-dev-modal-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f5d0fe;
+}
+
+[data-theme='light'] .subscription-dev-modal-title {
+  color: #4c1d95 !important;
+}
+
+/* Payment Modal Card Adaptation */
+.subscription-payment-modal-card {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  color: #f8fafc;
+}
+
+[data-theme='light'] .subscription-payment-modal-card {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.subscription-payment-header {
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+[data-theme='light'] .subscription-payment-header {
+  background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border-bottom: 1px solid #fde68a !important;
+}
+
+.subscription-payment-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fef3c7;
+}
+
+[data-theme='light'] .subscription-payment-title {
+  color: #78350f !important;
+}
+
+.subscription-payment-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .subscription-payment-subtitle {
+  color: #92400e !important;
+}
+
+[data-theme='light'] .subscription-payment-box {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+[data-theme='light'] .subscription-payment-box-text {
+  color: #0f172a !important;
+}
+
+[data-theme='light'] .subscription-bank-container {
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+[data-theme='light'] .subscription-bank-name {
+  color: #1e3a8a !important;
+}
+
+[data-theme='light'] .subscription-bank-acc {
+  color: #0369a1 !important;
+}
+
+[data-theme='light'] .subscription-bank-holder {
+  color: #334155 !important;
+}
+
+
+/* ========================================================================= */
 /* PRINT MEDIA STYLES - STANDAR DOKUMEN MARITIM A4 RESMI                      */
 /* (Audit Report ISM Code & Particulars Sheet PT. Pelayaran Baharimas K.)   */
 /* ========================================================================= */
@@ -1716,6 +2239,7 @@ input[type="datetime-local"] {
   nav,
   .mobile-bottom-nav,
   .urgency-banner,
+  .subscription-marquee-container,
   .vessel-hero-card,
   button,
   .tab-btn,

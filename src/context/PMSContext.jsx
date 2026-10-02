@@ -23,7 +23,8 @@ import {
   INITIAL_NOTIFICATION_SETTINGS,
   INITIAL_NOTIFICATION_LOGS,
   INITIAL_USERS,
-  INITIAL_API_KEYS
+  INITIAL_API_KEYS,
+  INITIAL_SUBSCRIPTION_CONFIG
 } from '../data/initialData';
 import { createDefaultShipParticulars } from '../data/shipParticularsData';
 // Lima fungsi notifikasi dipindah ke ./logic/ dengan dependensi closure induk
@@ -204,6 +205,27 @@ export const PMSProvider = ({ children }) => {
     }
     return init;
   });
+  const [subscriptionConfig, setSubscriptionConfig] = useState(() => {
+    let loaded = load('subscriptionConfig', null);
+    if (!loaded) {
+      try {
+        const raw = localStorage.getItem('pms_subscription_config');
+        if (raw) loaded = JSON.parse(raw);
+      } catch {}
+    }
+    if (loaded && typeof loaded === 'object') {
+      return {
+        ...INITIAL_SUBSCRIPTION_CONFIG,
+        ...loaded,
+        remoteControl: {
+          ...INITIAL_SUBSCRIPTION_CONFIG.remoteControl,
+          ...(loaded.remoteControl || {})
+        }
+      };
+    }
+    return { ...INITIAL_SUBSCRIPTION_CONFIG };
+  });
+  const [developerSubSection, setDeveloperSubSection] = useState('api_keys');
   const [audits, setAudits] = useState(() => {
     // Migration: user requested default audit session kosong dan bersih
     const migrationKey = 'pms_audits_clean_v4';
@@ -322,6 +344,68 @@ export const PMSProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('pms_vesselTypes', JSON.stringify(vesselTypes));
   }, [vesselTypes]);
+
+  // Sinkronisasi otomatis & pendengar remote control langganan dari web lain
+  useEffect(() => {
+    // 1. Cek query parameters di URL (misal dibuka dari portal billing: ?pms_sub_status=warning&pms_sub_expiry=2026-10-25)
+    if (typeof window !== 'undefined' && window.location?.search) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const subStatus = params.get('pms_sub_status');
+        const subExpiry = params.get('pms_sub_expiry');
+        const subForce = params.get('pms_sub_force');
+        const subSyncUrl = params.get('pms_sub_sync');
+
+        if (subStatus || subExpiry || subForce !== null || subSyncUrl) {
+          setSubscriptionConfig(prev => {
+            const next = {
+              ...prev,
+              ...(subStatus ? { status: subStatus } : {}),
+              ...(subExpiry ? { expiryDate: subExpiry } : {}),
+              ...(subForce !== null ? { forceShowRunningText: subForce === 'true' } : {}),
+              remoteControl: {
+                ...prev.remoteControl,
+                ...(subSyncUrl ? { syncUrl: subSyncUrl } : {}),
+                lastSyncTime: new Date().toISOString(),
+                lastSyncStatus: 'success',
+                lastSyncMessage: 'Dikonfigurasi otomatis melalui parameter URL remote web'
+              }
+            };
+            localStorage.setItem('pms_subscription_config', JSON.stringify(next));
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error('Error parsing remote subscription URL query:', err);
+      }
+    }
+
+    // 2. Pendengar window postMessage untuk integrasi lintas web / iframe controller
+    const handleRemoteMessage = (event) => {
+      if (!event.data || typeof event.data !== 'object') return;
+      if (event.data.type === 'PMS_REMOTE_SUBSCRIPTION_UPDATE') {
+        const { secretKey, payload } = event.data;
+        if (subscriptionConfig?.remoteControl?.secretKey && secretKey && secretKey !== subscriptionConfig.remoteControl.secretKey) {
+          console.warn('PMS Subscription: Secret key tidak cocok dari postMessage');
+          return;
+        }
+        if (payload && typeof payload === 'object') {
+          updateSubscriptionConfig(payload);
+          showToast('Status langganan diperbarui via Remote Web Controller!', 'success');
+        }
+      }
+    };
+
+    window.addEventListener('message', handleRemoteMessage);
+
+    // 3. Auto-sync dari remoteSyncUrl saat mount jika remote enabled dan syncUrl terisi
+    if (subscriptionConfig?.remoteControl?.enabled && subscriptionConfig?.remoteControl?.syncUrl) {
+      syncSubscriptionFromRemote(subscriptionConfig.remoteControl.syncUrl).catch(() => {});
+    }
+
+    return () => window.removeEventListener('message', handleRemoteMessage);
+  }, []);
+
 
   useEffect(() => {
     localStorage.setItem('pms_portLocations', JSON.stringify(portLocations));
@@ -2900,6 +2984,108 @@ export const PMSProvider = ({ children }) => {
     localStorage.setItem('pms_api_keys', JSON.stringify(INITIAL_API_KEYS));
   };
 
+  // ── Manajemen Lisensi & Langganan (Hanya Developer) ────────────────
+  const updateSubscriptionConfig = (updates) => {
+    setSubscriptionConfig(prev => {
+      const merged = {
+        ...prev,
+        ...updates,
+        remoteControl: {
+          ...(prev?.remoteControl || {}),
+          ...(updates?.remoteControl || {})
+        }
+      };
+      localStorage.setItem('pms_subscription_config', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
+  const resetSubscriptionConfig = () => {
+    setSubscriptionConfig(INITIAL_SUBSCRIPTION_CONFIG);
+    localStorage.setItem('pms_subscription_config', JSON.stringify(INITIAL_SUBSCRIPTION_CONFIG));
+    showToast('Konfigurasi langganan berhasil di-reset ke bawaan.', 'info');
+  };
+
+  const syncSubscriptionFromRemote = async (overrideUrl = null) => {
+    const targetUrl = overrideUrl || subscriptionConfig?.remoteControl?.syncUrl;
+    if (!targetUrl || typeof targetUrl !== 'string' || !targetUrl.trim()) {
+      showToast('URL remote sync belum diisi di menu Developer.', 'warning');
+      return { success: false, error: 'URL remote sync belum diisi' };
+    }
+    try {
+      const res = await fetch(targetUrl.trim(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          ...(subscriptionConfig?.remoteControl?.secretKey
+            ? { 'X-Secret-Key': subscriptionConfig.remoteControl.secretKey }
+            : {})
+        },
+        cache: 'no-cache'
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      const data = await res.json();
+      const payload = (data && data.data) ? data.data : data;
+
+      if (!payload || typeof payload !== 'object') {
+        throw new Error('Data respons JSON tidak valid');
+      }
+
+      setSubscriptionConfig(prev => {
+        const updated = {
+          ...prev,
+          ...(payload.status ? { status: payload.status } : {}),
+          ...(payload.planName ? { planName: payload.planName } : {}),
+          ...(payload.clientName ? { clientName: payload.clientName } : {}),
+          ...(payload.expiryDate ? { expiryDate: payload.expiryDate } : {}),
+          ...(payload.warningDaysThreshold !== undefined ? { warningDaysThreshold: Number(payload.warningDaysThreshold) } : {}),
+          ...(payload.forceShowRunningText !== undefined ? { forceShowRunningText: Boolean(payload.forceShowRunningText) } : {}),
+          ...(payload.billingAmount ? { billingAmount: payload.billingAmount } : {}),
+          ...(payload.billingCycle ? { billingCycle: payload.billingCycle } : {}),
+          ...(payload.customMessage !== undefined ? { customMessage: payload.customMessage } : {}),
+          ...(payload.bankName ? { bankName: payload.bankName } : {}),
+          ...(payload.bankAccount ? { bankAccount: payload.bankAccount } : {}),
+          ...(payload.bankAccountHolder ? { bankAccountHolder: payload.bankAccountHolder } : {}),
+          ...(payload.contactPerson ? { contactPerson: payload.contactPerson } : {}),
+          ...(payload.contactPhone ? { contactPhone: payload.contactPhone } : {}),
+          ...(payload.contactEmail ? { contactEmail: payload.contactEmail } : {}),
+          ...(payload.paymentUrl ? { paymentUrl: payload.paymentUrl } : {}),
+          ...(payload.isLocked !== undefined ? { isLocked: Boolean(payload.isLocked) } : {}),
+          remoteControl: {
+            ...prev.remoteControl,
+            lastSyncTime: new Date().toISOString(),
+            lastSyncStatus: 'success',
+            lastSyncMessage: `Berhasil tersinkronisasi dengan ${targetUrl.trim()}`
+          }
+        };
+        localStorage.setItem('pms_subscription_config', JSON.stringify(updated));
+        return updated;
+      });
+
+      showToast('Status langganan berhasil disinkronkan dari web remote!', 'success');
+      return { success: true };
+    } catch (err) {
+      setSubscriptionConfig(prev => {
+        const updated = {
+          ...prev,
+          remoteControl: {
+            ...prev.remoteControl,
+            lastSyncTime: new Date().toISOString(),
+            lastSyncStatus: 'error',
+            lastSyncMessage: `Gagal: ${err.message}`
+          }
+        };
+        localStorage.setItem('pms_subscription_config', JSON.stringify(updated));
+        return updated;
+      });
+      showToast(`Gagal sinkron remote: ${err.message}`, 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+
   // Clear all operational & master dummy data to clean state
   const clearAllData = () => {
     if (!canPerformAction(currentRole || currentUser?.role, 'reset_all_data')) {
@@ -3329,6 +3515,12 @@ export const PMSProvider = ({ children }) => {
         apiKeysConfig,
         updateApiKeysConfig,
         resetApiKeysConfig,
+        subscriptionConfig,
+        updateSubscriptionConfig,
+        resetSubscriptionConfig,
+        syncSubscriptionFromRemote,
+        developerSubSection,
+        setDeveloperSubSection,
         resetToSeedData,
         clearAllData,
         loadDemoData,

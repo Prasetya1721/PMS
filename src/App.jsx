@@ -5,6 +5,8 @@ import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { UrgencyBanner } from './components/layout/UrgencyBanner';
+import { SubscriptionRunningBanner } from './components/subscription/SubscriptionRunningBanner';
+import { SubscriptionLockOverlay } from './components/subscription/SubscriptionLockOverlay';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { CheckCircle, AlertTriangle, Info, ShieldAlert, Loader2 } from 'lucide-react';
 import { hasAccessWithOverrides, ROLE_DEFINITIONS } from './utils/rbac';
@@ -205,6 +207,7 @@ const AppContent = () => {
       {/* Main Content Area */}
       <ErrorBoundary>
         <div className="main-content">
+          <SubscriptionRunningBanner />
           <Header />
           <UrgencyBanner />
 
@@ -215,6 +218,9 @@ const AppContent = () => {
           </main>
         </div>
       </ErrorBoundary>
+
+      {/* Subscription Lock Overlay (jika lisensi expired & dikunci) */}
+      <SubscriptionLockOverlay />
 
       {/* Thumb-friendly Mobile Bottom Navigation */}
       <MobileBottomNav />

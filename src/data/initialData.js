@@ -399,3 +399,36 @@ export const INITIAL_API_KEYS = {
     description: 'Kunci rahasia verifikasi signature webhook dari sistem ERP eksternal, perbankan, dan telemetri IoT kapal'
   }
 };
+
+// 18. Konfigurasi Awal Sistem Langganan & Lisensi Aplikasi (Subscription / SaaS License)
+export const INITIAL_SUBSCRIPTION_CONFIG = {
+  status: 'warning', // 'active' | 'warning' | 'expired' | 'grace_period'
+  planName: 'Enterprise Maritime Fleet License (Baharimas PMS)',
+  clientName: 'PT. Pelayaran Baharimas Kalimantan',
+  expiryDate: '2026-10-15', // Jatuh tempo dalam waktu dekat (memasuki ambang batas warning 14 hari)
+  warningDaysThreshold: 14,
+  forceShowRunningText: true,
+  customMessage: '',
+  billingAmount: 'Rp 25.000.000 / Tahun',
+  billingCycle: 'Tahunan (Annual Fleet License)',
+  bankName: 'Bank Central Asia (BCA)',
+  bankAccount: '880-192-8391',
+  bankAccountHolder: 'PT Bahari Digital Solusindo',
+  contactPerson: 'Alex Pratama (Billing & Technical Support)',
+  contactPhone: '089508888778',
+  contactEmail: 'billing@baharimas.co.id',
+  paymentUrl: 'https://wa.me/6289508888778?text=Halo%20Dev,%20kami%20ingin%20konfirmasi%20pembayaran%20perpanjangan%20lisensi%20PMS%20PT%20Pelayaran%20Baharimas%20Kalimantan',
+  paymentButtonText: 'Bayar / Konfirmasi Perpanjangan',
+  isLocked: false,
+  lockMessage: 'Masa aktif lisensi aplikasi Sistem PMS Kapal telah berakhir. Harap selesaikan pembayaran biaya perpanjangan untuk membuka kembali akses data operasional armada.',
+  remoteControl: {
+    enabled: true,
+    syncUrl: '', // URL endpoint di web eksternal (bisa diisi developer untuk kontrol dari web lain)
+    secretKey: 'pms_sub_sec_88921a',
+    autoSyncIntervalMinutes: 30,
+    lastSyncTime: null,
+    lastSyncStatus: 'idle', // 'idle' | 'success' | 'error'
+    lastSyncMessage: ''
+  }
+};
+

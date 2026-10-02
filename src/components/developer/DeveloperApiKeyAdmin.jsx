@@ -32,9 +32,11 @@ import {
   Plus,
   RotateCcw,
   Phone,
-  HelpCircle
+  HelpCircle,
+  CreditCard
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { SubscriptionControlAdmin } from './SubscriptionControlAdmin';
 
 const SERVICE_ICONS = {
   communication: Radio,
@@ -62,7 +64,9 @@ export const DeveloperApiKeyAdmin = () => {
     resetApiKeysConfig,
     showToast,
     confirm,
-    currentRole
+    currentRole,
+    developerSubSection,
+    setDeveloperSubSection
   } = usePMS();
 
   const [localConfig, setLocalConfig] = useState(() => ({ ...apiKeysConfig }));
@@ -75,6 +79,14 @@ export const DeveloperApiKeyAdmin = () => {
   const [selectedServiceForSnippet, setSelectedServiceForSnippet] = useState('whatsapp');
   const [showSnippetModal, setShowSnippetModal] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [activeDevSection, setActiveDevSection] = useState(() => developerSubSection || 'api_keys');
+
+  // Sync jika developerSubSection berubah dari luar (misal dibuka dari modal pintasan)
+  React.useEffect(() => {
+    if (developerSubSection) {
+      setActiveDevSection(developerSubSection);
+    }
+  }, [developerSubSection]);
 
   // Live WhatsApp Test state
   const [waTestPhone, setWaTestPhone] = useState(() => localConfig.whatsapp?.senderPhone || '089508888778');
@@ -581,7 +593,64 @@ print("Data:", res.json())`;
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Sub-Section Switcher: API Keys vs Kontrol Langganan & Running Teks */}
+      <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveDevSection('api_keys');
+            if (setDeveloperSubSection) setDeveloperSubSection('api_keys');
+          }}
+          className="btn btn-sm"
+          style={{
+            padding: '0.65rem 1.35rem',
+            borderRadius: '10px',
+            fontSize: '0.85rem',
+            fontWeight: activeDevSection === 'api_keys' ? 800 : 600,
+            background: activeDevSection === 'api_keys' ? 'linear-gradient(135deg, #7c3aed, #0284c7)' : 'rgba(255, 255, 255, 0.05)',
+            color: '#ffffff',
+            border: activeDevSection === 'api_keys' ? '1px solid #7c3aed' : '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <KeyRound size={16} />
+          <span>Konfigurasi API Keys & Gateway</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveDevSection('subscription');
+            if (setDeveloperSubSection) setDeveloperSubSection('subscription');
+          }}
+          className="btn btn-sm"
+          style={{
+            padding: '0.65rem 1.35rem',
+            borderRadius: '10px',
+            fontSize: '0.85rem',
+            fontWeight: activeDevSection === 'subscription' ? 800 : 600,
+            background: activeDevSection === 'subscription' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255, 255, 255, 0.05)',
+            color: activeDevSection === 'subscription' ? '#0f172a' : '#ffffff',
+            border: activeDevSection === 'subscription' ? '1px solid #f59e0b' : '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <CreditCard size={16} />
+          <span>Kontrol Langganan, Running Teks & Remote Web</span>
+        </button>
+      </div>
+
+      {activeDevSection === 'subscription' ? (
+        <SubscriptionControlAdmin />
+      ) : (
+        <>
+          {/* Filter and Search Bar */}
       <div className="glass-card" style={{
         padding: '0.85rem 1.25rem',
         display: 'flex',
@@ -1183,6 +1252,8 @@ print("Data:", res.json())`;
           <span>Reset Default</span>
         </button>
       </div>
+        </>
+      )}
 
       {/* Code Snippet Modal */}
       {showSnippetModal && (

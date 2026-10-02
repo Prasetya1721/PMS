@@ -3,7 +3,7 @@
  * Sumber: TAB 4: alat dev & developer API shortcuts
  */
 import React from 'react';
-import { Copy, KeyRound, Terminal } from 'lucide-react';
+import { Copy, KeyRound, Terminal, CreditCard } from 'lucide-react';
 import { usePMS } from '../../../context/PMSContext';
 
 export const TabDev = ({
@@ -16,6 +16,7 @@ export const TabDev = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Shortcut ke Developer API Console (Hanya tampil untuk Developer) */}
       {currentRole === 'Developer' && (
+        <>
         <div style={{
           padding: '1rem 1.25rem',
           borderRadius: '10px',
@@ -66,6 +67,62 @@ export const TabDev = ({
             <span>Buka Konfigurasi API Key</span>
           </button>
         </div>
+
+        {/* Shortcut ke Kontrol Lisensi Langganan & Running Teks (Hanya Developer) */}
+        <div style={{
+          padding: '1rem 1.25rem',
+          borderRadius: '10px',
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.08))',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '8px',
+              background: 'rgba(245, 158, 11, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#f59e0b'
+            }}>
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700 }}>
+                Kontrol Langganan, Running Teks & Remote Web
+              </h4>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Atur masa aktif lisensi, broadcast running text tagihan di layar pengguna, dan kendalikan dari web lain.
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('developer_api')}
+            className="btn btn-primary btn-sm"
+            style={{
+              fontSize: '0.78rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              borderColor: '#d97706',
+              color: '#0f172a',
+              fontWeight: 800
+            }}
+          >
+            <CreditCard size={13} />
+            <span>Kelola Lisensi & Running Teks</span>
+          </button>
+        </div>
+        </>
       )}
 
       <div>
