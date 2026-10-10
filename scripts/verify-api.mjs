@@ -68,7 +68,21 @@ console.log(`Verifikasi endpoint API: ${base}\n`);
 const isLocal = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(base);
 
 const health = await probe('health JSON', '/api/health', { expectJson: true });
-await probe('endpoint tidak dikenal -> 404', '/api/tidak-ada', { expectStatus: 404, expectJson: true });
+
+// Endpoint API yang tidak ada harus GAGAL, bukan menerima HTML aplikasi dengan
+// status 200 (penyebab kegagalan senyap sebelumnya). Status 404 wajib; body-nya
+// boleh halaman 404 milik platform, yang penting bukan HTML aplikasi.
+const unknown = await fetch(`${base}/api/tidak-ada`, { signal: AbortSignal.timeout(TIMEOUT_MS) }).catch(() => null);
+const unknownBody = unknown ? await unknown.text().catch(() => '') : '';
+const unknownOk = Boolean(unknown) && unknown.status === 404 && !/<!doctype html/i.test(unknownBody);
+if (!unknownOk) failed += 1;
+results.push({
+  name: 'endpoint tidak dikenal -> 404',
+  ok: unknownOk,
+  detail: unknownOk ? `${unknown.status} (bukan HTML aplikasi)` : `status ${unknown?.status ?? 'tanpa respons'}, body ${/<!doctype html/i.test(unknownBody) ? 'HTML aplikasi (regresi!)' : 'tak terduga'}`,
+  sample: unknownOk ? undefined : unknownBody.slice(0, 120).replace(/\s+/g, ' '),
+});
+
 await probe('subscription JSON', '/api/subscription', { expectJson: true });
 await probe('proxy WhatsApp menolak body kosong', '/api/proxy/whatsapp', { method: 'POST', expectStatus: 400, expectJson: true, body: {} });
 await probe('email belum dikonfigurasi -> 501', '/api/notifications/email', { method: 'POST', expectStatus: 501, expectJson: true, body: { to: 'fleet.ops@baharimas.co.id', subject: 'cek', text: 'cek' } });
