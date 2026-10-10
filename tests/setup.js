@@ -19,10 +19,14 @@ const storageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: storageMock,
-  writable: true,
-});
+// Sebagian tes berjalan di lingkungan `node` (mis. endpoint serverless di api/),
+// di sana `window` tidak ada — jangan pasang mock DOM.
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: storageMock,
+    writable: true,
+  });
+}
 
 if (typeof globalThis !== 'undefined') {
   Object.defineProperty(globalThis, 'localStorage', {
@@ -32,7 +36,7 @@ if (typeof globalThis !== 'undefined') {
 }
 
 beforeEach(() => {
-  window.localStorage.clear();
+  if (typeof window !== 'undefined' && window.localStorage) window.localStorage.clear();
 });
 
 afterEach(() => {

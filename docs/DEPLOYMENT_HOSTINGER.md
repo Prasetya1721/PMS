@@ -8,7 +8,13 @@ Dokumen ini adalah panduan teknis resmi untuk men-deploy aplikasi **PMS Armada**
 
 - **Tipe Aplikasi:** Single Page Application (SPA) berbasis Vite + React.
 - **Output Build:** File statis murni (HTML, CSS, JS, SVG, gambar) di direktori `dist/`.
-- **Runtime Backend:** Tidak memerlukan runtime Node.js di server hosting. Konfigurasi runtime (konektor WhatsApp Gateway, Email Gateway, preferensi situs) dikonfigurasi melalui antarmuka Admin (Site Settings & Notification Center) dan tersimpan di `localStorage` peramban.
+- **Runtime Backend:** Aplikasi utama adalah SPA statis dan **tidak memerlukan runtime Node.js** di hosting. Konfigurasi runtime (konektor WhatsApp Gateway, Email Gateway, preferensi situs) dikonfigurasi lewat antarmuka Admin dan tersimpan di `localStorage` peramban.
+
+  Namun ada dua fitur yang memerlukan backend, dan keduanya **tidak** tersedia di shared hosting statis:
+  1. **Proxy WhatsApp** (`/api/proxy/whatsapp`) — memotong CORS. Tanpa proxy, browser mencoba koneksi langsung ke gateway dan sering diblokir kebijakan CORS.
+  2. **Email otomatis** (`/api/notifications/email`) — memerlukan kredensial penyedia yang tidak boleh ada di browser.
+
+  Di Vercel, keduanya berjalan sebagai Serverless Function di direktori `api/`. Kalau produksi memakai Hostinger, sediakan padanannya di sisi server (mis. endpoint PHP/Node kecil dengan jalur yang sama) atau fitur tersebut akan nonaktif dengan pesan yang jelas — bukan gagal senyap.
 
 ---
 

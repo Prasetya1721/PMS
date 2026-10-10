@@ -94,16 +94,41 @@ npm run preview
 
 ### 3. Deploy ke Vercel
 
-Repository ini telah dilengkapi dengan `vercel.json` standar:
-```json
-{
-  "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
-```
-Cukup push repository ini ke GitHub / GitLab dan hubungkan ke akun Vercel Anda. Vercel akan otomatis mendeteksi framework **Vite** dan menyajikan aplikasi dengan performa maksimal.
+Push repository ini ke GitHub lalu hubungkan ke akun Vercel. Vercel mendeteksi framework **Vite** dan menyajikan aplikasi sebagai situs statis, ditambah **Vercel Serverless Function** dari direktori `api/`.
+
+`vercel.json` memakai blok `routes` dengan urutan yang penting:
+1. `{ "handle": "filesystem" }` — berkas nyata (aset ber-hash, logo, `index.html`) dilayani apa adanya, dan **fungsi di `api/` ikut terlayani di sini**.
+2. `{ "src": "/api/.*", "status": 404 }` — permintaan API yang tidak punya fungsinya dijawab **404 JSON**, bukan jatuh ke `index.html`.
+3. `{ "src": "/(.*)", "dest": "/index.html" }` — sisanya adalah rute SPA.
+
+Tanpa langkah (2), permintaan ke endpoint API yang tidak ada akan menerima **HTML aplikasi dengan status 200**, sehingga pemanggilnya mengira berhasil. Itu penyebab kegagalan senyap pada pengiriman WhatsApp/email.
+
+#### Endpoint API
+
+| Endpoint | Metode | Fungsi |
+|---|---|---|
+| `/api/health` | GET | Status server + ringkasan konfigurasi (tanpa membocorkan rahasia) |
+| `/api/subscription` | GET, POST | Status lisensi & running text penagihan |
+| `/api/proxy/whatsapp` | POST | Proxy pengiriman WhatsApp (memotong CORS) |
+| `/api/notifications/email` | POST | Pengiriman email notifikasi |
+
+Semua endpoint dijawab dengan JSON. Kegagalan selalu berupa status HTTP yang jujur: `400` (input tidak valid), `403` (di luar daftar izin), `404` (endpoint tidak ada), `405` (metode salah), `413` (payload terlalu besar), `501` (kanal belum dikonfigurasi), `502` (gateway penyedia gagal/timeout).
+
+#### Environment variable (Vercel → Settings → Environment Variables)
+
+| Variabel | Wajib | Keterangan |
+|---|---|---|
+| `PMS_EMAIL_API_KEY` | untuk email otomatis | API key penyedia email (mis. Resend) |
+| `PMS_EMAIL_FROM` | untuk email otomatis | Alamat pengirim terverifikasi, mis. `PMS Baharimas <noreply@baharimas.co.id>` |
+| `PMS_EMAIL_PROVIDER` | tidak | `resend` (bawaan) |
+| `PMS_EMAIL_ENDPOINT` | tidak | Override endpoint penyedia |
+| `PMS_EMAIL_ALLOWED_TO` | disarankan | Daftar penerima yang diizinkan, dipisah koma |
+| `PMS_GATEWAY_ALLOWED_HOSTS` | disarankan | Host gateway WhatsApp yang diizinkan, mis. `*.wablas.com,gateway.fonnte.com` |
+| `PMS_SUBSCRIPTION_SECRET` | disarankan | Secret POST `/api/subscription` (ada nilai bawaan — **ganti di produksi**) |
+
+Selama `PMS_EMAIL_API_KEY`/`PMS_EMAIL_FROM` belum diisi, `/api/notifications/email` menjawab `501` dengan penjelasan, dan aplikasi memakai jalur `mailto:`/unduhan. Setelah diisi, pengiriman otomatis aktif tanpa perubahan kode.
+
+#### Catatan keamanan
+
+- Endpoint proxy hanya menerima **`https`** dan menolak host privat/internal (`localhost`, `10.*`, `127.*`, `192.168.*`, `172.16–31.*`, `169.254.*`, `*.internal`, `*.local`) untuk mencegah SSRF. Isi `PMS_GATEWAY_ALLOWED_HOSTS` untuk mempersempit lebih jauh.
+- Token WhatsApp dikirim dari browser ke proxy ini, lalu diteruskan sebagai header `Authorization` ke gateway; token tidak pernah dikirim ke origin lain dari browser.
